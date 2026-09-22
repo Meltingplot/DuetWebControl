@@ -74,6 +74,7 @@
 		"repeatTitle": "Letzten Auftrag wiederholen",
 		"repeatSub": "{name}",
 		"repeatNone": "Kein Auftrag vorhanden",
+		"lockedPrinting": "Nicht verfügbar · Auftrag läuft",
 		"homeTitle": "Achsen referenzieren",
 		"homeSub": "{axes} · {state}",
 		"homed": "Referenziert",

@@ -72,10 +72,12 @@
 import { useRoute, useRouter } from "vue-router";
 
 import logoUrl from "../assets/meltingplot-logo.svg";
-import { NAV_ITEMS, SERVICE_ITEM, type NavItem } from "../routes";
+import { useMachineState } from "../composables/useMachineState";
+import { NAV_ITEMS, ROUTES, SERVICE_ITEM, type NavItem } from "../routes";
 
 const route = useRoute();
 const router = useRouter();
+const state = useMachineState();
 
 const items = NAV_ITEMS;
 const serviceItem = SERVICE_ITEM;
@@ -85,8 +87,11 @@ function isActive(item: NavItem): boolean {
 }
 
 function go(path: string) {
-	if (route.path !== path) {
-		router.push(path);
+	// While a job runs (or is paused) the start page offers nothing but the job tile, so "Start"
+	// leads straight to the job page and saves the operator a tap
+	const target = path === ROUTES.start && state.printing.value ? ROUTES.job : path;
+	if (route.path !== target) {
+		router.push(target);
 	}
 }
 </script>

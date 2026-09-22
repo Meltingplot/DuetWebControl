@@ -74,6 +74,7 @@
 		"repeatTitle": "Repeat last job",
 		"repeatSub": "{name}",
 		"repeatNone": "No job available",
+		"lockedPrinting": "Unavailable · job running",
 		"homeTitle": "Home axes",
 		"homeSub": "{axes} · {state}",
 		"homed": "Homed",

@@ -121,20 +121,22 @@
 					 :title="$t('plugins.CHX350.start.printTitle')"
 					 :subtitle="jobCount === null ? $t('plugins.CHX350.start.printSubLoading') : $t('plugins.CHX350.start.printSub', { count: jobCount })" />
 
-			<ChxTile icon="mdi-swap-horizontal" :to="ROUTES.filament"
-					 :title="$t('plugins.CHX350.start.filamentTitle')" :subtitle="filamentSub" />
-			<ChxTile icon="mdi-tray-arrow-up" :to="ROUTES.prepareBed"
-					 :title="$t('plugins.CHX350.start.bedTitle')" :subtitle="$t('plugins.CHX350.start.bedSub')" />
-			<ChxTile icon="mdi-thermometer-chevron-up" :to="ROUTES.preheat"
-					 :title="$t('plugins.CHX350.start.preheatTitle')" :subtitle="$t('plugins.CHX350.start.preheatSub')" />
+			<!-- Machine actions are unavailable while a job is being processed; a paused job keeps
+				 them (e.g. filament change during a pause) -->
+			<ChxTile icon="mdi-swap-horizontal" :to="ROUTES.filament" :disabled="jobRunning"
+					 :title="$t('plugins.CHX350.start.filamentTitle')" :subtitle="jobRunning ? lockedSub : filamentSub" />
+			<ChxTile icon="mdi-tray-arrow-up" :to="ROUTES.prepareBed" :disabled="jobRunning"
+					 :title="$t('plugins.CHX350.start.bedTitle')" :subtitle="jobRunning ? lockedSub : $t('plugins.CHX350.start.bedSub')" />
+			<ChxTile icon="mdi-thermometer-chevron-up" :to="ROUTES.preheat" :disabled="jobRunning"
+					 :title="$t('plugins.CHX350.start.preheatTitle')" :subtitle="jobRunning ? lockedSub : $t('plugins.CHX350.start.preheatSub')" />
 			<ChxTile icon="mdi-repeat" :disabled="lastJob === null || state.printing.value" @click="repeatLast"
 					 :title="$t('plugins.CHX350.start.repeatTitle')"
-					 :subtitle="lastJob ? $t('plugins.CHX350.start.repeatSub', { name: lastJob }) : $t('plugins.CHX350.start.repeatNone')" />
-			<ChxTile icon="mdi-home-import-outline" :to="ROUTES.home"
+					 :subtitle="state.printing.value ? lockedSub : (lastJob ? $t('plugins.CHX350.start.repeatSub', { name: lastJob }) : $t('plugins.CHX350.start.repeatNone'))" />
+			<ChxTile icon="mdi-home-import-outline" :to="ROUTES.home" :disabled="jobRunning"
 					 :title="$t('plugins.CHX350.start.homeTitle')"
-					 :subtitle="$t('plugins.CHX350.start.homeSub', { axes: axisLetters, state: allHomed ? $t('plugins.CHX350.start.homed') : $t('plugins.CHX350.start.notHomed') })" />
-			<ChxTile icon="mdi-target" :to="ROUTES.calibrate"
-					 :title="$t('plugins.CHX350.start.calibrateTitle')" :subtitle="$t('plugins.CHX350.start.calibrateSub')" />
+					 :subtitle="jobRunning ? lockedSub : $t('plugins.CHX350.start.homeSub', { axes: axisLetters, state: allHomed ? $t('plugins.CHX350.start.homed') : $t('plugins.CHX350.start.notHomed') })" />
+			<ChxTile icon="mdi-target" :to="ROUTES.calibrate" :disabled="jobRunning"
+					 :title="$t('plugins.CHX350.start.calibrateTitle')" :subtitle="jobRunning ? lockedSub : $t('plugins.CHX350.start.calibrateSub')" />
 		</section>
 
 		<aside class="aside">
@@ -198,6 +200,10 @@ const state = useMachineState();
 const temps = useTemps();
 
 const webcamEnabled = computed(() => settingsStore.webcam.enabled);
+
+/** A job is being processed right now (not paused): machine actions are locked */
+const jobRunning = computed(() => state.printing.value && !state.paused.value);
+const lockedSub = computed(() => i18n.global.t("plugins.CHX350.start.lockedPrinting"));
 
 const jobName = computed(() => {
 	const name = machineStore.model.job.file?.fileName;
