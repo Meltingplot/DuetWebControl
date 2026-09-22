@@ -381,8 +381,6 @@
 		"running": "Running"
 	},
 	"support": {
-		"title": "Support",
-		"contact": "Contact",
 		"phone": "Phone",
 		"email": "E-mail",
 		"web": "Web",
@@ -411,11 +409,7 @@
 		"diagnosticsHint": "Save object model, firmware diagnostics (M122) and event log as a file.",
 		"export": "Export diagnostics",
 		"exportDone": "Diagnostics saved",
-		"exportError": "Diagnostics could not be created",
-		"remote": "Remote access",
-		"tickets": "Ticket history",
-		"sendState": "Send machine state",
-		"later": "Coming with a later update."
+		"exportError": "Diagnostics could not be created"
 	},
 	"about": {
 		"title": "About this machine",

@@ -381,8 +381,6 @@
 		"running": "Läuft gerade"
 	},
 	"support": {
-		"title": "Support",
-		"contact": "Kontakt",
 		"phone": "Telefon",
 		"email": "E-Mail",
 		"web": "Web",
@@ -411,11 +409,7 @@
 		"diagnosticsHint": "Objektmodell, Firmware-Diagnose (M122) und Ereignisprotokoll als Datei speichern.",
 		"export": "Diagnosedaten exportieren",
 		"exportDone": "Diagnosedaten gespeichert",
-		"exportError": "Diagnosedaten konnten nicht erstellt werden",
-		"remote": "Fernzugriff",
-		"tickets": "Ticket-Historie",
-		"sendState": "Maschinenzustand senden",
-		"later": "Folgt mit einem späteren Update."
+		"exportError": "Diagnosedaten konnten nicht erstellt werden"
 	},
 	"about": {
 		"title": "Über diese Maschine",
