@@ -87,7 +87,11 @@ export function useMachineState() {
 	 */
 	const axesLocked = computed(() => uiFrozen.value || printing.value || !globals.isAutomatic.value);
 
-	const machineIsHot = computed(() => globals.machineIsHot.value);
+	/**
+	 * W017 hot-surface warning: only relevant in default mode, i.e. when the operator can open the
+	 * doors and reach into the machine. In automatic mode the interlock keeps the doors closed
+	 */
+	const machineIsHot = computed(() => globals.machineIsHot.value && !globals.isAutomatic.value);
 
 	/**
 	 * Default mode because the door interlock has not been confirmed yet: the operator has to open
