@@ -19,7 +19,11 @@
  *   - sd/               - SD card files     -> populates rrfFiles[]
  *
  * Usage:
- *   node scripts/build-plugin-pkg.js <path-to-plugin-dir>
+ *   node scripts/build-plugin-pkg.js <path-to-plugin-dir> [--sbc-only]
+ *
+ * --sbc-only skips the DWC bundle entirely and packages just the dsf/ (and sd/) directories.
+ * Meant for built-in plugins whose DWC part ships inside DWC itself but whose SBC daemon is
+ * installed through the plugin manager (e.g. src/plugins/CHX350).
  *
  * Output:
  *   <plugin-dir>/dist/                 - compiled IIFE bundle + optional CSS
@@ -66,28 +70,33 @@ function collectFiles(dir, subDir) {
 
 // #region Main
 
+const sbcOnly = process.argv.includes("--sbc-only");
 const resolvedPluginDir = parsePluginDir();
 const manifest = readManifest(resolvedPluginDir);
 resolveVersionPlaceholders(manifest);
-const entryFile = findEntryFile(resolvedPluginDir);
 
-console.log(`Building plugin package: ${manifest.id} (${manifest.name}) v${manifest.version}`);
-console.log(`Entry point: ${entryFile}`);
+let buildOutput = { outDir: null, jsFile: null, cssFile: null, hiddenSourcemaps: false };
+if (sbcOnly) {
+	console.log(`Building SBC-only plugin package: ${manifest.id} (${manifest.name}) v${manifest.version}`);
+} else {
+	const entryFile = findEntryFile(resolvedPluginDir);
+	console.log(`Building plugin package: ${manifest.id} (${manifest.name}) v${manifest.version}`);
+	console.log(`Entry point: ${entryFile}`);
 
-// process.exit() would skip the finally block, so the type check result is acted on after cleanup
-const cleanupNpm = installPluginDependencies(resolvedPluginDir);
-let typeCheckPassed = false;
-let buildOutput = null;
-try {
-	typeCheckPassed = typeCheckPlugin(resolvedPluginDir);
-	if (typeCheckPassed) {
-		buildOutput = await buildPlugin(resolvedPluginDir, manifest, entryFile);
+	// process.exit() would skip the finally block, so the type check result is acted on after cleanup
+	const cleanupNpm = installPluginDependencies(resolvedPluginDir);
+	let typeCheckPassed = false;
+	try {
+		typeCheckPassed = typeCheckPlugin(resolvedPluginDir);
+		if (typeCheckPassed) {
+			buildOutput = await buildPlugin(resolvedPluginDir, manifest, entryFile);
+		}
+	} finally {
+		cleanupNpm();
 	}
-} finally {
-	cleanupNpm();
-}
-if (!typeCheckPassed) {
-	process.exit(1);
+	if (!typeCheckPassed) {
+		process.exit(1);
+	}
 }
 
 const { outDir, jsFile, cssFile, hiddenSourcemaps } = buildOutput;
@@ -131,8 +140,12 @@ if (cssFile) {
 
 const dsfDir = join(resolvedPluginDir, "dsf");
 if (existsSync(dsfDir)) {
-	cpSync(dsfDir, join(assembleDir, "dsf"), { recursive: true });
-	manifest.dsfFiles.push(...collectFiles(dsfDir));
+	// Test suites and caches next to the daemon are development-only
+	cpSync(dsfDir, join(assembleDir, "dsf"), {
+		recursive: true,
+		filter: (src) => !/(^|[\\/])(tests|__pycache__|\.pytest_cache)([\\/]|$)/.test(src)
+	});
+	manifest.dsfFiles.push(...collectFiles(join(assembleDir, "dsf")));
 	filesAdded = true;
 }
 
@@ -166,7 +179,7 @@ try {
 	console.warn(`ZIP creation failed: ${e?.message ?? e}`);
 }
 
-if (hiddenSourcemaps) {
+if (hiddenSourcemaps && outDir) {
 	const srcmapPath = await createSourcemapZip(outDir, resolvedPluginDir, manifest);
 	if (srcmapPath) {
 		console.log(`Sourcemaps: ${srcmapPath}`);

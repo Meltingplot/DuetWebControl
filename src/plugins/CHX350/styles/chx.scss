@@ -1,0 +1,143 @@
+/* Meltingplot CHX 350 operator UI - design tokens and shell styles.
+   Everything is scoped under .chx-shell so stock DWC pages rendered inside the shell only inherit
+   the fonts and the Vuetify theme, not the kiosk-specific sizing. Source of the palette:
+   Meltingplot Corporate Identity Manual v3.0 */
+
+@use "./fonts";
+
+.chx-shell {
+	/* Brand colors */
+	--mp-primary: #009AD7;
+	--mp-primary-dark: #004276;
+	--mp-primary-light: #66D0FF;
+	--mp-secondary: #394955;
+	--mp-accent: #E89B26;
+
+	/* Neutrals */
+	--mp-neutral-900: #1A1F24;
+	--mp-neutral-700: #4A5568;
+	--mp-neutral-400: #9CADBC;
+	--mp-neutral-200: #E6F4F1;
+	--mp-neutral-100: #F5F8FA;
+	--mp-white: #FFFFFF;
+
+	/* Functional */
+	--mp-success: #00A77B;
+	--mp-warning: #E89B26;
+	--mp-error: #D94052;
+	--mp-info: #009AD7;
+
+	/* Semantic aliases (light) */
+	--text-strong: var(--mp-neutral-900);
+	--text-body: var(--mp-neutral-700);
+	--text-muted: var(--mp-neutral-400);
+	--text-on-primary: var(--mp-white);
+	--surface-page: var(--mp-neutral-100);
+	--surface-card: var(--mp-white);
+	--surface-sunken: var(--mp-neutral-200);
+	--border-subtle: #E2EAF0;
+	--border-default: #CDD9E2;
+	--border-strong: var(--mp-neutral-400);
+	--focus-ring: rgba(0, 154, 215, 0.40);
+
+	/* Typography */
+	--mp-font-body: "Jost", "Roboto", system-ui, sans-serif;
+	--mp-font-mono: "JetBrains Mono", ui-monospace, "SF Mono", monospace;
+
+	/* Spacing, radius, elevation */
+	--mp-radius-sm: 4px;
+	--mp-radius: 8px;
+	--mp-radius-lg: 14px;
+	--mp-shadow-sm: 0 1px 3px rgba(26, 31, 36, 0.08), 0 1px 2px rgba(26, 31, 36, 0.06);
+	--mp-shadow-md: 0 4px 12px rgba(26, 31, 36, 0.10);
+	--mp-ease: cubic-bezier(0.2, 0.6, 0.2, 1);
+	--mp-dur: 200ms;
+
+	/* Kiosk geometry: 10.1" touch display, 1280 x 800 px */
+	--chx-sidebar-width: 104px;
+	--chx-header-height: 72px;
+	--chx-touch: 56px;
+	--chx-gap: 12px;
+	--chx-page-padding: 16px 22px 18px;
+
+	font-family: var(--mp-font-body);
+}
+
+.v-theme--meltingplot-dark .chx-shell,
+.chx-shell.v-theme--meltingplot-dark {
+	--surface-page: #1A1F24;
+	--surface-card: #21272E;
+	--surface-sunken: #181D22;
+	--text-strong: #E6F4F1;
+	--text-body: #B9C6D1;
+	--text-muted: #7E909E;
+	--border-subtle: #2C343C;
+	--border-default: #38424B;
+	--border-strong: #4A5763;
+}
+
+/* Vuetify pins Roboto on .v-application; the shell is the application root */
+.v-application.chx-shell,
+.v-application.chx-shell .v-application__wrap {
+	font-family: var(--mp-font-body);
+	background: var(--surface-page);
+	color: var(--text-body);
+}
+
+.chx-shell .chx-mono {
+	font-family: var(--mp-font-mono);
+	font-variant-numeric: tabular-nums;
+}
+
+/* Page frame: fills the area below the header without scrolling the document */
+.chx-shell .chx-page {
+	height: calc(100dvh - var(--v-layout-top, var(--chx-header-height)));
+	box-sizing: border-box;
+	overflow: hidden;
+	padding: var(--chx-page-padding);
+	display: flex;
+	flex-direction: column;
+	gap: 14px;
+}
+
+/* Small uppercase labels used above numbers and in tiles */
+.chx-shell .chx-label {
+	font-size: 11px;
+	line-height: 1;
+	font-weight: 500;
+	letter-spacing: 0.07em;
+	text-transform: uppercase;
+	color: var(--text-body);
+}
+
+.chx-shell .chx-value {
+	font-family: var(--mp-font-mono);
+	font-weight: 700;
+	font-size: 20px;
+	line-height: 1.2;
+	color: var(--text-strong);
+}
+
+/* Card */
+.chx-shell .chx-card {
+	background: var(--surface-card);
+	border: 1px solid var(--border-subtle);
+	border-radius: var(--mp-radius-lg);
+	box-shadow: var(--mp-shadow-sm);
+	min-width: 0;
+	min-height: 0;
+}
+
+/* Touch-sized primary/secondary buttons */
+.chx-shell .chx-btn {
+	min-height: var(--chx-touch);
+	border-radius: var(--mp-radius);
+	font-weight: 600;
+	letter-spacing: 0.02em;
+	text-transform: none;
+}
+
+/* Stock DWC pages inside the shell get a bit of padding like the built-in layout */
+.chx-shell .chx-stock-page {
+	padding: 16px;
+}

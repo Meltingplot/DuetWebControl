@@ -47,7 +47,7 @@ iframe {
 <template>
 	<div class="webcam-view flex-grow-1">
 		<v-responsive v-if="settingsStore.webcam.embedded" :aspect-ratio="16 / 9">
-			<iframe :src="settingsStore.webcam.url" :class="classList" />
+			<iframe :src="embeddedUrl" :class="classList" />
 		</v-responsive>
 
 		<a v-else-if="settingsStore.webcam.enabled" class="media-link"
@@ -75,6 +75,14 @@ const remoteVideo = ref<HTMLVideoElement | null>(null);
 
 const webcamIsRTC = computed(() => settingsStore.webcam.url.startsWith("ws:")
 	|| settingsStore.webcam.url.startsWith("wss:"));
+
+// The [HOSTNAME] placeholder resolves to the machine DWC is connected to (not necessarily the
+// host serving DWC, e.g. the dev server) - for the embedded iframe just like for the <img> path
+const embeddedUrl = computed(() => {
+	const connector = machineStore.connector;
+	const hostname = connector ? connector.hostname : location.hostname;
+	return settingsStore.webcam.url.replace("[HOSTNAME]", hostname);
+});
 
 // Style classes derived from the flip + rotation settings
 const classList = computed(() => {

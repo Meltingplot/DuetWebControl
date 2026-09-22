@@ -115,7 +115,7 @@ export enum LockableSliders {
 // step to {@link settingsUpgrades} whenever the shape changes incompatibly; the load path
 // chains upgrades from the persisted version up to the current one. Mirrors the pattern used by
 // useComponentSettings for per-component records
-const SETTINGS_SCHEMA_VERSION = 4;
+const SETTINGS_SCHEMA_VERSION = 5;
 
 /**
  * One per upgrade step. Index N runs when migrating from version N to N+1. Each step receives
@@ -185,6 +185,21 @@ const settingsUpgrades: ReadonlyArray<(blob: any) => any> = [
 		}
 		return blob;
 	},
+
+	// 4 -> 5: the CHX 350 operator UI became a built-in plugin that is enabled by default. A
+	// persisted enabledPlugins list replaces the default wholesale on load, so boards configured
+	// before this version would never pick the new default up - union it in once. Users can still
+	// stop the plugin afterwards; the upgrade only runs when migrating from version 4
+	(blob: any) => {
+		for (const container of [blob, blob?.main, blob?.machine]) {
+			if (container && typeof container === "object" && Array.isArray(container.enabledPlugins)) {
+				if (!container.enabledPlugins.some((id: unknown) => typeof id === "string" && id.toLowerCase() === "chx350")) {
+					container.enabledPlugins.push("CHX350");
+				}
+			}
+		}
+		return blob;
+	},
 ];
 
 /**
@@ -242,6 +257,7 @@ export const useSettingsStore = defineStore("settings", {
 			"HeightMap",
 			"InputShaping",
 			"ObjectModelBrowser",
+			"CHX350",
 		],
 
 		/**

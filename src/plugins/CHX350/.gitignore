@@ -1,0 +1,6 @@
+# Packaging output of `npm run build-chx350-sbc`
+pkg/
+*.zip
+# Python
+__pycache__/
+.pytest_cache/

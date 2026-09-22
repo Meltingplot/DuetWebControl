@@ -1,0 +1,292 @@
+<style scoped>
+.check {
+	flex: 1;
+	min-height: 0;
+	display: grid;
+	grid-template-columns: minmax(0, 1fr) 380px;
+	gap: 16px;
+}
+.file {
+	padding: 18px 20px;
+	display: flex;
+	flex-direction: column;
+	gap: 14px;
+	overflow: auto;
+}
+.file__head {
+	display: flex;
+	gap: 16px;
+	align-items: flex-start;
+}
+.file__thumb {
+	width: 120px;
+	height: 120px;
+	flex: none;
+	border-radius: var(--mp-radius);
+	background: var(--surface-sunken);
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	overflow: hidden;
+}
+.file__thumb :deep(img) {
+	width: 100%;
+	height: 100%;
+	object-fit: contain;
+}
+.file__name {
+	font: 700 18px/1.25 var(--mp-font-body, sans-serif);
+	color: var(--text-strong);
+	word-break: break-word;
+}
+.meta {
+	display: grid;
+	grid-template-columns: repeat(4, minmax(0, 1fr));
+	gap: 10px 16px;
+}
+.meta__val {
+	font: 700 18px/1.2 var(--mp-font-mono, monospace);
+	color: var(--text-strong);
+	margin-top: 4px;
+	white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
+}
+.checks {
+	display: flex;
+	flex-direction: column;
+	gap: 8px;
+}
+.chk {
+	display: flex;
+	align-items: center;
+	gap: 12px;
+	padding: 10px 12px;
+	border-radius: var(--mp-radius);
+	background: var(--surface-page);
+	border-left: 4px solid var(--border-subtle);
+}
+.chk--mismatch {
+	border-left-color: var(--mp-accent);
+	background: rgba(232, 155, 38, 0.10);
+}
+.chk--unknown {
+	border-left-color: var(--border-default);
+}
+.chk__title {
+	font: 600 14px/1.25 var(--mp-font-body, sans-serif);
+	color: var(--text-strong);
+}
+.chk__detail {
+	font: 400 12px/1.3 var(--mp-font-mono, monospace);
+	color: var(--text-body);
+}
+.side {
+	display: flex;
+	flex-direction: column;
+	gap: 12px;
+	min-height: 0;
+}
+.pre {
+	padding: 16px 18px;
+	display: flex;
+	flex-direction: column;
+	gap: 10px;
+}
+.pre__row {
+	display: flex;
+	align-items: center;
+	gap: 10px;
+	font: 500 14px/1.3 var(--mp-font-body, sans-serif);
+	color: var(--text-strong);
+	min-height: 40px;
+}
+.cta {
+	margin-top: auto;
+	display: flex;
+	flex-direction: column;
+	gap: 10px;
+}
+.cta__hint {
+	font: 400 12px/1.35 var(--mp-font-body, sans-serif);
+	color: var(--text-body);
+}
+</style>
+
+<template>
+	<div class="chx-page">
+		<ChxPageHeader :title="$t('plugins.CHX350.check.title')" :back="ROUTES.jobs" />
+
+		<div class="check">
+			<div class="chx-card file">
+				<div class="file__head">
+					<div class="file__thumb">
+						<ThumbnailImg v-if="job.thumbnail.value" :thumbnail="job.thumbnail.value" />
+						<v-icon v-else size="48" color="grey">mdi-file-document-outline</v-icon>
+					</div>
+					<div style="min-width: 0">
+						<div class="file__name">{{ job.fileName.value }}</div>
+						<div class="text-body-2 text-medium-emphasis mt-1">{{ job.info.value?.generatedBy ?? "" }}</div>
+						<div v-if="job.loading.value" class="mt-2"><v-progress-linear indeterminate color="primary" /></div>
+					</div>
+				</div>
+
+				<div class="meta">
+					<div>
+						<div class="chx-label">{{ $t("plugins.CHX350.check.printTime") }}</div>
+						<div class="meta__val">{{ job.info.value?.printTime ? displayTime(Number(job.info.value.printTime)) : "—" }}</div>
+					</div>
+					<div>
+						<div class="chx-label">{{ $t("plugins.CHX350.check.printMode") }}</div>
+						<div class="meta__val">{{ job.meta.value.printMode ?? "—" }}</div>
+					</div>
+					<div>
+						<div class="chx-label">{{ $t("plugins.CHX350.check.height") }}</div>
+						<div class="meta__val">{{ job.info.value?.height ? display(job.info.value.height, 2, "mm") : "—" }}</div>
+					</div>
+					<div>
+						<div class="chx-label">{{ $t("plugins.CHX350.check.layerHeight") }}</div>
+						<div class="meta__val">{{ job.meta.value.layerHeight ? display(job.meta.value.layerHeight, 2, "mm") : "—" }}</div>
+					</div>
+					<div>
+						<div class="chx-label">{{ $t("plugins.CHX350.check.filament") }}</div>
+						<div class="meta__val">{{ job.totalFilament.value > 0 ? display(job.totalFilament.value / 1000, 1, "m") : "—" }}</div>
+					</div>
+					<div>
+						<div class="chx-label">{{ $t("plugins.CHX350.check.layers") }}</div>
+						<div class="meta__val">{{ job.info.value?.numLayers || "—" }}</div>
+					</div>
+					<div>
+						<div class="chx-label">{{ $t("plugins.CHX350.check.size") }}</div>
+						<div class="meta__val">{{ job.info.value ? displaySize(Number(job.info.value.size)) : "—" }}</div>
+					</div>
+					<div>
+						<div class="chx-label">{{ $t("plugins.CHX350.check.source") }}</div>
+						<div class="meta__val">{{ $t(`plugins.CHX350.check.source_${job.meta.value.source}`) }}</div>
+					</div>
+				</div>
+
+				<div class="checks">
+					<div v-for="(chk, i) in job.checks.value" :key="i" class="chk" :class="`chk--${chk.state}`">
+						<v-icon size="24" :color="chk.state === 'ok' ? 'success' : (chk.state === 'mismatch' ? 'warning' : undefined)">
+							{{ chk.state === "ok" ? "mdi-check-circle" : (chk.state === "mismatch" ? "mdi-alert" : "mdi-help-circle-outline") }}
+						</v-icon>
+						<div style="min-width: 0">
+							<div class="chk__title">{{ $t(chk.title) }}</div>
+							<div class="chk__detail">{{ chk.detail }}</div>
+						</div>
+					</div>
+					<div v-if="job.backendError.value && job.meta.value.source !== 'backend'" class="text-caption text-medium-emphasis px-3">
+						{{ $t("plugins.CHX350.check.noBackend") }}
+					</div>
+				</div>
+			</div>
+
+			<div class="side">
+				<div class="chx-card pre">
+					<div class="chx-label">{{ $t("plugins.CHX350.check.beforeStart") }}</div>
+					<label class="pre__row">
+						<v-checkbox-btn v-model="bedClear" color="primary" />
+						{{ $t("plugins.CHX350.check.bedClear") }}
+					</label>
+					<div class="pre__row">
+						<v-icon :color="allHomed ? 'success' : 'warning'">{{ allHomed ? "mdi-check-circle" : "mdi-alert-circle-outline" }}</v-icon>
+						{{ $t("plugins.CHX350.check.homed") }}
+					</div>
+					<div class="pre__row">
+						<v-icon :color="!job.state.doorOpen.value ? 'success' : 'warning'">{{ !job.state.doorOpen.value ? "mdi-check-circle" : "mdi-door-open" }}</v-icon>
+						{{ $t("plugins.CHX350.check.doorClosed") }}
+					</div>
+					<div class="pre__row">
+						<v-icon :color="job.state.isAutomatic.value ? 'success' : 'warning'">{{ job.state.isAutomatic.value ? "mdi-check-circle" : "mdi-lock-outline" }}</v-icon>
+						{{ $t("plugins.CHX350.check.automatic") }}
+					</div>
+					<div class="pre__row">
+						<v-icon :color="job.blocked.value ? 'warning' : 'success'">{{ job.blocked.value ? "mdi-alert" : "mdi-check-circle" }}</v-icon>
+						{{ job.blocked.value ? $t("plugins.CHX350.check.checkOpen") : $t("plugins.CHX350.check.checkOk") }}
+					</div>
+				</div>
+
+				<div class="cta">
+					<div v-if="startHint" class="cta__hint">{{ startHint }}</div>
+					<v-btn color="secondary" size="x-large" class="chx-btn" block :disabled="!canStart" :loading="starting" @click="start">
+						<v-icon start>mdi-play</v-icon>
+						{{ job.blocked.value ? $t("plugins.CHX350.check.startBlocked") : $t("plugins.CHX350.check.start") }}
+					</v-btn>
+					<v-btn variant="outlined" size="large" class="chx-btn" block @click="router.push(ROUTES.jobs)">
+						{{ $t("plugins.CHX350.generic.cancel") }}
+					</v-btn>
+				</div>
+			</div>
+		</div>
+	</div>
+</template>
+
+<script setup lang="ts">
+import { computed, ref } from "vue";
+import { useRoute, useRouter } from "vue-router";
+
+import ThumbnailImg from "@/components/misc/ThumbnailImg.vue";
+import { showConfirmDialog } from "@/composables/useConfirmDialog";
+import i18n from "@/i18n";
+import { useMachineStore } from "@/stores/machine";
+import { display, displaySize, displayTime } from "@/utils/display";
+import { escapeFilename } from "@/utils/path";
+
+import ChxPageHeader from "../components/ChxPageHeader.vue";
+import { useJobMeta } from "../composables/useJobMeta";
+import { ROUTES } from "../routes";
+
+const route = useRoute();
+const router = useRouter();
+const machineStore = useMachineStore();
+
+const filePath = computed(() => {
+	const q = route.query.file;
+	return typeof q === "string" ? q : "";
+});
+const job = useJobMeta(filePath);
+
+const bedClear = ref(false);
+const allHomed = computed(() => {
+	const axes = machineStore.model.move.axes.filter((a) => a.visible);
+	return axes.length > 0 && axes.every((a) => a.homed);
+});
+
+const canStart = computed(() => !!filePath.value && machineStore.isConnected && !job.state.printing.value
+	&& !job.blocked.value && bedClear.value && job.state.isAutomatic.value && !job.state.doorOpen.value);
+
+const startHint = computed(() => {
+	if (job.state.printing.value) {
+		return i18n.global.t("plugins.CHX350.check.hintPrinting");
+	}
+	if (!job.state.isAutomatic.value || job.state.doorOpen.value) {
+		return i18n.global.t("plugins.CHX350.check.hintMode");
+	}
+	if (job.blocked.value) {
+		return i18n.global.t("plugins.CHX350.check.hintBlocked");
+	}
+	if (!bedClear.value) {
+		return i18n.global.t("plugins.CHX350.check.hintBed");
+	}
+	return "";
+});
+
+const starting = ref(false);
+async function start() {
+	if (!canStart.value) {
+		return;
+	}
+	const name = job.fileName.value;
+	if (!(await showConfirmDialog(i18n.global.t("dialog.startJob.title", [name]), i18n.global.t("dialog.startJob.prompt", [name]), "mdi-play"))) {
+		return;
+	}
+	starting.value = true;
+	try {
+		await machineStore.sendCode(`M32 "${escapeFilename(filePath.value)}"`);
+		router.push(ROUTES.job);
+	} finally {
+		starting.value = false;
+	}
+}
+</script>

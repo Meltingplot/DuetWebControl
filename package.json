@@ -13,7 +13,8 @@
     "build": "vue-tsc --noEmit && vite build",
     "preview": "vite preview",
     "build-plugin": "node scripts/build-plugin.js",
-    "build-plugin-pkg": "node scripts/build-plugin-pkg.js"
+    "build-plugin-pkg": "node scripts/build-plugin-pkg.js",
+    "build-chx350-sbc": "node scripts/build-plugin-pkg.js src/plugins/CHX350 --sbc-only"
   },
   "dependencies": {
     "@babylonjs/core": "^9.17.0",

@@ -1,0 +1,21 @@
+{
+	"id": "CHX350",
+	"name": "CHX 350",
+	"author": "Meltingplot GmbH",
+	"version": "auto",
+	"license": "GPL-3.0-or-later",
+	"homepage": "https://www.meltingplot.net",
+	"tags": ["meltingplot", "chx350", "layout"],
+	"sbcRequired": true,
+	"sbcDsfVersion": "3.7",
+	"sbcExecutable": "chx350-daemon.py",
+	"sbcOutputRedirected": true,
+	"sbcPermissions": [
+		"commandExecution",
+		"objectModelRead",
+		"registerHttpEndpoints",
+		"readGCodes",
+		"readSystem"
+	],
+	"sbcPythonDependencies": ["dsf-python"]
+}
