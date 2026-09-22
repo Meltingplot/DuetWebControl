@@ -202,7 +202,22 @@
 		"doorOpen": "Door open",
 		"doorOpenBody": "The build chamber is open. Chamber temperature is dropping.",
 		"filamentMonitor": "Filament monitor: {status}",
-		"filamentMonitorBody": "Check filament path, spool and feeder."
+		"filamentMonitorBody": "Check filament path, spool and feeder.",
+		"live": "LIVE",
+		"duration": "Duration",
+		"elapsed": "Print time",
+		"height": "Height",
+		"machine": "Machine",
+		"speed": "Speed",
+		"fan": "Fan",
+		"noLayerData": "Per-layer data is available from the second layer on.",
+		"noTempSensor": "No chamber sensor available.",
+		"result": {
+			"finished": "FINISHED",
+			"cancelled": "CANCELLED",
+			"aborted": "ERROR",
+			"simulated": "SIMULATED"
+		}
 	},
 	"analysis": {
 		"title": "Part analysis",

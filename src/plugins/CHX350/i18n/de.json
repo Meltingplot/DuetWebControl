@@ -202,7 +202,22 @@
 		"doorOpen": "Tür geöffnet",
 		"doorOpenBody": "Bauraum ist offen. Die Kammertemperatur fällt.",
 		"filamentMonitor": "Filament-Monitor: {status}",
-		"filamentMonitorBody": "Filamentweg, Spule und Einzug prüfen."
+		"filamentMonitorBody": "Filamentweg, Spule und Einzug prüfen.",
+		"live": "LIVE",
+		"duration": "Dauer",
+		"elapsed": "Druckzeit",
+		"height": "Höhe",
+		"machine": "Maschine",
+		"speed": "Tempo",
+		"fan": "Lüfter",
+		"noLayerData": "Schichtdaten liegen ab der zweiten Schicht vor.",
+		"noTempSensor": "Kein Kammersensor vorhanden.",
+		"result": {
+			"finished": "FERTIG",
+			"cancelled": "ABGEBROCHEN",
+			"aborted": "FEHLER",
+			"simulated": "SIMULIERT"
+		}
 	},
 	"analysis": {
 		"title": "Bauteil-Analyse",
