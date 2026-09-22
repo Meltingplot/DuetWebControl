@@ -133,8 +133,11 @@ const props = withDefaults(defineProps<{
 	min: number;
 	max: number;
 	locked?: boolean;
+	/** Transient: pointer input is ignored without any visual change (see Control.vue) */
+	busy?: boolean;
 }>(), {
-	locked: false
+	locked: false,
+	busy: false
 });
 
 const emit = defineEmits<{
@@ -232,7 +235,7 @@ function pick(e: PointerEvent) {
 }
 
 function onDown(e: PointerEvent) {
-	if (props.locked || e.button !== 0) {
+	if (props.locked || props.busy || e.button !== 0) {
 		return;
 	}
 	dragging = true;
@@ -249,7 +252,7 @@ function onUp() {
 		return;
 	}
 	dragging = false;
-	if (target.value !== null && !props.locked) {
+	if (target.value !== null && !props.locked && !props.busy) {
 		emit("goto", target.value);
 	}
 	target.value = null;
@@ -262,13 +265,13 @@ function onCancel() {
 async function enter() {
 	// A long press on the track also lands here: never treat the pending drag as a release
 	onCancel();
-	if (props.locked) {
+	if (props.locked || props.busy) {
 		return;
 	}
 	const value = await getNumericInput(i18n.global.t("plugins.CHX350.control.enterZTitle"),
 		i18n.global.t("plugins.CHX350.control.enterZPrompt", { min: props.min, max: props.max }),
 		props.current ?? props.min, props.min, props.max);
-	if (value !== null && !props.locked) {
+	if (value !== null && !props.locked && !props.busy) {
 		emit("goto", clamp(value, props.min, props.max));
 	}
 }

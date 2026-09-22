@@ -22,6 +22,7 @@
 		"idle": "LEERLAUF",
 		"automatic": "AUTOMATIK",
 		"heating": "HEIZT AUF",
+		"busy": "ARBEITET",
 		"printing": "DRUCKT",
 		"paused": "PAUSIERT",
 		"estop": "NOT-AUS",
@@ -238,6 +239,7 @@
 		"zStep": "Schritt {step} mm",
 		"zHint": "Ziehen und loslassen fährt Z · Wert antippen zum Eingeben",
 		"notHomed": "nicht referenziert",
+		"homeAxis": "Achse {axis} referenzieren",
 		"selectedAxis": "T{tool} · Achse {axis}"
 	},
 	"prepareBed": {

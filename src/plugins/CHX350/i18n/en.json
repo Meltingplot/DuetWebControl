@@ -22,6 +22,7 @@
 		"idle": "IDLE",
 		"automatic": "AUTOMATIC",
 		"heating": "HEATING",
+		"busy": "BUSY",
 		"printing": "PRINTING",
 		"paused": "PAUSED",
 		"estop": "E-STOP",
@@ -238,6 +239,7 @@
 		"zStep": "Step {step} mm",
 		"zHint": "Drag and release moves Z · tap the value to enter it",
 		"notHomed": "not homed",
+		"homeAxis": "Home axis {axis}",
 		"selectedAxis": "T{tool} · axis {axis}"
 	},
 	"prepareBed": {

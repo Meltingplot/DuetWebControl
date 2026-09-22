@@ -159,6 +159,8 @@ const props = withDefaults(defineProps<{
 	tool1Axis?: string;
 	locked?: boolean;
 	lockReason?: string;
+	/** Transient: taps are ignored without any visual change (see Control.vue) */
+	busy?: boolean;
 	moving?: boolean;
 	target?: { x: number; y: number } | null;
 }>(), {
@@ -166,6 +168,7 @@ const props = withDefaults(defineProps<{
 	tool1Axis: "U",
 	locked: false,
 	lockReason: "",
+	busy: false,
 	moving: false,
 	target: null
 });
@@ -211,7 +214,7 @@ const band = computed(() => {
 
 const svgPoint = ref<DOMPoint | null>(null);
 function onTap(e: PointerEvent) {
-	if (props.locked) {
+	if (props.locked || props.busy) {
 		return;
 	}
 	const svg = (e.currentTarget as SVGSVGElement);

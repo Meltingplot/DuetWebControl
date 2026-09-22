@@ -16,7 +16,7 @@
 	cursor: pointer;
 }
 .plate--automatic, .plate--printing { background: var(--mp-primary-dark); color: #fff; }
-.plate--heating { background: var(--mp-primary); color: #fff; }
+.plate--heating, .plate--busy { background: var(--mp-primary); color: #fff; }
 .plate--idle, .plate--paused { background: var(--mp-accent); color: var(--mp-neutral-900); }
 .plate--estop { background: var(--mp-error); color: #fff; }
 .plate--offline { background: var(--mp-neutral-400); color: var(--mp-neutral-900); }
@@ -62,6 +62,7 @@ const icon = computed(() => {
 		case "automatic": return "mdi-check";
 		case "idle": return "mdi-lock-outline";
 		case "heating": return "mdi-thermometer";
+		case "busy": return "mdi-timer-sand";
 		case "printing": return "mdi-play";
 		case "paused": return "mdi-pause";
 		case "estop": return "mdi-alert-octagon";

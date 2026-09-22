@@ -8,7 +8,7 @@ import { isPaused, isPrinting } from "@/utils/enums";
 import { useChxGlobals } from "./useChxGlobals";
 
 /** Operator-facing machine state shown on the header plate */
-export type PlateState = "estop" | "paused" | "printing" | "heating" | "automatic" | "idle" | "offline";
+export type PlateState = "estop" | "paused" | "printing" | "busy" | "heating" | "automatic" | "idle" | "offline";
 
 /** Door switch inputs (sensors.gpIn indices) on the CHX 350; 1 = closed, 0 = open */
 const DOOR_INPUTS = [2, 3];
@@ -41,6 +41,7 @@ export function useMachineState() {
 	const printing = computed(() => isPrinting(status.value));
 	const paused = computed(() => isPaused(status.value));
 	const halted = computed(() => status.value === MachineStatus.halted);
+	const busy = computed(() => status.value !== MachineStatus.idle);
 	// A heater is heating when it is below the setpoint that applies to its state: a tool parked
 	// in standby is compared with its standby temperature, not with the active one
 	const heating = computed(() => !printing.value && heaters.value.some((h) => {
@@ -62,6 +63,11 @@ export function useMachineState() {
 		if (printing.value) {
 			return "printing";
 		}
+		// A running macro (e.g. calibrate E-steps) outranks heating: the bed may warm up as a side
+		// effect, but the operator has to know that the machine is executing something
+		if (busy.value) {
+			return "busy";
+		}
 		if (heating.value) {
 			return "heating";
 		}
@@ -71,7 +77,6 @@ export function useMachineState() {
 		return "idle";
 	});
 
-	const busy = computed(() => status.value !== MachineStatus.idle);
 	const uiFrozen = computed(() => uiStore.uiFrozen);
 
 	/**

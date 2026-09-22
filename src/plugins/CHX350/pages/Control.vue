@@ -110,15 +110,49 @@
 .pos--sel .pos__val {
 	color: var(--mp-primary-dark);
 }
-.pos--unhomed .pos__val {
+/* Icon-only home button shown in place of the coordinate of an unhomed axis. Its height matches
+   the value line (margin + 21px) so the row does not jump once the axis is homed */
+.pos__home {
+	all: unset;
+	box-sizing: border-box;
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	margin-top: 5px;
+	width: 44px;
+	height: 21px;
+	border-radius: 999px;
+	border: 1.5px solid var(--mp-warning);
+	background: color-mix(in srgb, var(--mp-warning) 14%, var(--surface-card));
+	cursor: pointer;
+	transition: background var(--mp-dur, 200ms) var(--mp-ease, ease);
+}
+.pos__home .v-icon {
+	color: var(--mp-warning);
+}
+.pos__home:not(:disabled):hover,
+.pos__home:not(:disabled):focus-visible {
+	background: color-mix(in srgb, var(--mp-warning) 28%, var(--surface-card));
+}
+.pos__home:not(:disabled):active {
+	background: var(--mp-warning);
+	color: #fff;
+}
+.pos__home:not(:disabled):active .v-icon {
+	color: #fff;
+}
+.pos__home:disabled {
+	border-style: dashed;
+	border-color: var(--border-default);
+	background: var(--surface-page);
+	color: var(--text-muted);
+	cursor: not-allowed;
+}
+.pos__home:disabled .v-icon {
 	color: var(--text-muted);
 }
-.pos__note {
-	margin-top: 4px;
-	font: 600 10px/1 var(--mp-font-body, sans-serif);
-	letter-spacing: 0.05em;
-	color: var(--mp-warning);
-	white-space: nowrap;
+.pos__home--busy {
+	cursor: progress;
 }
 </style>
 
@@ -128,9 +162,9 @@
 			<template v-if="jogMode">
 				<div class="jog">
 					<BedMap class="jog__map" :size-x="bedMap.sizeX" :size-y="bedMap.sizeY" :heads="heads" :selected-tool="selectedTool"
-							:head-spacing="bedMap.headSpacing" :tool1-axis="bedMap.tool1YAxis" :locked="locked"
+							:head-spacing="bedMap.headSpacing" :tool1-axis="bedMap.tool1YAxis" :locked="locked" :busy="busy"
 							:lock-reason="lockReason" :moving="moving" :target="target" @move="moveTo" @select="selectTool" />
-					<ZTower v-if="zAxis" :current="zAxis.userPosition" :min="zAxis.min" :max="zAxis.max" :locked="locked" @goto="gotoZ" />
+					<ZTower v-if="zAxis" :current="zAxis.userPosition" :min="zAxis.min" :max="zAxis.max" :locked="locked" :busy="busy" @goto="gotoZ" />
 				</div>
 			</template>
 			<template v-else>
@@ -158,10 +192,16 @@
 			</div>
 
 			<div class="chx-card positions">
-				<div v-for="axis in visibleAxes" :key="axis.letter" :class="{ 'pos--sel': isSelectedAxis(axis.letter), 'pos--unhomed': !axis.homed }">
+				<div v-for="axis in visibleAxes" :key="axis.letter" :class="{ 'pos--sel': isSelectedAxis(axis.letter) }">
 					<div class="pos__label">{{ axisLabel(axis.letter) }}</div>
-					<div class="pos__val">{{ axis.userPosition !== null ? axis.userPosition.toFixed(axis.letter === 'Z' ? 2 : 1) : "—" }}</div>
-					<div v-if="!axis.homed" class="pos__note">{{ $t("plugins.CHX350.control.notHomed") }}</div>
+					<div v-if="axis.homed" class="pos__val">{{ axis.userPosition !== null ? axis.userPosition.toFixed(axis.letter === 'Z' ? 2 : 1) : "—" }}</div>
+					<!-- An unhomed axis shows an icon-only home button in place of its (meaningless) coordinate -->
+					<button v-else type="button" class="pos__home" :class="{ 'pos__home--busy': homingAxis === axis.letter }"
+							:disabled="locked || homingAxis !== null" :title="locked ? lockReason : $t('plugins.CHX350.control.homeAxis', { axis: axis.letter })"
+							:aria-label="$t('plugins.CHX350.control.homeAxis', { axis: axis.letter })" @click="homeAxis(axis.letter)">
+						<v-progress-circular v-if="homingAxis === axis.letter" indeterminate size="16" width="2" />
+						<v-icon v-else size="20">{{ locked ? "mdi-lock-outline" : "mdi-home-import-outline" }}</v-icon>
+					</button>
 				</div>
 				<div class="flex-grow-1" />
 				<div>
@@ -180,6 +220,7 @@ import i18n from "@/i18n";
 import { useMachineStore } from "@/stores/machine";
 import { useSettingsStore } from "@/stores/settings";
 import { LogLevel, useUiStore } from "@/stores/ui";
+import { axisGCodeLetter } from "@/utils/gcode";
 
 import BedMap from "../components/BedMap.vue";
 import ChxCamera from "../components/ChxCamera.vue";
@@ -217,6 +258,11 @@ const heads = computed(() => tools.value.slice(0, 2).map((t) => {
 // Locked on the operating mode alone (see useMachineState.axesLocked): the firmware leaves
 // automatic mode when a door opens, and a busy status is what our own moves look like
 const locked = computed(() => !state.connected.value || state.axesLocked.value);
+
+// Transient: while the firmware runs a macro (or one of our own moves) it accepts no new motion
+// commands, so inputs are dropped during that time. The view keeps its normal look on purpose:
+// busy toggles with every status poll and a visible lock would flicker
+const busy = computed(() => moving.value || state.busy.value);
 
 const lockReason = computed(() => {
 	if (!state.connected.value) {
@@ -261,13 +307,13 @@ async function selectTool(tool: number) {
 		return;
 	}
 	selectedTool.value = tool;
-	if (!locked.value && machineStore.model.state.currentTool !== tool) {
+	if (!locked.value && !busy.value && machineStore.model.state.currentTool !== tool) {
 		await send(`T${tool}`);
 	}
 }
 
 async function moveTo(point: { x: number; y: number }) {
-	if (locked.value) {
+	if (locked.value || busy.value) {
 		return;
 	}
 	target.value = point;
@@ -280,8 +326,25 @@ async function moveTo(point: { x: number; y: number }) {
 	}
 }
 
+/** Letter of the axis currently being homed from the positions row, null when none */
+const homingAxis = ref<string | null>(null);
+
+async function homeAxis(letter: string) {
+	if (locked.value || busy.value || homingAxis.value !== null) {
+		return;
+	}
+	homingAxis.value = letter;
+	moving.value = true;
+	try {
+		await send(`G28 ${axisGCodeLetter(letter)}`);
+	} finally {
+		homingAxis.value = null;
+		moving.value = false;
+	}
+}
+
 async function gotoZ(z: number) {
-	if (locked.value) {
+	if (locked.value || busy.value) {
 		return;
 	}
 	moving.value = true;
