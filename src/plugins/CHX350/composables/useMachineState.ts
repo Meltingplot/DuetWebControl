@@ -80,11 +80,12 @@ export function useMachineState() {
 	const uiFrozen = computed(() => uiStore.uiFrozen);
 
 	/**
-	 * Axis moves from the UI are permitted in automatic mode only. The mode is the single source of
-	 * truth: the firmware drops to default mode itself when a door opens, and a "busy" status must
-	 * not lock the controls because that is exactly what a running axis move looks like
+	 * Axis moves from the UI are permitted in automatic mode only and never while a job runs
+	 * (including paused). The mode covers the door interlock: the firmware drops to default mode
+	 * itself when a door opens. A plain "busy" status must not lock the controls because that is
+	 * exactly what a running axis move looks like
 	 */
-	const axesLocked = computed(() => uiFrozen.value || !globals.isAutomatic.value);
+	const axesLocked = computed(() => uiFrozen.value || printing.value || !globals.isAutomatic.value);
 
 	const machineIsHot = computed(() => globals.machineIsHot.value);
 

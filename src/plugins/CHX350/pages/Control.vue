@@ -214,7 +214,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref } from "vue";
+import { computed, ref, watch } from "vue";
 
 import i18n from "@/i18n";
 import { useMachineStore } from "@/stores/machine";
@@ -255,9 +255,16 @@ const heads = computed(() => tools.value.slice(0, 2).map((t) => {
 	return { tool: t.number, x: axis("X")?.userPosition ?? 0, y: axis(yLetter)?.userPosition ?? 0 };
 }));
 
-// Locked on the operating mode alone (see useMachineState.axesLocked): the firmware leaves
-// automatic mode when a door opens, and a busy status is what our own moves look like
+// Locked while a job runs or outside automatic mode (see useMachineState.axesLocked); a plain
+// busy status is what our own moves look like and does not lock
 const locked = computed(() => !state.connected.value || state.axesLocked.value);
+
+// Leave jog mode as soon as the lock engages, e.g. when a print starts from another client
+watch(locked, (isLocked) => {
+	if (isLocked) {
+		jogMode.value = false;
+	}
+});
 
 // Transient: while the firmware runs a macro (or one of our own moves) it accepts no new motion
 // commands, so inputs are dropped during that time. The view keeps its normal look on purpose:
@@ -267,6 +274,9 @@ const busy = computed(() => moving.value || state.busy.value);
 const lockReason = computed(() => {
 	if (!state.connected.value) {
 		return i18n.global.t("plugins.CHX350.status.offline");
+	}
+	if (state.printing.value) {
+		return i18n.global.t("plugins.CHX350.control.lockPrinting");
 	}
 	if (!state.isAutomatic.value) {
 		if (state.doorOpen.value) {
