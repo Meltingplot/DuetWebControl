@@ -71,7 +71,7 @@
 
 <template>
 	<div class="chx-page">
-		<ChxPageHeader :title="$t('plugins.CHX350.filament.title')" :subtitle="$t('plugins.CHX350.generic.step', { n: step + 1, total: 3 })" :back="ROUTES.start" @back="onBack" />
+		<ChxPageHeader :subtitle="$t('plugins.CHX350.generic.step', { n: step + 1, total: 3 })" :back="ROUTES.start" @back="onBack" />
 		<ChxStepper v-model:step="step" :steps="steps" :busy="busy" @action="onAction">
 			<template #step="{ step: s }">
 				<div v-if="s === 0" class="choices">

@@ -1,230 +1,287 @@
 <style scoped>
 .z {
+	box-sizing: border-box;
+	width: 168px;
+	flex: none;
+	padding: 14px 14px 16px;
+	background: rgba(0, 0, 0, 0.55);
 	display: flex;
 	flex-direction: column;
 	gap: 10px;
-	padding: 12px 14px;
-	min-height: 0;
-}
-.z__value {
-	display: flex;
-	align-items: baseline;
-	justify-content: space-between;
-}
-.z__num {
-	font: 800 26px/1 var(--mp-font-mono, monospace);
-	color: var(--text-strong);
-}
-.z__target {
-	font: 500 12px/1 var(--mp-font-mono, monospace);
-	color: var(--mp-accent);
-}
-.steps {
-	display: grid;
-	grid-template-columns: repeat(4, minmax(0, 1fr));
-	gap: 6px;
-}
-.step {
-	all: unset;
-	box-sizing: border-box;
-	text-align: center;
-	min-height: 40px;
-	line-height: 40px;
-	border-radius: var(--mp-radius);
-	background: var(--surface-page);
-	border: 1px solid var(--border-subtle);
-	font: 600 13px var(--mp-font-mono, monospace);
-	color: var(--text-strong);
-	cursor: pointer;
-}
-.step--active {
-	background: var(--mp-primary-dark);
-	border-color: var(--mp-primary-dark);
 	color: #fff;
+	user-select: none;
 }
-.jog {
-	display: grid;
-	grid-template-columns: 1fr 1fr;
+.z__title {
+	font: 700 12px/1 var(--mp-font-body, sans-serif);
+	letter-spacing: 0.1em;
+	color: #D7E8F4;
+	text-align: center;
+}
+.z__body {
+	flex: 1;
+	display: flex;
 	gap: 8px;
+	min-height: 0;
+	padding: 8px 0;
 }
-.tower {
+.z__ticks {
+	position: relative;
+	width: 52px;
+	flex: none;
+}
+.z__tick {
+	position: absolute;
+	right: 0;
+	transform: translateY(-50%);
+	font: 500 12px/1 var(--mp-font-mono, monospace);
+	color: #D7E8F4;
+	white-space: nowrap;
+}
+.z__track {
 	position: relative;
 	flex: 1;
-	min-height: 120px;
-	border-radius: var(--mp-radius);
-	background: var(--surface-sunken);
-	border: 1px solid var(--border-subtle);
+	min-width: 0;
+	border-radius: var(--mp-radius-sm);
+	cursor: ns-resize;
 	touch-action: none;
-	cursor: pointer;
-	overflow: hidden;
+	background: linear-gradient(to bottom, #66D0FF 0%, #009AD7 28%, #004276 50%, #009AD7 72%, #66D0FF 100%);
 }
-.tower--locked {
-	opacity: 0.5;
+.z--locked .z__track {
 	cursor: not-allowed;
+	opacity: 0.5;
 }
-.tower__fill {
+.z__line {
 	position: absolute;
 	left: 0;
 	right: 0;
-	bottom: 0;
-	background: rgba(0, 154, 215, 0.18);
+	height: 1px;
+	background: rgba(255, 255, 255, 0.45);
 }
-.tower__cur {
+.z__knob {
 	position: absolute;
-	left: 0;
-	right: 0;
-	height: 3px;
-	background: var(--mp-primary);
+	left: -5px;
+	right: -5px;
+	height: 8px;
+	margin-top: -4px;
+	border-radius: 4px;
+	background: #fff;
+	box-shadow: 0 0 0 2px rgba(0, 0, 0, 0.45);
+	pointer-events: none;
 }
-.tower__tgt {
-	position: absolute;
-	left: 0;
-	right: 0;
-	height: 0;
-	border-top: 2px dashed var(--mp-accent);
+.z__knob--target {
+	background: var(--mp-accent);
 }
-.tower__tick {
-	position: absolute;
-	right: 6px;
-	font: 500 10px/1 var(--mp-font-mono, monospace);
-	color: var(--text-muted);
-	transform: translateY(-50%);
+.z__foot {
+	text-align: center;
+}
+.z__num {
+	font: 700 22px/1 var(--mp-font-mono, monospace);
+	color: #fff;
+	cursor: pointer;
+}
+.z__num--target {
+	color: var(--mp-accent);
+}
+.z__step {
+	margin-top: 6px;
+	font: 500 12px/1.3 var(--mp-font-mono, monospace);
+	color: #D7E8F4;
+}
+.z__hint {
+	margin-top: 6px;
+	font: 400 11px/1.3 var(--mp-font-body, sans-serif);
+	color: #9CADBC;
+	text-wrap: pretty;
 }
 </style>
 
 <template>
-	<div class="chx-card z">
-		<div class="chx-label">{{ $t("plugins.CHX350.control.zAxis") }}</div>
-		<div class="z__value">
-			<span class="z__num">{{ current !== null ? current.toFixed(2) : "—" }} <span class="text-body-2">mm</span></span>
-			<span v-if="target !== null" class="z__target">→ {{ target.toFixed(2) }}</span>
+	<div class="z" :class="{ 'z--locked': locked }">
+		<div class="z__title">{{ $t("plugins.CHX350.control.zAxis") }}</div>
+		<div class="z__body">
+			<div class="z__ticks">
+				<span v-for="t in ticks" :key="t" class="z__tick" :style="{ top: pct(t) }">{{ t }}</span>
+			</div>
+			<div ref="track" class="z__track" @pointerdown="onDown" @pointermove="onMove" @pointerup="onUp"
+				 @pointercancel="onCancel" @contextmenu.prevent="enter">
+				<div v-if="logScale" class="z__line" style="top: 28%" />
+				<div v-if="logScale" class="z__line" style="top: 72%" />
+				<div v-if="target !== null" class="z__knob z__knob--target" :style="{ top: pct(target) }" />
+				<div class="z__knob" :style="{ top: pct(current ?? min) }" />
+			</div>
 		</div>
-
-		<div class="steps">
-			<button v-for="st in steps" :key="st" type="button" class="step" :class="{ 'step--active': st === step }" @click="step = st">{{ st }}</button>
-		</div>
-		<div class="jog">
-			<v-btn variant="tonal" color="secondary" size="large" class="chx-btn" :disabled="locked || atMax" @click="jog(1)">
-				<v-icon start>mdi-arrow-up-bold</v-icon>Z+
-			</v-btn>
-			<v-btn variant="tonal" color="secondary" size="large" class="chx-btn" :disabled="locked || atMin" @click="jog(-1)">
-				<v-icon start>mdi-arrow-down-bold</v-icon>Z−
-			</v-btn>
-		</div>
-
-		<div ref="tower" class="tower" :class="{ 'tower--locked': locked }" @pointerdown="pick" @pointermove="drag" @contextmenu.prevent="enter">
-			<div class="tower__fill" :style="{ height: `${fracOf(current ?? 0) * 100}%` }" />
-			<div v-for="t in ticks" :key="t" class="tower__tick" :style="{ top: `${(1 - fracOf(t)) * 100}%` }">{{ t }}</div>
-			<div v-if="target !== null" class="tower__tgt" :style="{ top: `${(1 - fracOf(target)) * 100}%` }" />
-			<div class="tower__cur" :style="{ top: `calc(${(1 - fracOf(current ?? 0)) * 100}% - 1px)` }" />
-		</div>
-
-		<div class="jog">
-			<v-btn variant="outlined" size="large" class="chx-btn" :disabled="locked" @click="enter">
-				<v-icon start>mdi-keyboard-outline</v-icon>{{ $t("plugins.CHX350.control.enterZ") }}
-			</v-btn>
-			<v-btn color="secondary" size="large" class="chx-btn" :disabled="locked || target === null" @click="goTarget">
-				<v-icon start>mdi-arrow-collapse-down</v-icon>{{ $t("plugins.CHX350.control.goZ") }}
-			</v-btn>
+		<div class="z__foot">
+			<div class="z__num" :class="{ 'z__num--target': target !== null }" @click="enter">{{ shown.toFixed(2) }}</div>
+			<div class="z__step">{{ $t("plugins.CHX350.control.zStep", { step: stepLabel }) }}</div>
+			<div class="z__hint">{{ locked ? $t("plugins.CHX350.generic.lockedAxes") : $t("plugins.CHX350.control.zHint") }}</div>
 		</div>
 	</div>
 </template>
 
 <script setup lang="ts">
-import { computed, ref } from "vue";
+import { computed, onBeforeUnmount, onMounted, ref } from "vue";
 
 import { getNumericInput } from "@/composables/useInputDialog";
 import i18n from "@/i18n";
 
+// Z slider with a three-part scale as in the design mock: the first and last 10 mm of travel are
+// logarithmic (0.01 mm resolution near the end stops), the range in between is linear. Z = min
+// is at the top, matching the physical bed that lowers as Z grows. Dragging picks a target,
+// releasing moves there; tapping the value (or a long press on the track) opens numeric entry
 const props = withDefaults(defineProps<{
 	current: number | null;
 	min: number;
 	max: number;
-	steps: Array<number>;
 	locked?: boolean;
 }>(), {
 	locked: false
 });
 
 const emit = defineEmits<{
-	(e: "jog", delta: number): void;
 	(e: "goto", z: number): void;
 }>();
 
-const step = ref(props.steps[Math.min(2, props.steps.length - 1)] ?? 1);
-const target = ref<number | null>(null);
-const tower = ref<HTMLElement | null>(null);
+const LOG_PART = 0.28;
+const LOG_MM = 10;
+const LOG_MIN = 0.01;
 
-const atMin = computed(() => props.current !== null && props.current - step.value < props.min - 1e-6);
-const atMax = computed(() => props.current !== null && props.current + step.value > props.max + 1e-6);
+const span = computed(() => Math.max(0, props.max - props.min));
+const logScale = computed(() => span.value > 4 * LOG_MM);
 
-function fracOf(z: number): number {
-	const span = props.max - props.min || 1;
-	return Math.max(0, Math.min(1, (z - props.min) / span));
+function clamp(value: number, lo: number, hi: number): number {
+	return Math.max(lo, Math.min(hi, value));
 }
-const ticks = computed(() => {
-	const span = props.max - props.min;
-	const stepSize = span > 500 ? 200 : (span > 100 ? 50 : 10);
-	const result: Array<number> = [];
-	for (let z = Math.ceil(props.min / stepSize) * stepSize; z <= props.max; z += stepSize) {
-		result.push(z);
+
+/** 0..1 position on the track (0 = top = min) for a Z value */
+function uFromZ(z: number): number {
+	if (span.value <= 0) {
+		return 0;
 	}
-	return result;
+	const d = clamp(z - props.min, 0, span.value);
+	if (!logScale.value) {
+		return d / span.value;
+	}
+	if (d <= LOG_MM) {
+		return LOG_PART * Math.log10(Math.max(LOG_MIN, d) / LOG_MIN) / 3;
+	}
+	const r = span.value - d;
+	if (r <= LOG_MM) {
+		return 1 - LOG_PART * Math.log10(Math.max(LOG_MIN, r) / LOG_MIN) / 3;
+	}
+	return LOG_PART + (d - LOG_MM) / (span.value - 2 * LOG_MM) * (1 - 2 * LOG_PART);
+}
+
+function zFromU(u: number): number {
+	if (u <= 0) {
+		return props.min;
+	}
+	if (u >= 1) {
+		return props.max;
+	}
+	if (!logScale.value) {
+		return props.min + u * span.value;
+	}
+	if (u <= LOG_PART) {
+		return props.min + LOG_MIN * Math.pow(10, (u / LOG_PART) * 3);
+	}
+	if (u >= 1 - LOG_PART) {
+		return props.max - LOG_MIN * Math.pow(10, ((1 - u) / LOG_PART) * 3);
+	}
+	return props.min + LOG_MM + (u - LOG_PART) / (1 - 2 * LOG_PART) * (span.value - 2 * LOG_MM);
+}
+
+/** Snap step that matches the local resolution of the scale at track position u */
+function stepAt(u: number, px: number): number {
+	const d = Math.abs(zFromU(u + 1 / Math.max(80, px)) - zFromU(u));
+	if (d < 0.02) return 0.01;
+	if (d < 0.2) return 0.1;
+	if (d < 2) return 1;
+	return 5;
+}
+
+const pct = (z: number) => `${(uFromZ(z) * 100).toFixed(2)}%`;
+
+const ticks = computed(() => {
+	const lo = props.min, hi = props.max;
+	if (!logScale.value) {
+		return [lo, Math.round((lo + hi) / 2), hi];
+	}
+	const mid = span.value >= 200 ? Math.round((lo + hi) / 2 / 100) * 100 : Math.round((lo + hi) / 2);
+	const values = [lo, lo + 1, lo + LOG_MM, mid, hi - LOG_MM, hi - 1, hi];
+	return values.filter((v, i) => i === 0 || v > values[i - 1]).map((v) => Math.round(v * 100) / 100);
 });
 
-function snap(z: number): number {
-	const st = step.value;
-	return Math.max(props.min, Math.min(props.max, Math.round(z / st) * st));
-}
+const track = ref<HTMLElement | null>(null);
+const trackPx = ref(300);
+const target = ref<number | null>(null);
+let dragging = false;
 
-function zFromEvent(e: PointerEvent): number | null {
-	const el = tower.value;
-	if (!el) {
-		return null;
-	}
-	const rect = el.getBoundingClientRect();
-	const f = 1 - Math.max(0, Math.min(1, (e.clientY - rect.top) / rect.height));
-	return snap(props.min + f * (props.max - props.min));
-}
+const shown = computed(() => target.value ?? props.current ?? props.min);
+const stepLabel = computed(() => stepAt(uFromZ(shown.value), trackPx.value).toFixed(2));
 
 function pick(e: PointerEvent) {
-	if (props.locked) {
+	const el = track.value;
+	if (!el) {
 		return;
 	}
-	const z = zFromEvent(e);
-	if (z !== null) {
-		target.value = z;
-	}
+	const rect = el.getBoundingClientRect();
+	trackPx.value = rect.height;
+	const u = clamp((e.clientY - rect.top) / rect.height, 0, 1);
+	const step = stepAt(u, rect.height);
+	target.value = clamp(Math.round(zFromU(u) / step) * step, props.min, props.max);
 }
-function drag(e: PointerEvent) {
-	if (!props.locked && e.buttons > 0) {
+
+function onDown(e: PointerEvent) {
+	if (props.locked || e.button !== 0) {
+		return;
+	}
+	dragging = true;
+	track.value?.setPointerCapture(e.pointerId);
+	pick(e);
+}
+function onMove(e: PointerEvent) {
+	if (dragging) {
 		pick(e);
 	}
 }
-
-function jog(direction: 1 | -1) {
-	if (props.locked) {
+function onUp() {
+	if (!dragging) {
 		return;
 	}
-	emit("jog", direction * step.value);
+	dragging = false;
+	if (target.value !== null && !props.locked) {
+		emit("goto", target.value);
+	}
+	target.value = null;
+}
+function onCancel() {
+	dragging = false;
+	target.value = null;
 }
 
 async function enter() {
+	// A long press on the track also lands here: never treat the pending drag as a release
+	onCancel();
 	if (props.locked) {
 		return;
 	}
 	const value = await getNumericInput(i18n.global.t("plugins.CHX350.control.enterZTitle"),
 		i18n.global.t("plugins.CHX350.control.enterZPrompt", { min: props.min, max: props.max }),
 		props.current ?? props.min, props.min, props.max);
-	if (value !== null) {
-		target.value = Math.max(props.min, Math.min(props.max, value));
+	if (value !== null && !props.locked) {
+		emit("goto", clamp(value, props.min, props.max));
 	}
 }
 
-function goTarget() {
-	if (target.value !== null && !props.locked) {
-		emit("goto", target.value);
-		target.value = null;
+let observer: ResizeObserver | null = null;
+onMounted(() => {
+	if (track.value) {
+		trackPx.value = track.value.clientHeight || trackPx.value;
+		if (typeof ResizeObserver !== "undefined") {
+			observer = new ResizeObserver(() => { trackPx.value = track.value?.clientHeight || trackPx.value; });
+			observer.observe(track.value);
+		}
 	}
-}
+});
+onBeforeUnmount(() => observer?.disconnect());
 </script>

@@ -86,7 +86,7 @@
 
 <template>
 	<div class="chx-page">
-		<ChxPageHeader :title="$t('plugins.CHX350.jobs.title')" :subtitle="subtitle" :back="ROUTES.start">
+		<ChxPageHeader :subtitle="subtitle" :back="ROUTES.start">
 			<template #actions>
 				<v-btn variant="text" icon="mdi-refresh" :loading="browser.loading.value" :aria-label="$t('plugins.CHX350.jobs.refresh')" @click="reload" />
 			</template>

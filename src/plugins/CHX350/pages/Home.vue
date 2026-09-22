@@ -26,7 +26,7 @@
 
 <template>
 	<div class="chx-page">
-		<ChxPageHeader :title="$t('plugins.CHX350.home.title')" :subtitle="$t('plugins.CHX350.generic.step', { n: step + 1, total: steps.length })" :back="ROUTES.start" />
+		<ChxPageHeader :subtitle="$t('plugins.CHX350.generic.step', { n: step + 1, total: steps.length })" :back="ROUTES.start" />
 		<ChxStepper v-model:step="step" :steps="steps" :busy="runner.busy.value" @action="onAction">
 			<template #aside>
 				<div class="chx-label">{{ $t("plugins.CHX350.home.axes") }}</div>

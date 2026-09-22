@@ -115,7 +115,7 @@
 
 <template>
 	<div class="chx-page">
-		<ChxPageHeader :title="$t('plugins.CHX350.check.title')" :back="ROUTES.jobs" />
+		<ChxPageHeader :back="ROUTES.jobs" />
 
 		<div class="check">
 			<div class="chx-card file">

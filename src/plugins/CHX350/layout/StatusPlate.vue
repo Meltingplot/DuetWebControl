@@ -29,7 +29,7 @@
 	white-space: nowrap;
 	overflow: hidden;
 	text-overflow: ellipsis;
-	max-width: 320px;
+	max-width: 440px;
 }
 </style>
 
@@ -71,9 +71,10 @@ const icon = computed(() => {
 
 const subtitle = computed(() => {
 	if (state.plate.value === "idle") {
-		return state.doorOpen.value
-			? i18n.global.t("plugins.CHX350.status.subDoorOpen")
-			: i18n.global.t("plugins.CHX350.status.subDefaultMode");
+		if (state.doorOpen.value) {
+			return i18n.global.t("plugins.CHX350.status.subDoorOpen");
+		}
+		return i18n.global.t(state.doorCheckPending.value ? "plugins.CHX350.status.subDoorCheck" : "plugins.CHX350.status.subDefaultMode");
 	}
 	return "";
 });

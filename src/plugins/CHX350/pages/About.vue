@@ -66,7 +66,6 @@
 
 <template>
 	<div class="chx-page">
-		<ChxPageHeader :title="$t('plugins.CHX350.about.title')" />
 		<div class="grid">
 			<div class="chx-card card">
 				<div class="chx-label">{{ $t("plugins.CHX350.about.components") }}</div>
@@ -112,7 +111,6 @@ import { useMachineStore } from "@/stores/machine";
 import dwcLicense from "../../../../LICENSE?raw";
 import packageInfo from "../../../../package.json";
 import wordmarkUrl from "../assets/meltingplot-wordmark.svg";
-import ChxPageHeader from "../components/ChxPageHeader.vue";
 import { PLUGIN_ID, useChxSettings } from "../settings";
 
 const machineStore = useMachineStore();

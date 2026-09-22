@@ -27,7 +27,8 @@
 		"estop": "NOT-AUS",
 		"offline": "OFFLINE",
 		"subDoorOpen": "Tür offen · Betriebsart Default · keine Achsbewegung",
-		"subDefaultMode": "Betriebsart Default · keine Achsbewegung"
+		"subDefaultMode": "Betriebsart Default · keine Achsbewegung",
+		"subDoorCheck": "Betriebsart Default · Türkontrolle: beide Türen einmal öffnen und schließen"
 	},
 	"header": {
 		"chamber": "Kammer",
@@ -95,7 +96,8 @@
 			"tooMuchMovement": "zu viel Bewegung",
 			"sensorError": "Sensorfehler",
 			"disabled": "aus"
-		}
+		},
+		"cameraOff": "Keine Kamera konfiguriert"
 	},
 	"service": {
 		"title": "Service-Bereich",
@@ -231,7 +233,12 @@
 		"lockDoor": "Tür offen · Achsbewegung gesperrt",
 		"lockMode": "Betriebsart Default · Achsbewegung nur in Automatik",
 		"lockPrinting": "Auftrag läuft · Achsbewegung gesperrt",
-		"lockBusy": "Maschine beschäftigt · bitte warten"
+		"lockBusy": "Maschine beschäftigt · bitte warten",
+		"lockDoorCheck": "Türkontrolle ausstehend · beide Türen einmal öffnen und schließen",
+		"zStep": "Schritt {step} mm",
+		"zHint": "Ziehen und loslassen fährt Z · Wert antippen zum Eingeben",
+		"notHomed": "nicht referenziert",
+		"selectedAxis": "T{tool} · Achse {axis}"
 	},
 	"prepareBed": {
 		"title": "Bett vorbereiten",

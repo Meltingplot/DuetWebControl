@@ -1,7 +1,9 @@
 <style scoped>
 .header {
 	display: grid;
-	grid-template-columns: minmax(180px, 1fr) auto minmax(0, 1fr);
+	/* The status plate sits at about 5/12 of the width, in the middle of the free space between
+	   the machine name and the temperature block rather than dead center */
+	grid-template-columns: minmax(180px, 5fr) auto minmax(0, 7fr);
 	align-items: center;
 	gap: 14px;
 	width: 100%;

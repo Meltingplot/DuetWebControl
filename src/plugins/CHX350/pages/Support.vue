@@ -52,7 +52,6 @@
 
 <template>
 	<div class="chx-page">
-		<ChxPageHeader :title="$t('plugins.CHX350.support.title')" />
 		<div class="grid">
 			<div class="chx-card card">
 				<div class="chx-label">{{ support.company }}</div>
@@ -130,7 +129,6 @@ import { displaySize, displayTime } from "@/utils/display";
 import { saveBlob } from "@/utils/download";
 
 import packageInfo from "../../../../package.json";
-import ChxPageHeader from "../components/ChxPageHeader.vue";
 import { PLUGIN_ID, useChxSettings } from "../settings";
 
 const machineStore = useMachineStore();

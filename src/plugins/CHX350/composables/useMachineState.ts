@@ -41,8 +41,12 @@ export function useMachineState() {
 	const printing = computed(() => isPrinting(status.value));
 	const paused = computed(() => isPaused(status.value));
 	const halted = computed(() => status.value === MachineStatus.halted);
-	const heating = computed(() => !printing.value && heaters.value.some((h) =>
-		(h.state === HeaterState.active || h.state === HeaterState.standby) && h.active > 0 && h.current < h.active - 2));
+	// A heater is heating when it is below the setpoint that applies to its state: a tool parked
+	// in standby is compared with its standby temperature, not with the active one
+	const heating = computed(() => !printing.value && heaters.value.some((h) => {
+		const setpoint = h.state === HeaterState.active ? h.active : (h.state === HeaterState.standby ? h.standby : 0);
+		return setpoint > 0 && h.current < setpoint - 2;
+	}));
 	const heatersOn = computed(() => heaters.value.some((h) => h.state === HeaterState.active || h.state === HeaterState.standby));
 
 	const plate = computed<PlateState>(() => {
@@ -70,14 +74,25 @@ export function useMachineState() {
 	const busy = computed(() => status.value !== MachineStatus.idle);
 	const uiFrozen = computed(() => uiStore.uiFrozen);
 
-	/** Axis moves from the UI are only permitted in automatic mode with closed doors and an idle machine */
-	const axesLocked = computed(() => uiFrozen.value || !globals.isAutomatic.value || doorOpen.value || busy.value);
+	/**
+	 * Axis moves from the UI are permitted in automatic mode only. The mode is the single source of
+	 * truth: the firmware drops to default mode itself when a door opens, and a "busy" status must
+	 * not lock the controls because that is exactly what a running axis move looks like
+	 */
+	const axesLocked = computed(() => uiFrozen.value || !globals.isAutomatic.value);
 
 	const machineIsHot = computed(() => globals.machineIsHot.value);
 
+	/**
+	 * Default mode because the door interlock has not been confirmed yet: the operator has to open
+	 * and close both doors once before the daemon switches to automatic mode
+	 */
+	const doorCheckPending = computed(() => !globals.isAutomatic.value && globals.available.value
+		&& !(globals.doorLeftChecked.value && globals.doorRightChecked.value));
+
 	return {
 		status, connected, uiFrozen,
-		doorOpen, heaterFaults, heaters, heatersOn,
+		doorOpen, doorCheckPending, heaterFaults, heaters, heatersOn,
 		printing, paused, halted, heating, busy,
 		plate, axesLocked, machineIsHot,
 		machineMode: globals.machineMode,

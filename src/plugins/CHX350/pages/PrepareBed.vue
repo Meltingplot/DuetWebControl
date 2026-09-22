@@ -1,6 +1,6 @@
 <template>
 	<div class="chx-page">
-		<ChxPageHeader :title="$t('plugins.CHX350.prepareBed.title')" :subtitle="$t('plugins.CHX350.generic.step', { n: step + 1, total: steps.length })" :back="ROUTES.start" />
+		<ChxPageHeader :subtitle="$t('plugins.CHX350.generic.step', { n: step + 1, total: steps.length })" :back="ROUTES.start" />
 		<ChxStepper v-model:step="step" :steps="steps" :busy="runner.busy.value" @action="onAction">
 			<template #step="{ step: s }">
 				<div v-if="s === 0 && !runner.configured.value" class="text-body-2 text-medium-emphasis">

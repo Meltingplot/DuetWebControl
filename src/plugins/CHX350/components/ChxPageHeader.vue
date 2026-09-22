@@ -18,28 +18,25 @@
 	color: var(--text-strong);
 	cursor: pointer;
 }
-.page-header__title {
-	font: 700 26px/1.15 var(--mp-font-body, sans-serif);
-	color: var(--text-strong);
-	margin: 0;
-}
 .page-header__sub {
-	font: 500 12px/1.3 var(--mp-font-body, sans-serif);
-	letter-spacing: 0.04em;
-	color: var(--text-body);
-	margin-top: 3px;
+	font: 600 15px/1.3 var(--mp-font-body, sans-serif);
+	letter-spacing: 0.02em;
+	color: var(--text-strong);
+	min-width: 0;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
 }
 </style>
 
 <template>
-	<div class="page-header">
+	<!-- Page titles are redundant with the sidebar, so the header only carries the back button,
+		 an optional context line (step counter, job name, lock reason) and page actions -->
+	<div v-if="back !== undefined || subtitle || $slots.actions" class="page-header">
 		<button v-if="back !== undefined" type="button" class="page-header__back" :aria-label="$t('plugins.CHX350.generic.back')" @click="goBack">
 			<v-icon size="26">mdi-arrow-left</v-icon>
 		</button>
-		<div style="min-width: 0">
-			<h1 class="page-header__title">{{ title }}</h1>
-			<div v-if="subtitle" class="page-header__sub">{{ subtitle }}</div>
-		</div>
+		<div v-if="subtitle" class="page-header__sub">{{ subtitle }}</div>
 		<div class="flex-grow-1" />
 		<slot name="actions" />
 	</div>
@@ -49,7 +46,6 @@
 import { useRouter } from "vue-router";
 
 const props = defineProps<{
-	title: string;
 	subtitle?: string;
 	/** Route to navigate to on back; when set to "" the browser history is used */
 	back?: string;

@@ -1,114 +1,173 @@
 <style scoped>
-.control {
+.main {
 	flex: 1;
 	min-height: 0;
-	display: grid;
-	grid-template-columns: minmax(0, 1fr) 300px;
-	gap: 14px;
 }
-.main {
-	position: relative;
-	min-height: 0;
-	border-radius: var(--mp-radius-lg);
-	overflow: hidden;
-	background: #0B0F13;
-}
-.camera__view {
+.jog {
 	position: absolute;
 	inset: 0;
-}
-.camera__tag {
-	position: absolute;
-	top: 10px;
-	left: 12px;
-	color: #fff;
-	font: 600 12px/1 var(--mp-font-body, sans-serif);
-	letter-spacing: 0.06em;
-	text-shadow: 0 1px 2px rgba(0, 0, 0, 0.6);
-}
-.side {
 	display: flex;
-	flex-direction: column;
-	gap: 10px;
-	min-height: 0;
 }
-.side > * {
-	flex: 0 0 auto;
+.jog__map {
+	flex: 1;
+	min-width: 0;
+	border-radius: 0;
 }
-.side > .z {
-	flex: 1 1 auto;
+.badge {
+	position: absolute;
+	top: 16px;
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	padding: 7px 14px;
+	border-radius: 999px;
+	background: rgba(0, 0, 0, 0.6);
+	color: #fff;
+	font: 700 13px/1 var(--mp-font-body, sans-serif);
+	letter-spacing: 0.09em;
+	white-space: nowrap;
+	max-width: calc(100% - 32px);
+	overflow: hidden;
+	text-overflow: ellipsis;
 }
-.positions {
-	padding: 12px 14px;
-	display: grid;
-	grid-template-columns: repeat(2, minmax(0, 1fr));
-	gap: 8px 12px;
+.badge--live {
+	left: 16px;
 }
-.pos__val {
-	font: 700 18px/1.2 var(--mp-font-mono, monospace);
+.badge--live::before {
+	content: "";
+	width: 9px;
+	height: 9px;
+	border-radius: 999px;
+	background: var(--mp-error);
+}
+.badge--lock {
+	right: 16px;
+	background: var(--mp-accent);
+	color: var(--mp-neutral-900);
+	letter-spacing: 0.06em;
+}
+.row {
+	display: flex;
+	align-items: stretch;
+	gap: 14px;
+	flex-wrap: wrap;
+}
+.jogbtn {
+	all: unset;
+	box-sizing: border-box;
+	display: flex;
+	align-items: center;
+	gap: 12px;
+	min-height: 66px;
+	padding: 0 26px;
+	border-radius: var(--mp-radius);
+	border: 1px solid var(--border-default);
+	background: var(--surface-card);
 	color: var(--text-strong);
+	font: 700 18px/1 var(--mp-font-body, sans-serif);
+	cursor: pointer;
+	transition: background var(--mp-dur, 200ms) var(--mp-ease, ease);
 }
-.pos--sel .pos__val {
-	color: var(--mp-primary-dark);
+.jogbtn--on {
+	background: var(--mp-primary-dark);
+	border-color: var(--mp-primary-dark);
+	color: #fff;
+}
+.jogbtn--locked {
+	background: var(--mp-neutral-200);
+	color: var(--text-body);
+	cursor: not-allowed;
 }
 .tools {
 	display: flex;
 	gap: 8px;
 }
 .tools > * {
+	min-width: 76px;
+	height: auto;
+}
+.positions {
 	flex: 1;
+	min-width: 280px;
+	display: flex;
+	align-items: center;
+	gap: 22px;
+	padding: 12px 22px;
+	flex-wrap: wrap;
+}
+.pos__label {
+	font: 500 11px/1 var(--mp-font-body, sans-serif);
+	letter-spacing: 0.07em;
+	color: var(--text-body);
+	white-space: nowrap;
+}
+.pos__val {
+	margin-top: 5px;
+	font: 700 21px/1 var(--mp-font-mono, monospace);
+	color: var(--text-strong);
+	white-space: nowrap;
+}
+.pos--sel .pos__val {
+	color: var(--mp-primary-dark);
+}
+.pos--unhomed .pos__val {
+	color: var(--text-muted);
+}
+.pos__note {
+	margin-top: 4px;
+	font: 600 10px/1 var(--mp-font-body, sans-serif);
+	letter-spacing: 0.05em;
+	color: var(--mp-warning);
+	white-space: nowrap;
 }
 </style>
 
 <template>
 	<div class="chx-page">
-		<ChxPageHeader :title="$t('plugins.CHX350.nav.control')" :subtitle="state.axesLocked.value ? lockReason : ''" />
-
-		<div class="control">
-			<div class="main">
-				<template v-if="jogMode">
-					<BedMap :size-x="bedMap.sizeX" :size-y="bedMap.sizeY" :heads="heads" :selected-tool="selectedTool"
-							:head-spacing="bedMap.headSpacing" :tool1-axis="bedMap.tool1YAxis" :locked="state.axesLocked.value"
+		<ChxCameraBox fill class="main">
+			<template v-if="jogMode">
+				<div class="jog">
+					<BedMap class="jog__map" :size-x="bedMap.sizeX" :size-y="bedMap.sizeY" :heads="heads" :selected-tool="selectedTool"
+							:head-spacing="bedMap.headSpacing" :tool1-axis="bedMap.tool1YAxis" :locked="locked"
 							:lock-reason="lockReason" :moving="moving" :target="target" @move="moveTo" @select="selectTool" />
-				</template>
-				<template v-else>
-					<div class="camera__view">
-						<WebcamView v-if="settingsStore.webcam.enabled" />
-						<div v-else class="d-flex align-center justify-center fill-height text-grey">
-							<v-icon size="64">mdi-camera-off-outline</v-icon>
-						</div>
-					</div>
-					<div class="camera__tag">{{ $t("plugins.CHX350.start.camera") }}</div>
-				</template>
+					<ZTower v-if="zAxis" :current="zAxis.userPosition" :min="zAxis.min" :max="zAxis.max" :locked="locked" @goto="gotoZ" />
+				</div>
+			</template>
+			<template v-else>
+				<ChxCamera />
+				<div v-if="settingsStore.webcam.enabled" class="badge badge--live">{{ $t("plugins.CHX350.start.live") }}</div>
+				<div v-if="locked" class="badge badge--lock">
+					<v-icon size="18">mdi-lock-outline</v-icon>
+					{{ lockReason }}
+				</div>
+			</template>
+		</ChxCameraBox>
+
+		<div class="row">
+			<button type="button" class="jogbtn" :class="{ 'jogbtn--on': jogMode, 'jogbtn--locked': !jogMode && locked }"
+					:disabled="!jogMode && locked" @click="toggleJog">
+				<v-icon size="24">{{ jogMode ? "mdi-camera-outline" : (locked ? "mdi-lock-outline" : "mdi-axis-arrow") }}</v-icon>
+				<span>{{ jogMode ? $t("plugins.CHX350.control.stopJog") : (locked ? $t("plugins.CHX350.control.jogLocked") : $t("plugins.CHX350.control.startJog")) }}</span>
+			</button>
+
+			<div v-if="heads.length > 1" class="tools">
+				<v-btn v-for="h in heads" :key="h.tool" :color="h.tool === selectedTool ? 'secondary' : undefined"
+					   :variant="h.tool === selectedTool ? 'flat' : 'outlined'" class="chx-btn" :disabled="locked" @click="selectTool(h.tool)">
+					T{{ h.tool }}
+				</v-btn>
 			</div>
 
-			<div class="side">
-				<v-btn :color="jogMode ? 'secondary' : undefined" :variant="jogMode ? 'flat' : 'outlined'" size="x-large" class="chx-btn" block
-					   :disabled="!jogMode && state.axesLocked.value" @click="jogMode = !jogMode">
-					<v-icon start>{{ jogMode ? "mdi-camera-outline" : "mdi-axis-arrow" }}</v-icon>
-					{{ jogMode ? $t("plugins.CHX350.control.stopJog") : (state.axesLocked.value ? $t("plugins.CHX350.control.jogLocked") : $t("plugins.CHX350.control.startJog")) }}
-				</v-btn>
-
-				<div v-if="heads.length > 1" class="tools">
-					<v-btn v-for="h in heads" :key="h.tool" :color="h.tool === selectedTool ? 'secondary' : undefined"
-						   :variant="h.tool === selectedTool ? 'flat' : 'outlined'" class="chx-btn" :disabled="state.axesLocked.value" @click="selectTool(h.tool)">
-						T{{ h.tool }}
-					</v-btn>
+			<div class="chx-card positions">
+				<div v-for="axis in visibleAxes" :key="axis.letter" :class="{ 'pos--sel': isSelectedAxis(axis.letter), 'pos--unhomed': !axis.homed }">
+					<div class="pos__label">{{ axisLabel(axis.letter) }}</div>
+					<div class="pos__val">{{ axis.userPosition !== null ? axis.userPosition.toFixed(axis.letter === 'Z' ? 2 : 1) : "—" }}</div>
+					<div v-if="!axis.homed" class="pos__note">{{ $t("plugins.CHX350.control.notHomed") }}</div>
 				</div>
-
-				<div class="chx-card positions">
-					<div v-for="axis in visibleAxes" :key="axis.letter" :class="{ 'pos--sel': isSelectedAxis(axis.letter) }">
-						<div class="chx-label">{{ axisLabel(axis.letter) }}</div>
-						<div class="pos__val">{{ axis.userPosition !== null ? axis.userPosition.toFixed(axis.letter === 'Z' ? 2 : 1) : "—" }}</div>
-					</div>
-					<div>
-						<div class="chx-label">{{ $t("plugins.CHX350.control.selected") }}</div>
-						<div class="pos__val">T{{ selectedTool }} · {{ selectedYAxis }}</div>
-					</div>
+				<div class="flex-grow-1" />
+				<div>
+					<div class="pos__label">{{ $t("plugins.CHX350.control.selected") }}</div>
+					<div class="pos__val">{{ $t("plugins.CHX350.control.selectedAxis", { tool: selectedTool, axis: selectedYAxis }) }}</div>
 				</div>
-
-				<ZTower v-if="jogMode && zAxis" :current="zAxis.userPosition" :min="zAxis.min" :max="zAxis.max" :steps="bedMap.zSteps"
-						:locked="state.axesLocked.value" @jog="jogZ" @goto="gotoZ" />
 			</div>
 		</div>
 	</div>
@@ -117,14 +176,14 @@
 <script setup lang="ts">
 import { computed, ref } from "vue";
 
-import WebcamView from "@/components/panels/WebcamView.vue";
 import i18n from "@/i18n";
 import { useMachineStore } from "@/stores/machine";
 import { useSettingsStore } from "@/stores/settings";
 import { LogLevel, useUiStore } from "@/stores/ui";
 
 import BedMap from "../components/BedMap.vue";
-import ChxPageHeader from "../components/ChxPageHeader.vue";
+import ChxCamera from "../components/ChxCamera.vue";
+import ChxCameraBox from "../components/ChxCameraBox.vue";
 import ZTower from "../components/ZTower.vue";
 import { useMachineState } from "../composables/useMachineState";
 import { useChxSettings } from "../settings";
@@ -155,24 +214,30 @@ const heads = computed(() => tools.value.slice(0, 2).map((t) => {
 	return { tool: t.number, x: axis("X")?.userPosition ?? 0, y: axis(yLetter)?.userPosition ?? 0 };
 }));
 
+// Locked on the operating mode alone (see useMachineState.axesLocked): the firmware leaves
+// automatic mode when a door opens, and a busy status is what our own moves look like
+const locked = computed(() => !state.connected.value || state.axesLocked.value);
+
 const lockReason = computed(() => {
 	if (!state.connected.value) {
 		return i18n.global.t("plugins.CHX350.status.offline");
 	}
-	if (state.doorOpen.value) {
-		return i18n.global.t("plugins.CHX350.control.lockDoor");
-	}
 	if (!state.isAutomatic.value) {
-		return i18n.global.t("plugins.CHX350.control.lockMode");
-	}
-	if (state.printing.value) {
-		return i18n.global.t("plugins.CHX350.control.lockPrinting");
-	}
-	if (state.busy.value) {
-		return i18n.global.t("plugins.CHX350.control.lockBusy");
+		if (state.doorOpen.value) {
+			return i18n.global.t("plugins.CHX350.control.lockDoor");
+		}
+		return i18n.global.t(state.doorCheckPending.value ? "plugins.CHX350.control.lockDoorCheck" : "plugins.CHX350.control.lockMode");
 	}
 	return "";
 });
+
+function toggleJog() {
+	if (jogMode.value) {
+		jogMode.value = false;
+	} else if (!locked.value) {
+		jogMode.value = true;
+	}
+}
 
 function axisLabel(letter: string): string {
 	if (letter === "Y") return "Y · T0";
@@ -196,13 +261,13 @@ async function selectTool(tool: number) {
 		return;
 	}
 	selectedTool.value = tool;
-	if (!state.axesLocked.value && machineStore.model.state.currentTool !== tool) {
+	if (!locked.value && machineStore.model.state.currentTool !== tool) {
 		await send(`T${tool}`);
 	}
 }
 
 async function moveTo(point: { x: number; y: number }) {
-	if (state.axesLocked.value) {
+	if (locked.value) {
 		return;
 	}
 	target.value = point;
@@ -215,17 +280,15 @@ async function moveTo(point: { x: number; y: number }) {
 	}
 }
 
-async function jogZ(delta: number) {
-	if (state.axesLocked.value) {
-		return;
-	}
-	await send(`M120\nG91\nG1 Z${delta} F${bedMap.value.moveFeedrate}\nM121`);
-}
-
 async function gotoZ(z: number) {
-	if (state.axesLocked.value) {
+	if (locked.value) {
 		return;
 	}
-	await send(`M120\nG90\nG1 Z${z} F${bedMap.value.moveFeedrate}\nM121`);
+	moving.value = true;
+	try {
+		await send(`M120\nG90\nG1 Z${z} F${bedMap.value.moveFeedrate}\nM121`);
+	} finally {
+		moving.value = false;
+	}
 }
 </script>

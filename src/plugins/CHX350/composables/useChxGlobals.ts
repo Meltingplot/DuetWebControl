@@ -38,6 +38,10 @@ export function useChxGlobals() {
 
 	const doorLeftOpen = computed(() => truthy(get("door_left_open")));
 	const doorRightOpen = computed(() => truthy(get("door_right_open")));
+	// The daemon only upgrades to automatic mode once both doors have been opened and closed
+	// again since boot (or since the last job): these flags are that interlock
+	const doorLeftChecked = computed(() => truthy(get("door_left_switch_checked")));
+	const doorRightChecked = computed(() => truthy(get("door_right_switch_checked")));
 	const machineIsHot = computed(() => truthy(get("machine_is_hot")));
 	const potentialUnsafeState = computed(() => truthy(get("potential_unsafe_state")));
 
@@ -54,5 +58,8 @@ export function useChxGlobals() {
 	/** Whether the machine exposes the Meltingplot globals at all */
 	const available = computed(() => get("machine_mode") !== undefined);
 
-	return { get, machineMode, isAutomatic, doorLeftOpen, doorRightOpen, machineIsHot, potentialUnsafeState, nozzleDiameter, available };
+	return {
+		get, machineMode, isAutomatic, doorLeftOpen, doorRightOpen, doorLeftChecked, doorRightChecked,
+		machineIsHot, potentialUnsafeState, nozzleDiameter, available
+	};
 }

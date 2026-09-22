@@ -27,7 +27,8 @@
 		"estop": "E-STOP",
 		"offline": "OFFLINE",
 		"subDoorOpen": "Door open · default mode · no axis movement",
-		"subDefaultMode": "Default mode · no axis movement"
+		"subDefaultMode": "Default mode · no axis movement",
+		"subDoorCheck": "Default mode · door check: open and close both doors once"
 	},
 	"header": {
 		"chamber": "Chamber",
@@ -95,7 +96,8 @@
 			"tooMuchMovement": "too much movement",
 			"sensorError": "sensor error",
 			"disabled": "off"
-		}
+		},
+		"cameraOff": "No camera configured"
 	},
 	"service": {
 		"title": "Service area",
@@ -231,7 +233,12 @@
 		"lockDoor": "Door open · axis movement locked",
 		"lockMode": "Default mode · axis movement only in automatic mode",
 		"lockPrinting": "Job running · axis movement locked",
-		"lockBusy": "Machine busy · please wait"
+		"lockBusy": "Machine busy · please wait",
+		"lockDoorCheck": "Door check pending · open and close both doors once",
+		"zStep": "Step {step} mm",
+		"zHint": "Drag and release moves Z · tap the value to enter it",
+		"notHomed": "not homed",
+		"selectedAxis": "T{tool} · axis {axis}"
 	},
 	"prepareBed": {
 		"title": "Prepare bed",

@@ -13,16 +13,8 @@
 	min-height: 0;
 }
 .camera {
-	position: relative;
 	flex: 1;
 	min-height: 160px;
-	border-radius: var(--mp-radius-lg);
-	overflow: hidden;
-	background: #0B0F13;
-}
-.camera__view {
-	position: absolute;
-	inset: 0;
 }
 .camera__tag {
 	position: absolute;
@@ -111,7 +103,7 @@
 
 <template>
 	<div class="chx-page">
-		<ChxPageHeader :title="$t('plugins.CHX350.job.title')" :subtitle="jobName" :back="ROUTES.start">
+		<ChxPageHeader :subtitle="jobName" :back="ROUTES.start">
 			<template #actions>
 				<v-btn variant="outlined" class="chx-btn" @click="router.push(ROUTES.analysis)">
 					<v-icon start>mdi-chart-box-outline</v-icon>
@@ -124,15 +116,10 @@
 
 		<div v-if="state.printing.value || hasJobData" class="job">
 			<div class="col">
-				<div class="camera">
-					<div class="camera__view">
-						<WebcamView v-if="settingsStore.webcam.enabled" />
-						<div v-else class="d-flex align-center justify-center fill-height text-grey">
-							<v-icon size="48">mdi-camera-off-outline</v-icon>
-						</div>
-					</div>
+				<ChxCameraBox fill class="camera">
+					<ChxCamera />
 					<div class="camera__tag">{{ $t("plugins.CHX350.start.camera") }}</div>
-				</div>
+				</ChxCameraBox>
 
 				<div class="chx-card progress">
 					<div class="d-flex align-center justify-space-between">
@@ -243,7 +230,6 @@ import { computed, ref } from "vue";
 import { useRouter } from "vue-router";
 
 import CodeButton from "@/components/buttons/CodeButton.vue";
-import WebcamView from "@/components/panels/WebcamView.vue";
 import { showConfirmDialog } from "@/composables/useConfirmDialog";
 import i18n from "@/i18n";
 import { useMachineStore } from "@/stores/machine";
@@ -251,6 +237,8 @@ import { useSettingsStore } from "@/stores/settings";
 import { displayTime } from "@/utils/display";
 import { escapeFilename, extractFileName } from "@/utils/path";
 
+import ChxCamera from "../components/ChxCamera.vue";
+import ChxCameraBox from "../components/ChxCameraBox.vue";
 import ChxPageHeader from "../components/ChxPageHeader.vue";
 import FaultBanner from "../components/FaultBanner.vue";
 import FilamentUsageChart from "../components/FilamentUsageChart.vue";

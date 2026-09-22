@@ -52,7 +52,7 @@
 
 <template>
 	<div class="chx-page">
-		<ChxPageHeader :title="$t('plugins.CHX350.preheat.title')" :back="ROUTES.start" />
+		<ChxPageHeader :back="ROUTES.start" />
 		<div class="grid">
 			<div class="chx-card card">
 				<p>{{ $t("plugins.CHX350.preheat.intro") }}</p>

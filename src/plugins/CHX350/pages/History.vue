@@ -61,7 +61,7 @@
 
 <template>
 	<div class="chx-page">
-		<ChxPageHeader :title="$t('plugins.CHX350.history.title')" :subtitle="history.backendAvailable.value === false ? $t('plugins.CHX350.generic.backendMissing') : ''">
+		<ChxPageHeader :subtitle="history.backendAvailable.value === false ? $t('plugins.CHX350.generic.backendMissing') : ''">
 			<template #actions>
 				<v-btn variant="text" icon="mdi-refresh" :loading="history.loading.value" :aria-label="$t('plugins.CHX350.history.refresh')" @click="history.load()" />
 			</template>

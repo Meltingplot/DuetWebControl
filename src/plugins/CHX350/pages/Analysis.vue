@@ -105,7 +105,7 @@
 
 <template>
 	<div class="chx-page">
-		<ChxPageHeader :title="$t('plugins.CHX350.analysis.title')" :subtitle="jobName" :back="ROUTES.history" />
+		<ChxPageHeader :subtitle="jobName" :back="ROUTES.history" />
 
 		<div v-if="analysis.layers.value.length > 0" class="analysis">
 			<div class="main">

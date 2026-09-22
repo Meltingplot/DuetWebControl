@@ -25,17 +25,9 @@
 .camera {
 	all: unset;
 	box-sizing: border-box;
-	position: relative;
 	display: block;
-	flex: 0 0 210px;
-	border-radius: var(--mp-radius-lg);
-	overflow: hidden;
-	background: #0B0F13;
+	flex: 0 0 auto;
 	cursor: pointer;
-}
-.camera__view {
-	position: absolute;
-	inset: 0;
 }
 .camera__bar {
 	position: absolute;
@@ -147,16 +139,13 @@
 
 		<aside class="aside">
 			<button type="button" class="camera" @click="router.push(ROUTES.control)">
-				<div class="camera__view">
-					<WebcamView v-if="webcamEnabled" />
-					<div v-else class="d-flex align-center justify-center fill-height text-grey">
-						<v-icon size="48">mdi-camera-off-outline</v-icon>
+				<ChxCameraBox>
+					<ChxCamera />
+					<div class="camera__bar">
+						<span>{{ $t("plugins.CHX350.start.camera") }}</span>
+						<span v-if="webcamEnabled" class="camera__live">{{ $t("plugins.CHX350.start.live") }}</span>
 					</div>
-				</div>
-				<div class="camera__bar">
-					<span>{{ $t("plugins.CHX350.start.camera") }}</span>
-					<span v-if="webcamEnabled" class="camera__live">{{ $t("plugins.CHX350.start.live") }}</span>
-				</div>
+				</ChxCameraBox>
 			</button>
 
 			<div class="chx-card machine">
@@ -188,7 +177,6 @@ import { FilamentMonitorStatus } from "@duet3d/objectmodel";
 import { computed, onMounted, ref } from "vue";
 import { useRouter } from "vue-router";
 
-import WebcamView from "@/components/panels/WebcamView.vue";
 import { showConfirmDialog } from "@/composables/useConfirmDialog";
 import i18n from "@/i18n";
 import { useMachineStore } from "@/stores/machine";
@@ -196,6 +184,8 @@ import { useSettingsStore } from "@/stores/settings";
 import Events from "@/utils/events";
 import Path, { escapeFilename, extractFileName } from "@/utils/path";
 
+import ChxCamera from "../components/ChxCamera.vue";
+import ChxCameraBox from "../components/ChxCameraBox.vue";
 import ChxTile from "../components/ChxTile.vue";
 import { useMachineState } from "../composables/useMachineState";
 import { formatTemp, useTemps } from "../composables/useTemps";

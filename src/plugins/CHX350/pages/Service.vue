@@ -23,7 +23,7 @@
 <template>
 	<div class="chx-page service">
 		<div class="service__box">
-			<ChxPageHeader :title="$t('plugins.CHX350.service.title')">
+			<ChxPageHeader>
 				<template #actions>
 					<v-btn v-if="serviceStore.lockAvailable && serviceStore.unlocked" variant="outlined" class="chx-btn" @click="serviceStore.lock()">
 						{{ $t("plugins.CHX350.service.lock") }}
