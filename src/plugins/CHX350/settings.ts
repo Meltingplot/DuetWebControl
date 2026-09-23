@@ -10,7 +10,7 @@ export const PLUGIN_ID = "CHX350";
  * machine in Settings > CHX 350
  */
 export interface ChxMacroSettings {
-	/** "Bett vorbereiten": park the gantry and bring the bed to the operator */
+	/** "Bett vorbereiten": park the print heads and lower the bed */
 	prepareBed: string;
 	/** "Vorheizen": bring bed and tools to their standby temperatures */
 	preheat: string;
