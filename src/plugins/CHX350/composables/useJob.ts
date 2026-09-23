@@ -11,7 +11,6 @@ import { filamentGrams, useChxGlobals } from "./useChxGlobals";
 /** Density (g/cm³) assumed for the gram figures when the tool's spool carries none */
 const FALLBACK_DENSITY = 1.24;
 
-export type ProgressSource = "slicer" | "filament" | "file" | "none";
 export type LastJobResult = "finished" | "cancelled" | "aborted" | "simulated" | null;
 
 /**
@@ -21,12 +20,15 @@ export type LastJobResult = "finished" | "cancelled" | "aborted" | "simulated" |
  * - `job.file` is populated for the whole print with slicer totals (`printTime`, `numLayers`,
  *   `height`, `filament[]` per extruder, thumbnails). It is reset to null after the job ends;
  *   `job.lastFileName` / `lastDuration` / `lastFile*` describe the previous job then
- * - `job.timesLeft.slicer` follows the slicer's M73 remaining time and is available from the
- *   first second on; `timesLeft.file` (bytes) is useless with big header thumbnails and
- *   `timesLeft.filament` stays null until enough filament was extruded
+ * - `job.timesLeft.slicer` is a countdown: the slicer's `printTime` minus the print time so far
+ *   (the Meltingplot OrcaSlicer profile writes no M73). It stops at 1 s once the estimate is used
+ *   up, so on a job that runs ~5 % slower than estimated it read 1 s for the last 25 layers
+ *   (2026-09-23: 6077 s estimated, 6412 s printed). `timesLeft.file` (bytes) is useless with big
+ *   header thumbnails and `timesLeft.filament` stays null until enough filament was extruded
  * - `job.rawExtrusion` counts filament (mm) since job start incl. purge lines; the extruder's
- *   `rawPosition` is the same figure. It is 0 during warm-up, so a filament-based progress shows
- *   0 % for the first minutes
+ *   `rawPosition` is the same figure. It is 0 while the machine heats up and runs the start code.
+ *   Filament extruded against the slicer total tracked the elapsed share of the real print time
+ *   within 4 points over the whole job
  * - `job.layer` is 1-based and set once the first layer starts; `job.layers[]` only contains
  *   completed layers, so the per-layer charts stay empty during layer 1
  * - `job.duration` includes `warmUpDuration`; `layerTime` is the running time of the current layer
@@ -79,10 +81,25 @@ export function useJob() {
 	/** Total print time the slicer estimated for the file (s) */
 	const printTime = computed(() => file.value?.printTime ?? null);
 
-	// Same priority as DWC's JobTimesPanel: slicer estimate first, then filament, then file position
+	// --- Progress -----------------------------------------------------------------------------
+
+	/** DWC's progress: filament extruded against the slicer total, else the file position */
+	const progress = computed(() => machineStore.jobProgress);
+	/** `progress` is the filament-based figure (same conditions as machineStore.jobProgress) */
+	const filamentProgress = computed(() => active.value && !simulating.value
+		&& machineStore.model.move.extruders.length > 0 && (file.value?.filament ?? []).some((mm) => mm > 0));
+
+	/**
+	 * Slicer time for the filament still to extrude: consistent with the progress figure, starts at
+	 * the full estimate and never runs out before the job does (see the notes above). Without
+	 * filament totals DWC's JobTimesPanel order applies: slicer, filament, file position
+	 */
 	const timeLeft = computed<number | null>(() => {
 		if (!active.value) {
 			return null;
+		}
+		if (filamentProgress.value && printTime.value) {
+			return Math.round(Number(printTime.value) * (1 - progress.value));
 		}
 		const t = job.value.timesLeft;
 		return t.slicer ?? t.filament ?? t.file ?? null;
@@ -97,38 +114,6 @@ export function useJob() {
 		return d.toDateString() === new Date().toDateString()
 			? time
 			: `${d.toLocaleDateString(settingsStore.locale, { weekday: "short" })} ${time}`;
-	});
-
-	// --- Progress -----------------------------------------------------------------------------
-
-	/**
-	 * Progress consistent with the time-left figure: the slicer's remaining time against its total
-	 * (this is what OrcaSlicer's M73 reports), else DWC's filament-based estimate. The slicer figure
-	 * moves from the first minute on, the filament figure sits at 0 % through the warm-up
-	 */
-	const progressSource = computed<ProgressSource>(() => {
-		if (!active.value) {
-			return job.value.lastFileName !== null ? "file" : "none";
-		}
-		const t = job.value.timesLeft;
-		if (t.slicer !== null && printTime.value !== null && printTime.value > 0 && !simulating.value) {
-			return "slicer";
-		}
-		if (t.filament !== null || (file.value?.filament.length ?? 0) > 0) {
-			return "filament";
-		}
-		return "file";
-	});
-	const progress = computed(() => {
-		if (!active.value) {
-			return machineStore.jobProgress;
-		}
-		if (progressSource.value === "slicer") {
-			const total = Number(printTime.value);
-			const left = Number(job.value.timesLeft.slicer);
-			return Math.max(0, Math.min(1, (total - left) / total));
-		}
-		return machineStore.jobProgress;
 	});
 
 	// --- Layers and height --------------------------------------------------------------------
@@ -227,7 +212,7 @@ export function useJob() {
 		active, paused, pausing, resuming, cancelling, simulating,
 		file, filePath, fileName, lastFilePath, lastResult, lastDuration,
 		elapsed, warmUp, pauseDuration, printTime, timeLeft, eta, finishAt,
-		progress, progressSource,
+		progress,
 		layer, numLayers, layersDone, layerTime, layerHeight, height, currentHeight,
 		filamentDiameter, mmToGrams, filamentTotal, filamentUsed, filamentLeft, gramsPerMm, gramsLeft,
 		currentTool, speedFactor, extrusionFactor, partFan,

@@ -215,7 +215,7 @@ const settingsStore = useSettingsStore();
 const router = useRouter();
 const state = useMachineState();
 const temps = useTemps();
-// Same progress figure as the job page (slicer time based), not DWC's filament-based one
+// Same progress figure as the job page
 const job = useJob();
 
 const webcamEnabled = computed(() => settingsStore.webcam.enabled);
