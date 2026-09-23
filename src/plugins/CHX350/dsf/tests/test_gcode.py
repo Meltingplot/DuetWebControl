@@ -12,6 +12,7 @@ ORCA_TAIL = """G1 X10 Y10
 ; estimated printing time (normal mode) = 1h 14m 55s
 ; CONFIG_BLOCK_START
 ; curr_bed_type = High Temp Plate
+; filament_diameter = 2.85
 ; filament_settings_id = "Extrudr PLA NX2 Matt @0.8 nozzle"
 ; filament_type = PLA
 ; layer_height = 0.36
@@ -19,6 +20,7 @@ ORCA_TAIL = """G1 X10 Y10
 ; print_sequence = by layer
 ; printer_model = Meltingplot CHX 350
 ; printer_settings_id = Meltingplot CHX 350 0.8 nozzle - #1
+; required_nozzle_HRC = 3
 ; some_other_setting = 42
 ; CONFIG_BLOCK_END
 """
@@ -32,6 +34,8 @@ def test_config_block_parsed():
     assert config["nozzle_diameter"] == "0.8"
     assert config["printer_model"] == "Meltingplot CHX 350"
     assert config["curr_bed_type"] == "High Temp Plate"
+    assert config["filament_diameter"] == "2.85"
+    assert config["required_nozzle_HRC"] == "3"
     assert "some_other_setting" not in config
 
 

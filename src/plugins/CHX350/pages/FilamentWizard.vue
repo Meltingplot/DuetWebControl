@@ -72,7 +72,7 @@
 <template>
 	<div class="chx-page">
 		<ChxPageHeader :subtitle="$t('plugins.CHX350.generic.step', { n: step + 1, total: 3 })" :back="ROUTES.start" @back="onBack" />
-		<ChxStepper v-model:step="step" :steps="steps" :busy="busy" @action="onAction">
+		<ChxStepper v-model:step="step" :steps="steps" :busy="busy || hw.spool.busy.value" @action="onAction">
 			<template #step="{ step: s }">
 				<div v-if="s === 0" class="choices">
 					<button v-for="tool in temps.tools.value" :key="tool.number" type="button" class="choice" :class="{ 'choice--active': tool.number === wizTool }" @click="wizTool = tool.number">
@@ -112,7 +112,16 @@
 					<span class="text-body-2">{{ $t("plugins.CHX350.filament.material") }}</span>
 					<b>{{ wizMaterial === UNLOAD ? $t("plugins.CHX350.filament.unloadOnly") : (wizMaterial || "—") }}</b>
 				</div>
-				<div class="text-body-2 text-medium-emphasis mt-2">{{ $t("plugins.CHX350.filament.spoolTodo") }}</div>
+				<div class="summary">
+					<span class="text-body-2">{{ $t("plugins.CHX350.filament.spool") }}</span>
+					<b>{{ spoolLabel }}</b>
+				</div>
+				<div class="text-body-2 text-medium-emphasis mt-2">{{ $t("plugins.CHX350.filament.spoolHint") }}</div>
+				<!-- New spool of the same material, or a correction: the machine asks without a filament change -->
+				<v-btn v-if="hw.hasSpool.value" variant="outlined" size="large" class="chx-btn" :disabled="!hw.allowed.value || busy" :loading="hw.spool.busy.value" @click="hw.spool.run()">
+					<v-icon start>mdi-scale</v-icon>
+					{{ $t("plugins.CHX350.filament.spoolRecord", { tool: `T${wizTool}` }) }}
+				</v-btn>
 				<div v-if="done" class="mt-auto">
 					<v-alert type="success" variant="tonal" density="compact" :text="$t('plugins.CHX350.filament.done')" />
 				</div>
@@ -128,10 +137,12 @@ import { useRouter } from "vue-router";
 import i18n from "@/i18n";
 import { useMachineStore } from "@/stores/machine";
 import { LogLevel, useUiStore } from "@/stores/ui";
+import { display } from "@/utils/display";
 import Path from "@/utils/path";
 
 import ChxPageHeader from "../components/ChxPageHeader.vue";
 import ChxStepper, { type WizardStep } from "../components/ChxStepper.vue";
+import { useHardwareMacros } from "../composables/useHardwareMacros";
 import { useMachineState } from "../composables/useMachineState";
 import { useTemps } from "../composables/useTemps";
 import { ROUTES } from "../routes";
@@ -151,6 +162,14 @@ const busy = ref(false);
 const done = ref(false);
 
 const currentTool = computed(() => temps.tools.value.find((t) => t.number === wizTool.value) ?? null);
+const hw = useHardwareMacros(wizTool);
+// The spool now on the tool; the load itself asks for the new one (spool/confirm.g on the machine)
+const spoolLabel = computed(() => {
+	const spool = currentTool.value?.spool;
+	return spool
+		? i18n.global.t("plugins.CHX350.filament.spoolValue", { left: display(spool.remaining / 1000, 2, "kg"), net: display(spool.netWeight / 1000, 2, "kg") })
+		: i18n.global.t("plugins.CHX350.filament.spoolNone");
+});
 
 // Materials = RRF filament profiles (directories under 0:/filaments), like DWC's FilamentDialog
 const materials = ref<Array<string>>([]);

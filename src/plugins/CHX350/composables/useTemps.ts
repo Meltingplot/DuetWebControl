@@ -3,7 +3,7 @@ import { computed } from "vue";
 
 import { useMachineStore } from "@/stores/machine";
 
-import { useChxGlobals } from "./useChxGlobals";
+import { useChxGlobals, type NozzleType, type SpoolState } from "./useChxGlobals";
 
 /** Analog sensor name the CHX 350 uses for the scanning Z probe coil (doubles as chamber reading) */
 const SZP_SENSOR_NAME = "szp coil";
@@ -19,6 +19,11 @@ export interface ToolTemps {
 	/** Loaded filament name ("" when none) */
 	filament: string;
 	nozzleDiameter: number | null;
+	nozzleType: NozzleType | null;
+	/** Filament diameter the tool is built for (mm): the machine global, else the extruder's M404 value */
+	filamentDiameter: number | null;
+	/** Mounted spool, null when none was recorded or no filament is loaded */
+	spool: SpoolState | null;
 	extruderIndex: number;
 }
 
@@ -65,6 +70,9 @@ export function useTemps() {
 				state: h?.state ?? null,
 				filament: extruder?.filament ?? "",
 				nozzleDiameter: globals.nozzleDiameter(tool.number),
+				nozzleType: globals.nozzleType(tool.number),
+				filamentDiameter: globals.filamentDiameter(tool.number) ?? extruder?.filamentDiameter ?? null,
+				spool: extruder?.filament ? globals.spool(tool.number) : null,
 				extruderIndex
 			};
 		}));

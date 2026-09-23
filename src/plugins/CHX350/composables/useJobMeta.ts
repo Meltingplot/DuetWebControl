@@ -1,26 +1,36 @@
 import type { GCodeFileInfo, ThumbnailInfo } from "@duet3d/objectmodel";
 import { computed, ref, watch, type Ref } from "vue";
 
+import i18n from "@/i18n";
 import { useCacheStore } from "@/stores/cache";
 import { useMachineStore } from "@/stores/machine";
 
 import { api, type SlicerConfig } from "../api";
-import { useChxGlobals } from "./useChxGlobals";
+import { ABRASIVE_NOZZLE_TYPES, bedSurfaceLabel, filamentGrams, nozzleTypeLabel, useChxGlobals } from "./useChxGlobals";
 import { useMachineState } from "./useMachineState";
-import { useTemps } from "./useTemps";
+import { useTemps, type ToolTemps } from "./useTemps";
 
-export type CheckState = "ok" | "mismatch" | "unknown";
+/** "info" reports a machine fact the file cannot be checked against */
+export type CheckState = "ok" | "mismatch" | "unknown" | "info";
 
 export interface JobCheck {
-	key: "material" | "nozzle" | "printer" | "surface";
+	key: "material" | "nozzle" | "filamentDiameter" | "abrasive" | "spool" | "printer" | "surface";
 	state: CheckState;
 	/** i18n key of the title */
 	title: string;
+	/** Parameters of the title */
+	titleParams?: Record<string, unknown>;
 	/** Free-text detail (already localised where needed) */
 	detail: string;
 	/** Whether a mismatch blocks the start */
 	blocking: boolean;
 }
+
+/**
+ * Filament profiles above this nozzle hardness need a wear-resistant nozzle. OrcaSlicer's profiles
+ * ask for 3 on unfilled materials (PLA, PETG, ABS) and 40 on fibre-filled ones (PA-CF)
+ */
+const ABRASIVE_HRC = 20;
 
 /** Slicer metadata merged from the backend config block, DSF customInfo and the file name */
 export interface SlicerMeta {
@@ -31,6 +41,9 @@ export interface SlicerMeta {
 	bedType: string | null;
 	printMode: string | null;
 	layerHeight: number | null;
+	filamentDiameter: number | null;
+	/** Minimum nozzle hardness (HRC) the filament profile asks for */
+	requiredNozzleHrc: number | null;
 	source: "backend" | "customInfo" | "filename" | "none";
 }
 
@@ -51,6 +64,15 @@ export function materialMatches(required: string | null, loaded: string | null):
 		return "unknown";
 	}
 	return req.every((r) => have.some((h) => h.startsWith(r))) ? "ok" : "mismatch";
+}
+
+/** Fibre-filled material by name ("PA-CF", "PET-GF"), for files without the slicer's HRC value */
+function isFibreFilled(material: string | null): boolean {
+	return tokens(material).some((t) => t === "cf" || t === "gf");
+}
+
+function grams(value: number): string {
+	return `${Math.round(value)} g`;
 }
 
 export function useJobMeta(path: Ref<string>) {
@@ -146,9 +168,78 @@ export function useJobMeta(path: Ref<string>) {
 		const bedType = str(c.curr_bed_type) ?? str(ci.bedType) ?? str(ci.surface) ?? null;
 		const printMode = str(ci.printMode) ?? str(ci.idexMode) ?? null;
 		const layerHeight = num(c.layer_height) ?? info.value?.layerHeight ?? fn?.layer ?? null;
+		const filamentDiameter = num(c.filament_diameter) ?? num(ci.filamentDiameter) ?? null;
+		const requiredNozzleHrc = num(c.required_nozzle_HRC) ?? null;
 		const source: SlicerMeta["source"] = Object.keys(c).length > 0 ? "backend" : (Object.keys(ci).length > 0 ? "customInfo" : (fn ? "filename" : "none"));
-		return { material, materialType, nozzle, printerModel, bedType, printMode, layerHeight, source };
+		return { material, materialType, nozzle, printerModel, bedType, printMode, layerHeight, filamentDiameter, requiredNozzleHrc, source };
 	});
+
+	/** Whether the job's material wears a standard nozzle: the slicer's HRC demand, else a CF/GF name */
+	const abrasive = computed(() => {
+		const m = meta.value;
+		return m.requiredNozzleHrc !== null ? m.requiredNozzleHrc > ABRASIVE_HRC : isFibreFilled(m.materialType ?? m.material);
+	});
+
+	function filamentDiameterCheck(tool: ToolTemps, required: number): JobCheck {
+		const installed = tool.filamentDiameter;
+		const state: CheckState = installed === null ? "unknown" : (Math.abs(required - installed) < 0.05 ? "ok" : "mismatch");
+		return {
+			key: "filamentDiameter",
+			state,
+			title: `plugins.CHX350.check.filamentDiameter${state === "ok" ? "Ok" : (state === "mismatch" ? "Bad" : "Unknown")}`,
+			detail: `T${tool.number}: ${required.toFixed(2)} mm ↔ ${installed !== null ? installed.toFixed(2) + " mm" : "—"}`,
+			blocking: true
+		};
+	}
+
+	function abrasiveCheck(tool: ToolTemps): JobCheck {
+		const type = tool.nozzleType;
+		const state: CheckState = type === null || type === "other" ? "unknown" : (ABRASIVE_NOZZLE_TYPES.includes(type) ? "ok" : "mismatch");
+		return {
+			key: "abrasive",
+			state,
+			title: `plugins.CHX350.check.abrasive${state === "ok" ? "Ok" : (state === "mismatch" ? "Bad" : "Unknown")}`,
+			detail: `T${tool.number}: ${meta.value.materialType ?? meta.value.material ?? "?"} ↔ ${type !== null ? nozzleTypeLabel(type) : "—"}`,
+			// Fibre-filled material destroys a soft nozzle: the operator UI never starts it. Starting
+			// anyway is only possible in classic DWC, later behind the service PIN (useServiceStore)
+			blocking: true
+		};
+	}
+
+	/** Filament the job needs from the tool's spool, like print/prepare.g's warning; never blocks */
+	function spoolCheck(tool: ToolTemps): JobCheck {
+		const t = (key: string, params: Record<string, unknown> = {}) => i18n.global.t(`plugins.CHX350.check.${key}`, params);
+		const mm = info.value?.filament[tool.extruderIndex] ?? 0;
+		const spool = tool.spool;
+		if (spool === null || spool.density <= 0 || tool.filamentDiameter === null || mm <= 0) {
+			return {
+				key: "spool",
+				state: "unknown",
+				title: "plugins.CHX350.check.spoolUnknown",
+				detail: `T${tool.number}: ${t(spool === null ? "spoolNotRecorded" : (spool.density <= 0 ? "spoolNoDensity" : "spoolNoDemand"))}`,
+				blocking: false
+			};
+		}
+		const need = filamentGrams(mm, tool.filamentDiameter, spool.density);
+		if (need > spool.netWeight) {
+			return {
+				key: "spool",
+				state: "info",
+				title: "plugins.CHX350.check.spoolRolls",
+				titleParams: { n: Math.ceil(need / spool.netWeight) },
+				detail: `T${tool.number}: ${t("spoolNeedsFull", { need: grams(need), full: grams(spool.netWeight) })}`,
+				blocking: false
+			};
+		}
+		const short = need > spool.remaining;
+		return {
+			key: "spool",
+			state: short ? "mismatch" : "ok",
+			title: short ? "plugins.CHX350.check.spoolShort" : "plugins.CHX350.check.spoolOk",
+			detail: `T${tool.number}: ${t("spoolNeeds", { need: grams(need), left: grams(spool.remaining) })}`,
+			blocking: false
+		};
+	}
 
 	/** Tools the job uses (from the slicer's per-extruder filament amounts), defaulting to tool 0 */
 	const usedTools = computed(() => {
@@ -189,6 +280,15 @@ export function useJobMeta(path: Ref<string>) {
 				detail: `T${tool.number}: ${m.nozzle !== null ? m.nozzle.toFixed(2) + " mm" : "?"} ↔ ${installed !== null ? installed.toFixed(2) + " mm" : "—"}`,
 				blocking: true
 			});
+
+			// Only the slicer's config block carries the filament diameter; without it there is nothing to compare
+			if (m.filamentDiameter !== null) {
+				result.push(filamentDiameterCheck(tool, m.filamentDiameter));
+			}
+			if (abrasive.value) {
+				result.push(abrasiveCheck(tool));
+			}
+			result.push(spoolCheck(tool));
 		}
 
 		// Printer model
@@ -204,12 +304,17 @@ export function useJobMeta(path: Ref<string>) {
 			blocking: printerState === "mismatch"
 		});
 
-		// Bed surface - informational only (no sensor for the mounted plate)
+		// Bed surface - informational only: OrcaSlicer's plate types (Cool/Engineering/High Temp/
+		// Textured PEI Plate) do not map onto the CHX plates, and the CHX 350 profile gives every
+		// plate type the same temperatures, so the file's value is shown but not compared
+		const surface = globals.bedSurface.value;
+		const fileSurface = m.bedType ? i18n.global.t("plugins.CHX350.check.surfaceFile", { type: m.bedType }) : "";
 		result.push({
 			key: "surface",
-			state: m.bedType ? "ok" : "unknown",
-			title: m.bedType ? "plugins.CHX350.check.surface" : "plugins.CHX350.check.surfaceUnknown",
-			detail: m.bedType ?? "",
+			state: surface !== null || m.bedType ? "info" : "unknown",
+			title: surface !== null ? "plugins.CHX350.check.surfaceInstalled" : (m.bedType ? "plugins.CHX350.check.surface" : "plugins.CHX350.check.surfaceUnknown"),
+			titleParams: surface !== null ? { surface: bedSurfaceLabel(surface) } : undefined,
+			detail: surface !== null ? fileSurface : (m.bedType ?? ""),
 			blocking: false
 		});
 		return result;

@@ -73,6 +73,13 @@
 .chk--unknown {
 	border-left-color: var(--border-default);
 }
+.chk--info {
+	border-left-color: var(--mp-primary);
+}
+/* Vuetify's primary (#009AD7) misses 3:1 on the light page surface; the brand ink tone does not */
+.chk--info .v-icon {
+	color: var(--text-brand);
+}
 .chk__title {
 	font: 600 14px/1.25 var(--mp-font-body, sans-serif);
 	color: var(--text-strong);
@@ -168,11 +175,9 @@
 
 				<div class="checks">
 					<div v-for="(chk, i) in job.checks.value" :key="i" class="chk" :class="`chk--${chk.state}`">
-						<v-icon size="24" :color="chk.state === 'ok' ? 'success' : (chk.state === 'mismatch' ? 'warning' : undefined)">
-							{{ chk.state === "ok" ? "mdi-check-circle" : (chk.state === "mismatch" ? "mdi-alert" : "mdi-help-circle-outline") }}
-						</v-icon>
+						<v-icon size="24" :color="CHECK_ICONS[chk.state].color">{{ CHECK_ICONS[chk.state].icon }}</v-icon>
 						<div style="min-width: 0">
-							<div class="chk__title">{{ $t(chk.title) }}</div>
+							<div class="chk__title">{{ $t(chk.title, chk.titleParams ?? {}) }}</div>
 							<div class="chk__detail">{{ chk.detail }}</div>
 						</div>
 					</div>
@@ -227,8 +232,15 @@ import { display, displaySize, displayTime } from "@/utils/display";
 import { escapeFilename } from "@/utils/path";
 
 import ChxPageHeader from "../components/ChxPageHeader.vue";
-import { useJobMeta } from "../composables/useJobMeta";
+import { useJobMeta, type CheckState } from "../composables/useJobMeta";
 import { ROUTES } from "../routes";
+
+const CHECK_ICONS: Record<CheckState, { icon: string; color?: string }> = {
+	ok: { icon: "mdi-check-circle", color: "success" },
+	mismatch: { icon: "mdi-alert", color: "warning" },
+	info: { icon: "mdi-information-outline" },
+	unknown: { icon: "mdi-help-circle-outline" }
+};
 
 const route = useRoute();
 const router = useRouter();

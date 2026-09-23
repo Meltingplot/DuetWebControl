@@ -60,6 +60,24 @@
 		"lockedAxes": "AXES LOCKED",
 		"comingSoon": "This area will be completed by a later plugin."
 	},
+	"bedSurface": {
+		"pei": "PEI smooth",
+		"peiTextured": "PEI textured",
+		"pertinax": "Pertinax (phenolic paper)",
+		"g10": "G10 fiberglass",
+		"carbon": "Carbon fibre",
+		"glass": "Glass",
+		"other": "Other"
+	},
+	"nozzleType": {
+		"brass": "Brass",
+		"cht": "Brass CHT",
+		"hardened": "Hardened steel",
+		"chtHardened": "Hardened steel CHT",
+		"tungstenCarbide": "Tungsten carbide",
+		"copper": "Plated copper",
+		"other": "Other"
+	},
 	"start": {
 		"printTitle": "Start print",
 		"printSub": "Choose a file · {count} jobs on the machine",
@@ -171,8 +189,25 @@
 		"start": "Start print",
 		"startBlocked": "Start blocked",
 		"hintMode": "The machine must be in automatic mode (doors closed).",
-		"hintBlocked": "Material or nozzle do not match the file.",
-		"hintBed": "Please confirm that the bed is clear."
+		"hintBlocked": "Material, nozzle or filament diameter do not match the file.",
+		"hintBed": "Please confirm that the bed is clear.",
+		"filamentDiameterOk": "Filament diameter matches",
+		"filamentDiameterBad": "Filament diameter differs – re-slice",
+		"filamentDiameterUnknown": "Filament diameter cannot be checked",
+		"abrasiveOk": "Nozzle suits abrasive material",
+		"abrasiveBad": "Abrasive material – hardened nozzle required",
+		"abrasiveUnknown": "Abrasive material – nozzle type not recorded",
+		"spoolOk": "Enough filament on the spool",
+		"spoolShort": "Not enough filament – change the spool during the print",
+		"spoolRolls": "Job needs {n} spools – change spools during the print",
+		"spoolUnknown": "Filament amount cannot be checked",
+		"spoolNotRecorded": "spool not recorded",
+		"spoolNoDensity": "density unknown, consumption is not tracked",
+		"spoolNoDemand": "the file gives no filament amount",
+		"spoolNeeds": "needs {need} · {left} on the spool",
+		"spoolNeedsFull": "needs {need} · one spool holds {full}",
+		"surfaceInstalled": "Build plate: {surface}",
+		"surfaceFile": "File: {type}"
 	},
 	"job": {
 		"title": "Running job",
@@ -216,7 +251,14 @@
 			"cancelled": "CANCELLED",
 			"aborted": "ERROR",
 			"simulated": "SIMULATED"
-		}
+		},
+		"spoolLeft": "Filament left",
+		"spoolOf": "of a {net} spool",
+		"spoolUntracked": "consumption not tracked (no density)",
+		"spoolNotRecorded": "spool not recorded",
+		"spoolNoFilament": "no filament loaded",
+		"spoolShort": "Not enough for the rest of the job",
+		"spoolChangeIn": "Spool change in {time}"
 	},
 	"analysis": {
 		"title": "Part analysis",
@@ -269,7 +311,10 @@
 		"s3Title": "Check the build plate",
 		"s3Body": "Remove residue and support material, check the plate for damage and re-insert it. The machine is then ready for the next job.",
 		"s3Warn": "The plate must snap in completely before the next print starts.",
-		"s3Cta": "Done"
+		"s3Cta": "Done",
+		"surface": "Installed build plate",
+		"surfaceNone": "not recorded",
+		"surfaceChange": "Different plate installed"
 	},
 	"home": {
 		"title": "Home axes",
@@ -302,7 +347,10 @@
 		"meshDeviation": "Deviation (RMS)",
 		"meshMean": "Mean",
 		"probeTrigger": "Trigger height",
-		"probeValue": "Probe value"
+		"probeValue": "Probe value",
+		"nozzleTitle": "Nozzle changed",
+		"nozzleDesc": "Record diameter and type · {tool}: {current}",
+		"record": "Record"
 	},
 	"preheat": {
 		"title": "Preheat",
@@ -338,8 +386,12 @@
 		"loadedWith": "loaded with {name}",
 		"unloadOnly": "Unload only",
 		"unloadOnlySub": "Do not load new material",
-		"spoolTodo": "Spool size and fill level will follow in a later version.",
-		"done": "Filament change completed."
+		"done": "Filament change completed.",
+		"spool": "Spool",
+		"spoolValue": "{left} of {net}",
+		"spoolNone": "not recorded",
+		"spoolHint": "While loading, the machine asks for spool size, spool body and weight and tracks the remaining amount from then on. New spool of the same material, or a correction: \"Record spool\".",
+		"spoolRecord": "Record spool ({tool})"
 	},
 	"settings": {
 		"macros": "Macros",

@@ -6,8 +6,10 @@ import { useSettingsStore } from "@/stores/settings";
 import { isPaused, isPrinting } from "@/utils/enums";
 import { extractFileName } from "@/utils/path";
 
-/** Assumed filament density (g/cm³) for the gram figures; the object model carries no material density */
-const DENSITY_G_CM3 = 1.24;
+import { filamentGrams, useChxGlobals } from "./useChxGlobals";
+
+/** Density (g/cm³) assumed for the gram figures when the tool's spool carries none */
+const FALLBACK_DENSITY = 1.24;
 
 export type ProgressSource = "slicer" | "filament" | "file" | "none";
 export type LastJobResult = "finished" | "cancelled" | "aborted" | "simulated" | null;
@@ -32,6 +34,7 @@ export type LastJobResult = "finished" | "cancelled" | "aborted" | "simulated" |
 export function useJob() {
 	const machineStore = useMachineStore();
 	const settingsStore = useSettingsStore();
+	const globals = useChxGlobals();
 
 	const job = computed(() => machineStore.model.job);
 	const status = computed(() => machineStore.model.state.status);
@@ -149,18 +152,38 @@ export function useJob() {
 
 	// --- Filament -----------------------------------------------------------------------------
 
+	// Diameter and density belong to the tool (globals filament_diameter[], spool_density[]); the
+	// slicer's extruder i is tool i on the CHX 350, the lookup only covers an unusual tool mapping
+	function toolForExtruder(extruder: number): number {
+		return machineStore.model.tools.find((t) => t !== null && t.extruders[0] === extruder)?.number ?? extruder;
+	}
 	function filamentDiameter(extruder = 0): number {
-		return machineStore.model.move.extruders[extruder]?.filamentDiameter ?? 1.75;
+		return globals.filamentDiameter(toolForExtruder(extruder)) ?? machineStore.model.move.extruders[extruder]?.filamentDiameter ?? 1.75;
 	}
 	function mmToGrams(mm: number, extruder = 0): number {
-		const r = filamentDiameter(extruder) / 2;
-		return (Math.PI * r * r * mm) / 1000 * DENSITY_G_CM3;
+		const density = globals.spool(toolForExtruder(extruder))?.density || FALLBACK_DENSITY;
+		return filamentGrams(mm, filamentDiameter(extruder), density);
 	}
 	/** Filament (mm) the slicer expects for the whole job, all extruders */
 	const filamentTotal = computed(() => (file.value?.filament ?? []).reduce((a, b) => a + b, 0));
 	/** Filament (mm) extruded since the job started */
 	const filamentUsed = computed(() => active.value ? (job.value.rawExtrusion ?? 0) : 0);
 	const filamentLeft = computed(() => Math.max(0, filamentTotal.value - filamentUsed.value));
+	/** Grams per mm of the job's filament, weighted by what each extruder needs (for all-extruder totals) */
+	const gramsPerMm = computed(() => {
+		const amounts = file.value?.filament ?? [];
+		const total = amounts.reduce((a, b) => a + b, 0);
+		return total > 0 ? amounts.reduce((sum, mm, e) => sum + mmToGrams(mm, e), 0) / total : mmToGrams(1);
+	});
+	/** Grams the running job still needs from an extruder: slicer total minus what the extruder fed so far */
+	function gramsLeft(extruder: number): number {
+		if (!active.value) {
+			return 0;
+		}
+		const total = file.value?.filament[extruder] ?? 0;
+		const done = machineStore.model.move.extruders[extruder]?.rawPosition ?? 0;
+		return mmToGrams(Math.max(0, total - done), extruder);
+	}
 
 	// --- Machine parameters that matter while printing ---------------------------------------
 
@@ -206,7 +229,7 @@ export function useJob() {
 		elapsed, warmUp, pauseDuration, printTime, timeLeft, eta, finishAt,
 		progress, progressSource,
 		layer, numLayers, layersDone, layerTime, layerHeight, height, currentHeight,
-		filamentDiameter, mmToGrams, filamentTotal, filamentUsed, filamentLeft,
+		filamentDiameter, mmToGrams, filamentTotal, filamentUsed, filamentLeft, gramsPerMm, gramsLeft,
 		currentTool, speedFactor, extrusionFactor, partFan,
 		thumbnail, thumbnailUrl
 	};

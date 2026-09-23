@@ -238,6 +238,59 @@
 	font-weight: 500;
 	color: var(--text-body);
 }
+.spools {
+	display: flex;
+	flex-direction: column;
+	gap: 8px;
+	min-width: 0;
+	overflow: hidden;
+}
+.spool__head {
+	display: flex;
+	align-items: baseline;
+	justify-content: space-between;
+	gap: 8px;
+}
+.spool__tool {
+	font: 700 13px/1 var(--mp-font-mono, monospace);
+	color: var(--text-strong);
+}
+.spool__val {
+	font: 700 17px/1 var(--mp-font-mono, monospace);
+	color: var(--text-strong);
+	white-space: nowrap;
+}
+.spool__bar {
+	margin-top: 6px;
+	height: 10px;
+	border-radius: var(--mp-radius-pill, 999px);
+	background: var(--surface-sunken);
+	overflow: hidden;
+}
+.spool__fill {
+	height: 100%;
+	border-radius: var(--mp-radius-pill, 999px);
+	/* primary-dark disappears on the dark sunken surface; the brand ink tone is light there */
+	background: var(--text-brand);
+	transition: width 0.6s ease;
+}
+.spool__sub {
+	margin-top: 5px;
+	font: 400 11px/1.3 var(--mp-font-mono, monospace);
+	color: var(--text-body);
+}
+.spool__warn {
+	margin-top: 7px;
+	display: flex;
+	align-items: flex-start;
+	gap: 8px;
+	padding: 7px 9px;
+	border-radius: var(--mp-radius-sm, 4px);
+	background: rgba(232, 155, 38, 0.14);
+	border-left: 4px solid var(--mp-accent);
+	font: 600 11px/1.35 var(--mp-font-mono, monospace);
+	color: var(--text-strong);
+}
 .idle {
 	flex: 1;
 	display: flex;
@@ -378,10 +431,26 @@
 						</div>
 					</div>
 
-					<!-- Spool fill level / remaining filament per tool is a deferred feature; the slot
-						 shows the live machine figures the operator watches during a print instead.
-						 Bed and chamber readings are in the header, so the bed row only adds its setpoint -->
-					<div class="machine">
+					<!-- Remaining filament per tool from the machine's spool tracking (global.spool_*,
+						 booked every 60 s while printing) -->
+					<div v-if="hasSpools" class="spools">
+						<div class="chx-label">{{ $t("plugins.CHX350.job.spoolLeft") }}</div>
+						<div v-for="s in spools" :key="s.number">
+							<div class="spool__head">
+								<span class="spool__tool">T{{ s.number }}</span>
+								<span class="spool__val">{{ s.label }}</span>
+							</div>
+							<div class="spool__bar"><div class="spool__fill" :style="{ width: s.width }" /></div>
+							<div class="spool__sub">{{ s.sub }}</div>
+							<div v-if="s.short" class="spool__warn">
+								<v-icon size="15">mdi-clock-outline</v-icon>
+								<span>{{ s.short }}</span>
+							</div>
+						</div>
+					</div>
+					<!-- Without a recorded spool (config before 3.7) the slot shows the live machine figures
+						 instead. Bed and chamber readings are in the header, so the bed row only adds its setpoint -->
+					<div v-else class="machine">
 						<div class="chx-label">{{ $t("plugins.CHX350.job.machine") }}</div>
 						<div v-for="t in temps.tools.value" :key="t.number" class="machine__row">
 							<span class="machine__key" :title="t.filament">T{{ t.number }} · {{ t.filament || $t("plugins.CHX350.start.noFilament") }}</span>
@@ -420,7 +489,7 @@ import { showConfirmDialog } from "@/composables/useConfirmDialog";
 import i18n from "@/i18n";
 import { useMachineStore } from "@/stores/machine";
 import { useSettingsStore } from "@/stores/settings";
-import { displayTime } from "@/utils/display";
+import { display, displayTime } from "@/utils/display";
 import { escapeFilename, extractFileName } from "@/utils/path";
 
 import ChxCamera from "../components/ChxCamera.vue";
@@ -481,6 +550,10 @@ function formatTimeLeft(seconds: number): string {
 	const m = Math.round((seconds % 3600) / 60);
 	return m === 60 ? `${h + 1}h 0m` : `${h}h ${m}m`;
 }
+function formatMinutes(seconds: number): string {
+	const minutes = Math.max(1, Math.round(seconds / 60));
+	return minutes < 60 ? `${minutes}m` : `${Math.floor(minutes / 60)}h ${minutes % 60}m`;
+}
 // Sum of the per-layer durations of the last job (job.duration is reset once it ends)
 const analysisDuration = computed(() => {
 	const sum = analysis.layers.value.reduce((a, l) => a + (l.duration ?? 0), 0);
@@ -512,7 +585,34 @@ const tempNow = computed(() => {
 	return v !== null && v !== undefined ? formatTemp(v) : "—";
 });
 
-const formatGrams = (mm: number) => `${Math.round(job.mmToGrams(mm))} g`;
+const formatGrams = (mm: number) => `${Math.round(mm * job.gramsPerMm.value)} g`;
+
+const hasSpools = computed(() => temps.tools.value.some((t) => t.spool !== null));
+const spools = computed(() => temps.tools.value.map((t) => {
+	const tr = (key: string, params: Record<string, unknown> = {}) => i18n.global.t(`plugins.CHX350.job.${key}`, params);
+	if (!t.filament || t.spool === null) {
+		return { number: t.number, label: "—", width: "0%", sub: tr(t.filament ? "spoolNotRecorded" : "spoolNoFilament"), short: "" };
+	}
+	const { remaining, netWeight, density } = t.spool;
+	// Without a density the machine does not book the consumption, so the figure stays as entered
+	const need = density > 0 ? job.gramsLeft(t.extruderIndex) : 0;
+	let short = "";
+	if (need > remaining) {
+		// Spool change due when the rest runs out, assuming even consumption until the job ends;
+		// whole minutes, seconds would be false precision for this estimate
+		const timeLeft = job.timeLeft.value;
+		short = timeLeft !== null && need > 0
+			? tr("spoolChangeIn", { time: formatMinutes(timeLeft * remaining / need) })
+			: tr("spoolShort");
+	}
+	return {
+		number: t.number,
+		label: display(remaining / 1000, 2, "kg"),
+		width: `${Math.max(0, Math.min(100, remaining / netWeight * 100)).toFixed(1)}%`,
+		sub: density > 0 ? tr("spoolOf", { net: display(netWeight / 1000, 2, "kg") }) : tr("spoolUntracked"),
+		short
+	};
+}));
 const filamentUsed = computed(() => job.active.value
 	? job.filamentUsed.value
 	: (analysis.cumulativeFilament.value[analysis.cumulativeFilament.value.length - 1] ?? 0));

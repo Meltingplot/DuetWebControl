@@ -15,6 +15,10 @@ export interface SlicerConfig {
 	curr_bed_type?: string;
 	print_sequence?: string;
 	layer_height?: string;
+	filament_diameter?: string;
+	filament_density?: string;
+	/** Minimum nozzle hardness the filament profile asks for (OrcaSlicer: 3 for PLA, 40 for PA-CF) */
+	required_nozzle_HRC?: string;
 	[key: string]: string | undefined;
 }
 

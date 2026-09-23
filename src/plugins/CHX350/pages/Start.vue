@@ -94,12 +94,22 @@
 	color: var(--text-strong);
 }
 .tool__mat {
+	display: flex;
+	gap: 4px;
 	font: 400 12px/1.3 var(--mp-font-body, sans-serif);
 	color: var(--text-body);
-	max-width: 170px;
+	max-width: 190px;
 	white-space: nowrap;
+}
+.tool__matname {
+	min-width: 0;
 	overflow: hidden;
 	text-overflow: ellipsis;
+}
+/* Filament left on the mounted spool; stays visible when a long material name is cut */
+.tool__spool {
+	flex: none;
+	font-family: var(--mp-font-mono, monospace);
 }
 .tool__temp {
 	font: 700 16px/1.2 var(--mp-font-mono, monospace);
@@ -160,7 +170,10 @@
 							{{ $t("plugins.CHX350.start.tool", { n: t.number }) }}
 							<span v-if="t.nozzleDiameter !== null" class="text-body-2"> · {{ $t("plugins.CHX350.start.nozzle", { d: t.nozzleDiameter }) }}</span>
 						</div>
-						<div class="tool__mat">{{ t.filament || $t("plugins.CHX350.start.noFilament") }}</div>
+						<div class="tool__mat">
+							<span class="tool__matname">{{ t.filament || $t("plugins.CHX350.start.noFilament") }}</span>
+							<span v-if="t.spool" class="tool__spool">· {{ display(t.spool.remaining / 1000, 2, "kg") }}</span>
+						</div>
 					</div>
 					<div class="text-right">
 						<div class="tool__temp">{{ formatTemp(t.current) }}</div>
@@ -185,6 +198,7 @@ import { showConfirmDialog } from "@/composables/useConfirmDialog";
 import i18n from "@/i18n";
 import { useMachineStore } from "@/stores/machine";
 import { useSettingsStore } from "@/stores/settings";
+import { display } from "@/utils/display";
 import Events from "@/utils/events";
 import Path, { escapeFilename, extractFileName } from "@/utils/path";
 

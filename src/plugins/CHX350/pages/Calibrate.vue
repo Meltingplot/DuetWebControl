@@ -54,6 +54,18 @@
 		<ChxPageHeader :subtitle="state.axesLocked.value && state.plate.value !== 'idle' ? $t('plugins.CHX350.generic.lockedAxes') : ''" :back="ROUTES.start" />
 		<div class="grid">
 			<div class="routines">
+				<!-- First step after a nozzle swap: the calibrations below are filed per nozzle -->
+				<div v-if="hw.hasNozzle.value" class="chx-card routine">
+					<v-icon size="32" class="routine__icon">mdi-printer-3d-nozzle-outline</v-icon>
+					<div class="flex-grow-1" style="min-width: 0">
+						<div class="routine__title">{{ t("nozzleTitle") }}</div>
+						<div class="routine__desc">{{ nozzleDesc }}</div>
+					</div>
+					<v-btn color="secondary" size="large" class="chx-btn" :disabled="!hw.allowed.value" :loading="hw.nozzle.busy.value" @click="hw.nozzle.run()">
+						<v-icon start>mdi-pencil-outline</v-icon>
+						{{ t("record") }}
+					</v-btn>
+				</div>
 				<div v-for="r in routines" :key="r.key" class="chx-card routine">
 					<v-icon size="32" class="routine__icon">{{ r.icon }}</v-icon>
 					<div class="flex-grow-1" style="min-width: 0">
@@ -92,6 +104,8 @@ import { useMachineStore } from "@/stores/machine";
 import { extractFileName } from "@/utils/path";
 
 import ChxPageHeader from "../components/ChxPageHeader.vue";
+import { nozzleTypeLabel, useChxGlobals } from "../composables/useChxGlobals";
+import { useHardwareMacros } from "../composables/useHardwareMacros";
 import { useMachineState } from "../composables/useMachineState";
 import { useMacroRunner } from "../composables/useMacroRunner";
 import { ROUTES } from "../routes";
@@ -112,6 +126,17 @@ const routines = computed(() => [
 	{ key: "mesh", icon: "mdi-grid", title: t("meshTitle"), desc: t("meshDesc"), configured: mesh.configured.value, busy: mesh.busy.value, run: mesh.run },
 	{ key: "alignZ", icon: "mdi-align-vertical-center", title: t("alignZTitle"), desc: t("alignZDesc"), configured: alignZ.configured.value, busy: alignZ.busy.value, run: alignZ.run }
 ]);
+
+// set-nozzle-diameter asks for diameter and type of the current tool
+const globals = useChxGlobals();
+const hw = useHardwareMacros();
+const nozzleDesc = computed(() => {
+	const tool = hw.nozzleTool.value;
+	const diameter = globals.nozzleDiameter(tool);
+	const type = globals.nozzleType(tool);
+	const current = [diameter !== null ? `${diameter.toFixed(2)} mm` : null, type !== null ? nozzleTypeLabel(type) : null].filter((v) => v !== null).join(", ");
+	return i18n.global.t("plugins.CHX350.calibrate.nozzleDesc", { tool: `T${tool}`, current: current || "—" });
+});
 
 const compensation = computed(() => machineStore.model.move.compensation);
 const probe = computed(() => machineStore.model.sensors.probes.find((p) => p !== null) ?? null);

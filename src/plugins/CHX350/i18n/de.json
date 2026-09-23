@@ -60,6 +60,24 @@
 		"lockedAxes": "ACHSEN GESPERRT",
 		"comingSoon": "Dieser Bereich wird mit einem späteren Plugin ergänzt."
 	},
+	"bedSurface": {
+		"pei": "PEI glatt",
+		"peiTextured": "PEI strukturiert",
+		"pertinax": "Pertinax (Hartpapier)",
+		"g10": "G10 (Glasfaser)",
+		"carbon": "Carbon",
+		"glass": "Glas",
+		"other": "Andere"
+	},
+	"nozzleType": {
+		"brass": "Messing",
+		"cht": "Messing CHT",
+		"hardened": "Gehärteter Stahl",
+		"chtHardened": "Gehärteter Stahl CHT",
+		"tungstenCarbide": "Wolframcarbid",
+		"copper": "Kupfer beschichtet",
+		"other": "Andere"
+	},
 	"start": {
 		"printTitle": "Druck starten",
 		"printSub": "Datei wählen · {count} Aufträge auf der Maschine",
@@ -171,8 +189,25 @@
 		"start": "Druck starten",
 		"startBlocked": "Start gesperrt",
 		"hintMode": "Die Maschine muss in Betriebsart Automatik sein (Türen geschlossen).",
-		"hintBlocked": "Material oder Düse passen nicht zur Datei.",
-		"hintBed": "Bitte bestätigen, dass das Bett frei ist."
+		"hintBlocked": "Material, Düse oder Filamentdurchmesser passen nicht zur Datei.",
+		"hintBed": "Bitte bestätigen, dass das Bett frei ist.",
+		"filamentDiameterOk": "Filamentdurchmesser passt",
+		"filamentDiameterBad": "Filamentdurchmesser weicht ab – neu slicen",
+		"filamentDiameterUnknown": "Filamentdurchmesser nicht prüfbar",
+		"abrasiveOk": "Düse für abrasives Material geeignet",
+		"abrasiveBad": "Abrasives Material – gehärtete Düse erforderlich",
+		"abrasiveUnknown": "Abrasives Material – Düsentyp nicht erfasst",
+		"spoolOk": "Filamentmenge reicht",
+		"spoolShort": "Filament reicht nicht bis zum Ende – Spule während des Drucks wechseln",
+		"spoolRolls": "Auftrag braucht {n} Spulen – Spulenwechsel während des Drucks",
+		"spoolUnknown": "Filamentmenge nicht prüfbar",
+		"spoolNotRecorded": "Spule nicht erfasst",
+		"spoolNoDensity": "Dichte unbekannt, Verbrauch wird nicht erfasst",
+		"spoolNoDemand": "Datei nennt keine Filamentmenge",
+		"spoolNeeds": "braucht {need} · auf der Spule {left}",
+		"spoolNeedsFull": "braucht {need} · eine Spule fasst {full}",
+		"surfaceInstalled": "Druckbett: {surface}",
+		"surfaceFile": "Datei: {type}"
 	},
 	"job": {
 		"title": "Laufender Auftrag",
@@ -216,7 +251,14 @@
 			"cancelled": "ABGEBROCHEN",
 			"aborted": "FEHLER",
 			"simulated": "SIMULIERT"
-		}
+		},
+		"spoolLeft": "Restfilament",
+		"spoolOf": "von {net} Spule",
+		"spoolUntracked": "Verbrauch nicht erfasst (Dichte fehlt)",
+		"spoolNotRecorded": "Spule nicht erfasst",
+		"spoolNoFilament": "kein Filament geladen",
+		"spoolShort": "Reicht nicht bis zum Ende",
+		"spoolChangeIn": "Spulenwechsel in {time}"
 	},
 	"analysis": {
 		"title": "Bauteil-Analyse",
@@ -269,7 +311,10 @@
 		"s3Title": "Druckplatte prüfen",
 		"s3Body": "Reste und Stützmaterial entfernen, Platte auf Beschädigung prüfen und wieder einsetzen. Danach ist die Maschine bereit für den nächsten Auftrag.",
 		"s3Warn": "Platte muss vollständig einrasten, bevor der nächste Druck startet.",
-		"s3Cta": "Fertig"
+		"s3Cta": "Fertig",
+		"surface": "Eingesetzte Druckplatte",
+		"surfaceNone": "nicht erfasst",
+		"surfaceChange": "Andere Platte eingesetzt"
 	},
 	"home": {
 		"title": "Achsen referenzieren",
@@ -302,7 +347,10 @@
 		"meshDeviation": "Abweichung (RMS)",
 		"meshMean": "Mittelwert",
 		"probeTrigger": "Sondenhöhe",
-		"probeValue": "Sondenwert"
+		"probeValue": "Sondenwert",
+		"nozzleTitle": "Düse gewechselt",
+		"nozzleDesc": "Durchmesser und Typ erfassen · {tool}: {current}",
+		"record": "Erfassen"
 	},
 	"preheat": {
 		"title": "Vorheizen",
@@ -338,8 +386,12 @@
 		"loadedWith": "geladen mit {name}",
 		"unloadOnly": "Nur entladen",
 		"unloadOnlySub": "Kein neues Material laden",
-		"spoolTodo": "Spulengröße und Füllstand folgen in einer späteren Version.",
-		"done": "Filamentwechsel abgeschlossen."
+		"done": "Filamentwechsel abgeschlossen.",
+		"spool": "Spule",
+		"spoolValue": "{left} von {net}",
+		"spoolNone": "nicht erfasst",
+		"spoolHint": "Beim Laden fragt die Maschine nach Spulengröße, Spulenkörper und Gewicht und führt die Restmenge danach selbst mit. Neue Spule desselben Materials oder Korrektur: „Spule erfassen“.",
+		"spoolRecord": "Spule erfassen ({tool})"
 	},
 	"settings": {
 		"macros": "Makros",

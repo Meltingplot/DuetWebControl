@@ -37,6 +37,7 @@ WANTED_KEYS = (
     "filament_density",
     "filament_diameter",
     "filament_colour",
+    "required_nozzle_HRC",
     "total filament used [g]",
     "estimated printing time (normal mode)",
 )
