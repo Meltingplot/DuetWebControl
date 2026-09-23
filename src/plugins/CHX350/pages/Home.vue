@@ -20,7 +20,7 @@
 	color: var(--text-body);
 }
 .axis__state--ok {
-	color: var(--mp-primary-dark);
+	color: var(--text-brand);
 }
 </style>
 

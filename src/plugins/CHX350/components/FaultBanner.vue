@@ -5,7 +5,7 @@
 	gap: 14px;
 	padding: 10px 14px;
 	border-radius: var(--mp-radius);
-	background: var(--mp-error);
+	background: var(--surface-error, #C8354A);
 	color: #fff;
 }
 .banner--warn {
@@ -17,7 +17,8 @@
 }
 .banner__body {
 	font: 400 13px/1.3 var(--mp-font-body, sans-serif);
-	opacity: 0.9;
+	/* 0.9 would drop white on the red surface below 4.5:1 */
+	opacity: 0.95;
 }
 </style>
 
@@ -28,7 +29,7 @@
 			<div class="banner__title">{{ $t("plugins.CHX350.job.heaterFault", { heater: fault.name }) }}</div>
 			<div class="banner__body">{{ $t("plugins.CHX350.job.heaterFaultBody") }}</div>
 		</div>
-		<CodeButton :code="`M562 P${fault.index}`" color="white" variant="flat" class="chx-btn text-error" :log="false">
+		<CodeButton :code="`M562 P${fault.index}`" color="white" variant="flat" class="chx-btn chx-text-alarm" :log="false">
 			{{ $t("plugins.CHX350.job.acknowledge") }}
 		</CodeButton>
 	</div>

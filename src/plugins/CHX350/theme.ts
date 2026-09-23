@@ -33,6 +33,11 @@ export function registerChxThemes(): void {
 			caption: "Meltingplot",
 			colors: {
 				...brand,
+				// Status colors are mostly text, icons and tonal chips in Vuetify. The CI tones only
+				// reach 2.3-4.4:1 on the light surfaces, these ink tones keep 4.5:1 even on a tonal chip
+				success: "#007456",
+				warning: "#8E5C0F",
+				error: "#BA3145",
 				background: "#F5F8FA",
 				surface: "#FFFFFF",
 				"on-surface": "#1A1F24",
@@ -51,6 +56,9 @@ export function registerChxThemes(): void {
 			caption: "Meltingplot (dunkel)",
 			colors: {
 				...brand,
+				// Lighter ink tones for text, icons and tonal chips on the dark surfaces (4.5:1)
+				success: "#00B182",
+				error: "#EE7785",
 				background: "#1A1F24",
 				surface: "#21272E",
 				"on-surface": "#E6F4F1",

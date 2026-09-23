@@ -42,7 +42,7 @@
 			</template>
 			<template v-else>
 				<p class="service__intro">{{ $t("plugins.CHX350.service.lockedIntro") }}</p>
-				<v-btn color="primary" class="chx-btn align-self-start" size="large" @click="serviceStore.unlock()">
+				<v-btn color="secondary" class="chx-btn align-self-start" size="large" @click="serviceStore.unlock()">
 					<v-icon start>mdi-lock-open-variant-outline</v-icon>
 					{{ $t("plugins.CHX350.service.unlock") }}
 				</v-btn>

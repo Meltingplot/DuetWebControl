@@ -27,11 +27,22 @@
 	--mp-error: #D94052;
 	--mp-info: #009AD7;
 
-	/* Semantic aliases (light) */
+	/* Semantic aliases (light). Text colors keep WCAG AA (4.5:1) on page, card and sunken
+	   surfaces; neutral-400 only reaches 2.3:1 on white, so muted text uses a darker grey */
 	--text-strong: var(--mp-neutral-900);
 	--text-body: var(--mp-neutral-700);
-	--text-muted: var(--mp-neutral-400);
+	--text-muted: #5F6F80;
 	--text-on-primary: var(--mp-white);
+	/* Brand blue for icons, highlighted values and selection rings on surfaces; primary-dark
+	   itself is a fill color and disappears on the dark surfaces */
+	--text-brand: var(--mp-primary-dark);
+	/* Amber for icons and text on surfaces (the CI amber is 2.3:1 on white) */
+	--text-warning: #8E5C0F;
+	/* Red surfaces that carry small white text (NOT-AUS button, fault banner, overlay). White on
+	   the CI red is 4.37:1; the status plate keeps the CI red because its label is large text */
+	--surface-error: #C8354A;
+	/* Ink of the Meltingplot wordmark (the negative logo is white) */
+	--mp-logo-ink: #1D1D1B;
 	--surface-page: var(--mp-neutral-100);
 	--surface-card: var(--mp-white);
 	--surface-sunken: var(--mp-neutral-200);
@@ -71,6 +82,9 @@
 	--text-strong: #E6F4F1;
 	--text-body: #B9C6D1;
 	--text-muted: #7E909E;
+	--text-brand: var(--mp-primary-light);
+	--text-warning: var(--mp-warning);
+	--mp-logo-ink: #FFFFFF;
 	--border-subtle: #2C343C;
 	--border-default: #38424B;
 	--border-strong: #4A5763;
@@ -108,6 +122,18 @@
 	letter-spacing: 0.07em;
 	text-transform: uppercase;
 	color: var(--text-body);
+}
+
+/* Red label of a white button on a red surface. Vuetify's text-error is the light ink red in the
+   dark theme and would drop to 3:1 on white. Not scoped: the NOT-AUS overlay is teleported out of
+   the shell, hence the fallback */
+.chx-text-alarm {
+	color: var(--surface-error, #C8354A) !important;
+}
+
+/* Placeholder icons (no thumbnail, no job); Vuetify's "grey" is only 2.4:1 on the surfaces */
+.chx-shell .chx-icon-muted {
+	color: var(--text-muted);
 }
 
 .chx-shell .chx-value {

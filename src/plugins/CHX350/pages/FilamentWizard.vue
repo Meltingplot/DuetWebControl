@@ -21,8 +21,8 @@
 	color: var(--text-strong);
 }
 .choice--active {
-	border-color: var(--mp-primary-dark);
-	box-shadow: 0 0 0 2px var(--mp-primary-dark) inset;
+	border-color: var(--text-brand);
+	box-shadow: 0 0 0 2px var(--text-brand) inset;
 }
 .choice__title {
 	font: 700 16px/1.2 var(--mp-font-body, sans-serif);

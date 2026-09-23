@@ -82,7 +82,7 @@
 	margin-top: 10px;
 	height: 12px;
 	border-radius: var(--mp-radius-pill, 999px);
-	background: var(--mp-neutral-200);
+	background: var(--surface-sunken);
 	overflow: hidden;
 }
 .progress__fill {
@@ -401,7 +401,7 @@
 		</template>
 
 		<div v-else class="idle">
-			<v-icon size="64" color="grey">mdi-printer-3d-nozzle-outline</v-icon>
+			<v-icon size="64" class="chx-icon-muted">mdi-printer-3d-nozzle-outline</v-icon>
 			<div class="text-h6">{{ $t("plugins.CHX350.job.noJob") }}</div>
 			<v-btn color="secondary" size="x-large" class="chx-btn" @click="router.push(ROUTES.jobs)">
 				<v-icon start>mdi-play</v-icon>

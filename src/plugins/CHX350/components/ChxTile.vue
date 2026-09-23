@@ -40,7 +40,7 @@
 	flex: none;
 	border-radius: var(--mp-radius);
 	background: var(--surface-sunken);
-	color: var(--mp-primary-dark);
+	color: var(--text-brand);
 }
 .tile--primary .tile__icon {
 	background: rgba(255, 255, 255, 0.16);

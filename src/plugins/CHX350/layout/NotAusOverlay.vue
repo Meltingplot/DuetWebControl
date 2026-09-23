@@ -3,7 +3,7 @@
 	width: min(560px, 90vw);
 	padding: 32px 36px;
 	border-radius: var(--mp-radius-lg, 14px);
-	background: var(--mp-error, #D94052);
+	background: var(--surface-error, #C8354A);
 	color: #fff;
 	text-align: center;
 	box-shadow: 0 24px 64px rgba(0, 0, 0, 0.45);
@@ -25,7 +25,7 @@
 		<div class="estop-card">
 			<div class="estop-card__title">{{ $t("plugins.CHX350.estop.title") }}</div>
 			<div class="estop-card__text">{{ $t("plugins.CHX350.estop.text") }}</div>
-			<CodeButton code="M999" color="white" variant="flat" size="x-large" class="chx-btn text-error" :log="false">
+			<CodeButton code="M999" color="white" variant="flat" size="x-large" class="chx-btn chx-text-alarm" :log="false">
 				<v-icon start>mdi-restart</v-icon>
 				{{ $t("plugins.CHX350.estop.reset") }}
 			</CodeButton>

@@ -74,7 +74,7 @@
 	color: #fff;
 }
 .jogbtn--locked {
-	background: var(--mp-neutral-200);
+	background: var(--surface-sunken);
 	color: var(--text-body);
 	cursor: not-allowed;
 }
@@ -108,7 +108,7 @@
 	white-space: nowrap;
 }
 .pos--sel .pos__val {
-	color: var(--mp-primary-dark);
+	color: var(--text-brand);
 }
 /* Icon-only home button shown in place of the coordinate of an unhomed axis. Its height matches
    the value line (margin + 21px) so the row does not jump once the axis is homed */
@@ -128,7 +128,7 @@
 	transition: background var(--mp-dur, 200ms) var(--mp-ease, ease);
 }
 .pos__home .v-icon {
-	color: var(--mp-warning);
+	color: var(--text-warning);
 }
 .pos__home:not(:disabled):hover,
 .pos__home:not(:disabled):focus-visible {

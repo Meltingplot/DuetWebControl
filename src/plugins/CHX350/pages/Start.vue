@@ -40,15 +40,17 @@
 	color: #fff;
 	font: 600 12px/1 var(--mp-font-body, sans-serif);
 	letter-spacing: 0.06em;
-	text-shadow: 0 1px 2px rgba(0, 0, 0, 0.6);
 }
-.camera__live {
+/* Dark scrim pills as on the job and control pages: white text stays readable on any frame */
+.camera__bar > span {
 	display: inline-flex;
 	align-items: center;
 	gap: 6px;
 	padding: 4px 8px;
 	border-radius: 999px;
-	background: rgba(217, 64, 82, 0.9);
+	background: rgba(0, 0, 0, 0.6);
+}
+.camera__live {
 	font-size: 10px;
 }
 .camera__live::before {
@@ -56,7 +58,7 @@
 	width: 6px;
 	height: 6px;
 	border-radius: 50%;
-	background: #fff;
+	background: var(--mp-error);
 }
 .machine {
 	flex: 1;

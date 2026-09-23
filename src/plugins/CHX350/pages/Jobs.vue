@@ -97,7 +97,7 @@
 				<button v-for="item in pageItems" :key="item.name" type="button" class="row" @click="open(item)">
 					<span class="row__thumb">
 						<ThumbnailImg v-if="item.thumbnails && item.thumbnails.length > 0" :thumbnail="pickThumbnail(item)" />
-						<v-icon v-else size="30" color="grey">mdi-file-document-outline</v-icon>
+						<v-icon v-else size="30" class="chx-icon-muted">mdi-file-document-outline</v-icon>
 					</span>
 					<span style="min-width: 0">
 						<div class="row__name">{{ item.name }}</div>

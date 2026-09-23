@@ -27,7 +27,7 @@
 	align-items: center;
 	justify-content: center;
 	background: var(--surface-sunken);
-	color: var(--mp-primary-dark);
+	color: var(--text-brand);
 }
 .row__icon--warn {
 	background: var(--mp-accent);

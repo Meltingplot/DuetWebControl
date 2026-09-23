@@ -51,7 +51,7 @@
 	padding: 10px 12px;
 	border-radius: var(--mp-radius);
 	background: rgba(232, 155, 38, 0.14);
-	color: var(--mp-neutral-900);
+	color: var(--text-strong);
 	font: 600 13px/1.3 var(--mp-font-body, sans-serif);
 }
 .cta {

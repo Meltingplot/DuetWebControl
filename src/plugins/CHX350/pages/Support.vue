@@ -32,7 +32,7 @@
 	justify-content: center;
 	border-radius: var(--mp-radius);
 	background: var(--surface-sunken);
-	color: var(--mp-primary-dark);
+	color: var(--text-brand);
 }
 .contact__value {
 	font: 700 22px/1.2 var(--mp-font-mono, monospace);

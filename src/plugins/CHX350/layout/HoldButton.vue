@@ -9,7 +9,7 @@
 	padding: 0 20px;
 	border: 0;
 	border-radius: var(--mp-radius, 8px);
-	background: var(--mp-error, #D94052);
+	background: var(--surface-error, #C8354A);
 	color: #fff;
 	font: 700 17px/1 var(--mp-font-body, sans-serif);
 	letter-spacing: 0.06em;

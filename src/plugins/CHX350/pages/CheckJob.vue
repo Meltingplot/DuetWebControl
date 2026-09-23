@@ -122,7 +122,7 @@
 				<div class="file__head">
 					<div class="file__thumb">
 						<ThumbnailImg v-if="job.thumbnail.value" :thumbnail="job.thumbnail.value" />
-						<v-icon v-else size="48" color="grey">mdi-file-document-outline</v-icon>
+						<v-icon v-else size="48" class="chx-icon-muted">mdi-file-document-outline</v-icon>
 					</div>
 					<div style="min-width: 0">
 						<div class="file__name">{{ job.fileName.value }}</div>

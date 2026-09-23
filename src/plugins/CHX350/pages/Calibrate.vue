@@ -17,6 +17,9 @@
 	gap: 16px;
 	padding: 16px 20px;
 }
+.routine__icon {
+	color: var(--text-brand);
+}
 .routine__title {
 	font: 700 17px/1.2 var(--mp-font-body, sans-serif);
 	color: var(--text-strong);
@@ -52,7 +55,7 @@
 		<div class="grid">
 			<div class="routines">
 				<div v-for="r in routines" :key="r.key" class="chx-card routine">
-					<v-icon size="32" color="secondary">{{ r.icon }}</v-icon>
+					<v-icon size="32" class="routine__icon">{{ r.icon }}</v-icon>
 					<div class="flex-grow-1" style="min-width: 0">
 						<div class="routine__title">{{ r.title }}</div>
 						<div class="routine__desc">{{ r.configured ? r.desc : $t("plugins.CHX350.generic.notConfigured") }}</div>

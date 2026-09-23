@@ -74,6 +74,10 @@
 	text-anchor: middle;
 	dominant-baseline: central;
 }
+/* White on the #009AD7 disc of the selected head is only 3.2:1 */
+.head-label--selected {
+	fill: #0B0F13;
+}
 .band-label {
 	font: 700 11px var(--mp-font-body, sans-serif);
 	fill: var(--mp-accent, #E89B26);
@@ -125,7 +129,7 @@
 					<line :x1="ox" :x2="ox + sizeX * s" :y1="py(head.y)" :y2="py(head.y)" stroke="#4A5763" stroke-width="1.5" stroke-dasharray="5 5" />
 					<circle :cx="px(head.x)" :cy="py(head.y)" r="16" fill="#10151A" stroke="#9CADBC" stroke-width="2.5" />
 				</template>
-				<text :x="px(head.x)" :y="py(head.y)" class="head-label">T{{ head.tool }}</text>
+				<text :x="px(head.x)" :y="py(head.y)" class="head-label" :class="{ 'head-label--selected': head.tool === selectedTool }">T{{ head.tool }}</text>
 			</g>
 		</svg>
 

@@ -48,8 +48,14 @@
 	color: var(--text-muted);
 	text-align: right;
 }
+/* Inline so the ink follows the theme (the dark theme shows the white negative logo) */
 .wordmark {
 	width: 200px;
+	color: var(--mp-logo-ink);
+}
+.wordmark :deep(svg) {
+	display: block;
+	width: 100%;
 	height: auto;
 }
 .license {
@@ -84,7 +90,7 @@
 				</div>
 			</div>
 			<div class="chx-card card">
-				<img :src="wordmarkUrl" alt="Meltingplot" class="wordmark">
+				<div class="wordmark" role="img" aria-label="Meltingplot" v-html="wordmarkSvg" />
 				<p class="hint">{{ support.company }}</p>
 				<p class="hint">{{ $t("plugins.CHX350.about.licenseText") }}</p>
 				<v-btn variant="outlined" class="chx-btn" @click="toggleLicenses">
@@ -110,7 +116,7 @@ import { useMachineStore } from "@/stores/machine";
 
 import dwcLicense from "../../../../LICENSE?raw";
 import packageInfo from "../../../../package.json";
-import wordmarkUrl from "../assets/meltingplot-wordmark.svg";
+import wordmarkSvg from "../assets/meltingplot-wordmark.svg?raw";
 import { PLUGIN_ID, useChxSettings } from "../settings";
 
 const machineStore = useMachineStore();
