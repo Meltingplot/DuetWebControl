@@ -13,6 +13,7 @@
 	color: #fff;
 	font: 700 17px/1 var(--mp-font-body, sans-serif);
 	letter-spacing: 0.06em;
+	white-space: nowrap;
 	cursor: pointer;
 	user-select: none;
 	-webkit-user-select: none;

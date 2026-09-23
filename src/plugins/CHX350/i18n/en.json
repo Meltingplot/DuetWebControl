@@ -27,9 +27,10 @@
 		"paused": "PAUSED",
 		"estop": "E-STOP",
 		"offline": "OFFLINE",
-		"subDoorOpen": "Door open · default mode · no axis movement",
-		"subDefaultMode": "Default mode · no axis movement",
-		"subDoorCheck": "Default mode · door check: open and close both doors once"
+		"hintMode": "Default mode",
+		"hintDoorOpen": "Door open · no axis movement",
+		"hintNoAxes": "No axis movement",
+		"hintDoorCheck": "Door check: open and close both doors once"
 	},
 	"header": {
 		"chamber": "Chamber",

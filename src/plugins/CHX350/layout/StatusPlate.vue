@@ -1,5 +1,13 @@
 <style scoped>
+/* The plate keeps a fixed position right after the machine name; the hint fills the free space
+   next to it instead of hanging below, where the 72 px header has no room for it */
+.status {
+	display: flex;
+	align-items: center;
+	gap: 16px;
+}
 .plate {
+	flex: none;
 	display: inline-flex;
 	align-items: center;
 	gap: 10px;
@@ -20,27 +28,39 @@
 .plate--idle, .plate--paused { background: var(--mp-accent); color: var(--mp-neutral-900); }
 .plate--estop { background: var(--mp-error); color: #fff; }
 .plate--offline { background: var(--mp-neutral-400); color: var(--mp-neutral-900); }
-.plate__sub {
-	font: 500 11px/1 var(--mp-font-body, sans-serif);
-	letter-spacing: 0.06em;
-	color: var(--text-body);
-	margin-top: 4px;
-	text-align: center;
+.hint {
+	min-width: 0;
+	overflow: hidden;
+}
+.hint__label {
 	white-space: nowrap;
 	overflow: hidden;
 	text-overflow: ellipsis;
-	max-width: 440px;
+}
+.hint__text {
+	display: -webkit-box;
+	-webkit-box-orient: vertical;
+	-webkit-line-clamp: 2;
+	line-clamp: 2;
+	overflow: hidden;
+	margin-top: 4px;
+	font: 500 14px/1.25 var(--mp-font-body, sans-serif);
+	color: var(--text-strong);
+	text-wrap: balance;
 }
 </style>
 
 <template>
-	<div class="d-flex flex-column align-center" style="min-width: 0">
+	<div class="status">
 		<button type="button" class="plate" :class="[`plate--${state.plate.value}`, { 'plate--link': jobActive }]" @click="onClick">
 			<v-icon size="26">{{ icon }}</v-icon>
 			<span>{{ $t(`plugins.CHX350.status.${state.plate.value}`) }}</span>
 			<v-icon v-if="jobActive" size="22">mdi-chevron-right</v-icon>
 		</button>
-		<div v-if="subtitle" class="plate__sub">{{ subtitle }}</div>
+		<div v-if="hint" class="hint" :title="`${hintLabel} · ${hint}`">
+			<div class="chx-label hint__label">{{ hintLabel }}</div>
+			<div class="hint__text">{{ hint }}</div>
+		</div>
 	</div>
 </template>
 
@@ -70,14 +90,18 @@ const icon = computed(() => {
 	}
 });
 
-const subtitle = computed(() => {
-	if (state.plate.value === "idle") {
-		if (state.doorOpen.value) {
-			return i18n.global.t("plugins.CHX350.status.subDoorOpen");
-		}
-		return i18n.global.t(state.doorCheckPending.value ? "plugins.CHX350.status.subDoorCheck" : "plugins.CHX350.status.subDefaultMode");
+// Idle means default mode: the label names the mode, the text says why axes stay locked or what
+// the operator has to do to reach automatic mode
+const hintLabel = computed(() => i18n.global.t("plugins.CHX350.status.hintMode"));
+
+const hint = computed(() => {
+	if (state.plate.value !== "idle") {
+		return "";
 	}
-	return "";
+	if (state.doorOpen.value) {
+		return i18n.global.t("plugins.CHX350.status.hintDoorOpen");
+	}
+	return i18n.global.t(state.doorCheckPending.value ? "plugins.CHX350.status.hintDoorCheck" : "plugins.CHX350.status.hintNoAxes");
 });
 
 function onClick() {

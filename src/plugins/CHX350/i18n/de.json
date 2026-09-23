@@ -27,9 +27,10 @@
 		"paused": "PAUSIERT",
 		"estop": "NOT-AUS",
 		"offline": "OFFLINE",
-		"subDoorOpen": "Tür offen · Betriebsart Default · keine Achsbewegung",
-		"subDefaultMode": "Betriebsart Default · keine Achsbewegung",
-		"subDoorCheck": "Betriebsart Default · Türkontrolle: beide Türen einmal öffnen und schließen"
+		"hintMode": "Betriebsart Default",
+		"hintDoorOpen": "Tür offen · keine Achsbewegung",
+		"hintNoAxes": "Keine Achsbewegung",
+		"hintDoorCheck": "Türkontrolle: beide Türen einmal öffnen und schließen"
 	},
 	"header": {
 		"chamber": "Kammer",

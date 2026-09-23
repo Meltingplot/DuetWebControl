@@ -1,16 +1,25 @@
 <style scoped>
 .header {
-	display: grid;
-	/* The status plate sits at about 5/12 of the width, in the middle of the free space between
-	   the machine name and the temperature block rather than dead center */
-	grid-template-columns: minmax(180px, 5fr) auto minmax(0, 7fr);
+	/* Name, status and the right-hand block share one row. The right-hand block (hot-surface sign,
+	   readings, NOT-AUS) never shrinks; the status takes the free space, and on narrow screens the
+	   host line and then the machine name make room for it */
+	container-type: inline-size;
+	display: flex;
 	align-items: center;
-	gap: 14px;
+	gap: 24px;
 	width: 100%;
 	height: 100%;
 	padding: 0 24px;
 	background: var(--surface-card);
 	border-bottom: 1px solid var(--border-default);
+}
+.header__id {
+	flex: 0 1 auto;
+	min-width: 0;
+	max-width: 240px;
+}
+.header__status {
+	flex: 1 1 0;
 }
 .header__name {
 	font: 700 17px/1.2 var(--mp-font-body, sans-serif);
@@ -24,12 +33,10 @@
 	text-overflow: ellipsis;
 }
 .header__right {
-	justify-self: end;
+	flex: none;
 	display: flex;
 	align-items: center;
-	justify-content: flex-end;
-	gap: 18px;
-	min-width: 0;
+	gap: 16px;
 }
 .temp {
 	text-align: right;
@@ -39,6 +46,16 @@
 	width: 1px;
 	height: 38px;
 	background: var(--border-subtle);
+}
+@container (max-width: 1120px) {
+	.header__host {
+		display: none;
+	}
+}
+@container (max-width: 940px) {
+	.header__id {
+		display: none;
+	}
 }
 .hot {
 	display: flex;
@@ -52,12 +69,12 @@
 
 <template>
 	<header class="header">
-		<div class="min-width-0" style="min-width: 0">
+		<div class="header__id" :title="hostname">
 			<div class="header__name">{{ machineName }}</div>
 			<div class="header__host">{{ hostname }}</div>
 		</div>
 
-		<StatusPlate />
+		<StatusPlate class="header__status" />
 
 		<div class="header__right">
 			<div v-if="state.machineIsHot.value" class="hot" :title="$t('plugins.CHX350.header.hot')">
