@@ -16,6 +16,7 @@
 </template>
 
 <script setup lang="ts">
+import type { Volume } from "@duet3d/objectmodel";
 import Piecon from "piecon";
 
 import i18n from "@/i18n";
@@ -95,29 +96,46 @@ watch(status, (current) => {
 
 // #region Free-space warning on (re)connect
 
-// Fires once when a freshly-connected machine reports a near-full SD volume (<5% free on the
-// primary volume, ignoring tiny volumes under 256 MiB which trip on noise). Watching
-// isConnecting catches both the initial connect and the reconnect path
+// Fires once when a freshly-connected machine reports a near-full SD volume (<5% free, ignoring
+// tiny volumes under 256 MiB which trip on noise). Watching isConnecting catches both the initial
+// connect and the reconnect path
 const FREE_SPACE_RATIO_THRESHOLD = 0.05;
 const FREE_SPACE_MIN_CAPACITY = 256 * 1024 * 1024;
+
+// DSF's default base directory of the virtual SD card (0:/)
+const SBC_SD_DIRECTORY = "/opt/dsf/sd";
+
+// Volumes that hold the SD card. In SBC mode the volumes are the host's mount points and
+// volumes[0] is "/"; an image with a read-only root (reported with 0 bytes free) bind-mounts the
+// writable SD directories (gcodes, sys, ...) below /opt/dsf/sd. Those mounts count, else the
+// mount that holds /opt/dsf/sd, else (standalone firmware, paths like "0:/") the first volume
+function sdVolumes(): Array<Volume> {
+	const volumes = machineStore.model.volumes;
+	const below = volumes.filter((volume) => volume.path === SBC_SD_DIRECTORY || volume.path?.startsWith(`${SBC_SD_DIRECTORY}/`));
+	if (below.length > 0) {
+		return below;
+	}
+	const holding = volumes
+		.filter((volume) => volume.path !== null && SBC_SD_DIRECTORY.startsWith(volume.path.endsWith("/") ? volume.path : `${volume.path}/`))
+		.sort((a, b) => (b.path?.length ?? 0) - (a.path?.length ?? 0));
+	return holding.length > 0 ? holding.slice(0, 1) : volumes.slice(0, 1);
+}
+
+function isNearlyFull(volume: Volume): boolean {
+	const { capacity, freeSpace } = volume;
+	if (capacity === null || freeSpace === null) {
+		return false;
+	}
+	const capacityNum = typeof capacity === "bigint" ? Number(capacity) : capacity;
+	const freeSpaceNum = typeof freeSpace === "bigint" ? Number(freeSpace) : freeSpace;
+	return capacityNum > FREE_SPACE_MIN_CAPACITY && freeSpaceNum / capacityNum < FREE_SPACE_RATIO_THRESHOLD;
+}
 
 watch(() => machineStore.isConnecting, (to, from) => {
 	if (to || !from) {
 		return;
 	}
-	const volumes = machineStore.model.volumes;
-	if (volumes.length === 0) {
-		return;
-	}
-	const firstVolume = volumes[0];
-	const capacity = firstVolume.capacity;
-	const freeSpace = firstVolume.freeSpace;
-	if (capacity === null || freeSpace === null) {
-		return;
-	}
-	const capacityNum = typeof capacity === "bigint" ? Number(capacity) : capacity;
-	const freeSpaceNum = typeof freeSpace === "bigint" ? Number(freeSpace) : freeSpace;
-	if (capacityNum > FREE_SPACE_MIN_CAPACITY && freeSpaceNum / capacityNum < FREE_SPACE_RATIO_THRESHOLD) {
+	if (sdVolumes().some(isNearlyFull)) {
 		uiStore.log(LogLevel.warning,
 			i18n.global.t("notification.freeSpaceWarning.title"),
 			i18n.global.t("notification.freeSpaceWarning.message"));
