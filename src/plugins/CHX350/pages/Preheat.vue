@@ -64,14 +64,15 @@
 					<div class="row__cur">{{ formatTemp(tool.current) }}</div>
 					<ControlInput type="tool" :index="tool.number" :tool-heater-index="0" standby :label="$t('plugins.CHX350.preheat.standby')" :disabled="uiFrozen" />
 				</div>
+				<!-- Bed and chamber readings are in the header; their rows only carry the setpoint -->
 				<div class="row">
 					<div class="row__name">{{ $t("plugins.CHX350.header.bed") }}</div>
-					<div class="row__cur">{{ formatTemp(temps.bedCurrent.value) }}</div>
+					<div />
 					<ControlInput type="bed" :index="0" active :label="$t('plugins.CHX350.preheat.active')" :disabled="uiFrozen" />
 				</div>
 				<div v-if="temps.hasChamberHeater.value" class="row">
 					<div class="row__name">{{ $t("plugins.CHX350.header.chamber") }}</div>
-					<div class="row__cur">{{ formatTemp(temps.chamberCurrent.value) }}</div>
+					<div />
 					<ControlInput type="chamber" :index="0" active :label="$t('plugins.CHX350.preheat.active')" :disabled="uiFrozen" />
 				</div>
 			</div>

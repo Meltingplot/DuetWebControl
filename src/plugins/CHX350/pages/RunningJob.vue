@@ -137,15 +137,6 @@
 	height: 100%;
 	object-fit: contain;
 }
-.part__name {
-	font: 400 12px/1.35 var(--mp-font-body, sans-serif);
-	color: var(--text-body);
-	overflow-wrap: anywhere;
-	display: -webkit-box;
-	-webkit-line-clamp: 2;
-	-webkit-box-orient: vertical;
-	overflow: hidden;
-}
 .controls {
 	flex: none;
 	min-height: 122px;
@@ -284,7 +275,8 @@
 					<div class="chx-card progress">
 						<div class="progress__head">
 							<div class="progress__pct">{{ progressLabel }}</div>
-							<v-chip size="small" label variant="tonal" :color="chipColor">{{ chipLabel }}</v-chip>
+							<!-- While a job runs the header plate shows its state; the chip only reports how the last job ended -->
+							<v-chip v-if="!job.active.value && job.lastResult.value" size="small" label variant="tonal" :color="chipColor">{{ chipLabel }}</v-chip>
 						</div>
 						<div class="progress__bar">
 							<div class="progress__fill" :class="{ 'progress__fill--paused': job.paused.value }" :style="{ width: `${(job.progress.value * 100).toFixed(1)}%` }" />
@@ -317,15 +309,12 @@
 							</div>
 						</div>
 
-						<div class="part">
+						<!-- The file name is already the page header's context line, so the part row only shows the preview -->
+						<div v-if="job.thumbnailUrl.value" class="part">
 							<div class="part__thumb">
-								<img v-if="job.thumbnailUrl.value" :src="job.thumbnailUrl.value" alt="">
-								<v-icon v-else size="26">mdi-cube-outline</v-icon>
+								<img :src="job.thumbnailUrl.value" alt="">
 							</div>
-							<div style="min-width: 0">
-								<div class="chx-label">{{ $t("plugins.CHX350.job.part") }}</div>
-								<div class="part__name" :title="job.fileName.value">{{ job.fileName.value || "—" }}</div>
-							</div>
+							<div class="chx-label">{{ $t("plugins.CHX350.job.part") }}</div>
 						</div>
 					</div>
 
@@ -390,7 +379,8 @@
 					</div>
 
 					<!-- Spool fill level / remaining filament per tool is a deferred feature; the slot
-						 shows the live machine figures the operator watches during a print instead -->
+						 shows the live machine figures the operator watches during a print instead.
+						 Bed and chamber readings are in the header, so the bed row only adds its setpoint -->
 					<div class="machine">
 						<div class="chx-label">{{ $t("plugins.CHX350.job.machine") }}</div>
 						<div v-for="t in temps.tools.value" :key="t.number" class="machine__row">
@@ -399,11 +389,7 @@
 						</div>
 						<div class="machine__row">
 							<span class="machine__key">{{ $t("plugins.CHX350.header.bed") }}</span>
-							<span class="machine__val">{{ formatTemp(temps.bedCurrent.value, 0) }} <small>/ {{ (temps.bedActive.value ?? 0) > 0 ? formatTemp(temps.bedActive.value, 0) : $t("plugins.CHX350.generic.off") }}</small></span>
-						</div>
-						<div v-if="temps.chamberSource.value !== 'none'" class="machine__row">
-							<span class="machine__key">{{ temps.chamberSource.value === "szp" ? $t("plugins.CHX350.header.chamberSzp") : $t("plugins.CHX350.header.chamber") }}</span>
-							<span class="machine__val">{{ formatTemp(temps.chamberCurrent.value, 0) }}</span>
+							<span class="machine__val"><small>{{ $t("plugins.CHX350.preheat.target") }}</small> {{ (temps.bedActive.value ?? 0) > 0 ? formatTemp(temps.bedActive.value, 0) : $t("plugins.CHX350.generic.off") }}</span>
 						</div>
 						<div v-if="job.active.value" class="machine__row">
 							<span class="machine__key">{{ $t("plugins.CHX350.job.speed") }} · {{ $t("plugins.CHX350.job.fan") }}</span>
@@ -445,14 +431,12 @@ import FilamentUsageChart from "../components/FilamentUsageChart.vue";
 import LayerStrip from "../components/LayerStrip.vue";
 import { useJob } from "../composables/useJob";
 import { channelRange, useJobAnalysis } from "../composables/useJobAnalysis";
-import { useMachineState } from "../composables/useMachineState";
 import { formatTemp, useTemps } from "../composables/useTemps";
 import { ROUTES } from "../routes";
 
 const machineStore = useMachineStore();
 const settingsStore = useSettingsStore();
 const router = useRouter();
-const state = useMachineState();
 const temps = useTemps();
 const analysis = useJobAnalysis();
 const job = useJob();
@@ -462,20 +446,9 @@ const hasJobData = computed(() => job.layersDone.value > 0 || job.lastFilePath.v
 
 const progressLabel = computed(() => `${(job.progress.value * 100).toFixed(1)} %`);
 
-// Chip: the machine state while active, otherwise how the last job ended
-const chipLabel = computed(() => {
-	if (job.active.value) {
-		return i18n.global.t(`plugins.CHX350.status.${state.plate.value}`);
-	}
-	const result = job.lastResult.value;
-	return result ? i18n.global.t(`plugins.CHX350.job.result.${result}`) : "—";
-});
-const chipColor = computed(() => {
-	if (job.active.value) {
-		return job.paused.value ? "warning" : "primary";
-	}
-	return job.lastResult.value === "finished" ? "success" : "warning";
-});
+// Chip: how the last job ended (a running job's state is on the header plate)
+const chipLabel = computed(() => job.lastResult.value ? i18n.global.t(`plugins.CHX350.job.result.${job.lastResult.value}`) : "");
+const chipColor = computed(() => job.lastResult.value === "finished" ? "success" : "warning");
 
 const toolPill = computed(() => {
 	const tool = temps.tools.value.find((t) => t.number === job.currentTool.value);
@@ -533,13 +506,9 @@ const tempRange = computed<[number, number]>(() => tempChannel.value && job.laye
 const tempRangeLabel = computed(() => job.layersDone.value > 0 && tempChannel.value
 	? `${tempRange.value[0].toFixed(0)} – ${tempRange.value[1].toFixed(0)} °C`
 	: "—");
-// Live reading while printing (the per-layer value only exists for completed layers)
+// Value of the marked (last completed) layer; the live reading is in the header
 const tempNow = computed(() => {
-	if (job.active.value) {
-		return formatTemp(temps.chamberCurrent.value);
-	}
-	const ch = tempChannel.value;
-	const v = ch?.values[analysis.currentIndex.value];
+	const v = tempChannel.value?.values[analysis.currentIndex.value];
 	return v !== null && v !== undefined ? formatTemp(v) : "—";
 });
 

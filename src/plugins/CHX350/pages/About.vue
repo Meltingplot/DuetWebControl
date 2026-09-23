@@ -85,7 +85,7 @@
 			</div>
 			<div class="chx-card card">
 				<img :src="wordmarkUrl" alt="Meltingplot" class="wordmark">
-				<p class="hint">{{ support.company }} · {{ support.model }} · {{ $t("plugins.CHX350.about.serial") }} {{ serial }}</p>
+				<p class="hint">{{ support.company }}</p>
 				<p class="hint">{{ $t("plugins.CHX350.about.licenseText") }}</p>
 				<v-btn variant="outlined" class="chx-btn" @click="toggleLicenses">
 					<v-icon start>mdi-license</v-icon>
@@ -118,7 +118,6 @@ const { support: supportRef } = useChxSettings();
 const support = computed(() => supportRef.value);
 
 const model = computed(() => machineStore.model);
-const serial = computed(() => model.value.network.name || "—");
 const deps = packageInfo.dependencies as Record<string, string>;
 
 const components = computed(() => [

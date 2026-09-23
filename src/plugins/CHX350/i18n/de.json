@@ -74,7 +74,7 @@
 		"repeatTitle": "Letzten Auftrag wiederholen",
 		"repeatSub": "{name}",
 		"repeatNone": "Kein Auftrag vorhanden",
-		"lockedPrinting": "Nicht verfügbar · Auftrag läuft",
+		"lockedPrinting": "Nicht verfügbar",
 		"homeTitle": "Achsen referenzieren",
 		"homeSub": "{axes} · {state}",
 		"homed": "Referenziert",
@@ -165,13 +165,10 @@
 		"beforeStart": "Vor dem Start",
 		"bedClear": "Bett ist frei",
 		"homed": "Achsen referenziert",
-		"doorClosed": "Tür geschlossen",
-		"automatic": "Betriebsart Automatik",
 		"checkOk": "Datei geprüft",
 		"checkOpen": "Prüfung offen",
 		"start": "Druck starten",
 		"startBlocked": "Start gesperrt",
-		"hintPrinting": "Es läuft bereits ein Auftrag.",
 		"hintMode": "Die Maschine muss in Betriebsart Automatik sein (Türen geschlossen).",
 		"hintBlocked": "Material oder Düse passen nicht zur Datei.",
 		"hintBed": "Bitte bestätigen, dass das Bett frei ist."
@@ -385,10 +382,8 @@
 		"phone": "Telefon",
 		"email": "E-Mail",
 		"web": "Web",
-		"serialHint": "Halten Sie die Seriennummer bereit. Für Fernwartung exportieren Sie die Diagnosedaten und senden Sie die Datei mit.",
+		"serialHint": "Halten Sie die Seriennummer bereit, sie steht in der Kopfzeile unter dem Maschinennamen. Für Fernwartung exportieren Sie die Diagnosedaten und senden Sie die Datei mit.",
 		"machine": "Maschine",
-		"model": "Modell",
-		"serial": "Seriennummer",
 		"firmware": "Firmware",
 		"dsf": "DSF",
 		"dwc": "Oberfläche",
@@ -422,7 +417,6 @@
 		"hideLicenses": "Lizenztexte ausblenden",
 		"machineLicenses": "Lizenzen der Maschinensoftware",
 		"dwcLicense": "Duet Web Control (GPL-3.0)",
-		"serial": "Seriennummer",
 		"fonts": "Jost · JetBrains Mono (SIL OFL 1.1)"
 	}
 }

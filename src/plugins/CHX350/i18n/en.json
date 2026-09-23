@@ -74,7 +74,7 @@
 		"repeatTitle": "Repeat last job",
 		"repeatSub": "{name}",
 		"repeatNone": "No job available",
-		"lockedPrinting": "Unavailable · job running",
+		"lockedPrinting": "Unavailable",
 		"homeTitle": "Home axes",
 		"homeSub": "{axes} · {state}",
 		"homed": "Homed",
@@ -165,13 +165,10 @@
 		"beforeStart": "Before starting",
 		"bedClear": "Bed is clear",
 		"homed": "Axes homed",
-		"doorClosed": "Door closed",
-		"automatic": "Automatic mode",
 		"checkOk": "File checked",
 		"checkOpen": "Check pending",
 		"start": "Start print",
 		"startBlocked": "Start blocked",
-		"hintPrinting": "A job is already running.",
 		"hintMode": "The machine must be in automatic mode (doors closed).",
 		"hintBlocked": "Material or nozzle do not match the file.",
 		"hintBed": "Please confirm that the bed is clear."
@@ -385,10 +382,8 @@
 		"phone": "Phone",
 		"email": "E-mail",
 		"web": "Web",
-		"serialHint": "Have the serial number ready. For remote support export the diagnostics and attach the file.",
+		"serialHint": "Have the serial number ready, it is shown in the header below the machine name. For remote support export the diagnostics and attach the file.",
 		"machine": "Machine",
-		"model": "Model",
-		"serial": "Serial number",
 		"firmware": "Firmware",
 		"dsf": "DSF",
 		"dwc": "Interface",
@@ -422,7 +417,6 @@
 		"hideLicenses": "Hide license texts",
 		"machineLicenses": "Licenses of the machine software",
 		"dwcLicense": "Duet Web Control (GPL-3.0)",
-		"serial": "Serial number",
 		"fonts": "Jost · JetBrains Mono (SIL OFL 1.1)"
 	}
 }

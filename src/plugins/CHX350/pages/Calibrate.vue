@@ -47,7 +47,8 @@
 
 <template>
 	<div class="chx-page">
-		<ChxPageHeader :subtitle="state.axesLocked.value ? $t('plugins.CHX350.generic.lockedAxes') : ''" :back="ROUTES.start" />
+		<!-- Under LEERLAUF the header already says "keine Achsbewegung" -->
+		<ChxPageHeader :subtitle="state.axesLocked.value && state.plate.value !== 'idle' ? $t('plugins.CHX350.generic.lockedAxes') : ''" :back="ROUTES.start" />
 		<div class="grid">
 			<div class="routines">
 				<div v-for="r in routines" :key="r.key" class="chx-card routine">

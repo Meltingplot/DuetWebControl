@@ -114,7 +114,7 @@
 		<section class="tiles">
 			<ChxTile v-if="state.printing.value" class="span-2" primary icon="mdi-play" :to="ROUTES.job"
 					 :title="$t('plugins.CHX350.start.jobTitle')"
-					 :subtitle="$t('plugins.CHX350.start.jobSub', { progress: Math.round(machineStore.jobProgress * 100), name: jobName })">
+					 :subtitle="$t('plugins.CHX350.start.jobSub', { progress: (job.progress.value * 100).toFixed(1), name: job.fileName.value })">
 				<template #trail><v-icon size="28">mdi-chevron-right</v-icon></template>
 			</ChxTile>
 			<ChxTile v-else class="span-2" primary icon="mdi-play" :to="ROUTES.jobs"
@@ -189,6 +189,7 @@ import Path, { escapeFilename, extractFileName } from "@/utils/path";
 import ChxCamera from "../components/ChxCamera.vue";
 import ChxCameraBox from "../components/ChxCameraBox.vue";
 import ChxTile from "../components/ChxTile.vue";
+import { useJob } from "../composables/useJob";
 import { useMachineState } from "../composables/useMachineState";
 import { formatTemp, useTemps } from "../composables/useTemps";
 import { ROUTES } from "../routes";
@@ -198,6 +199,8 @@ const settingsStore = useSettingsStore();
 const router = useRouter();
 const state = useMachineState();
 const temps = useTemps();
+// Same progress figure as the job page (slicer time based), not DWC's filament-based one
+const job = useJob();
 
 const webcamEnabled = computed(() => settingsStore.webcam.enabled);
 
@@ -205,10 +208,6 @@ const webcamEnabled = computed(() => settingsStore.webcam.enabled);
 const jobRunning = computed(() => state.printing.value && !state.paused.value);
 const lockedSub = computed(() => i18n.global.t("plugins.CHX350.start.lockedPrinting"));
 
-const jobName = computed(() => {
-	const name = machineStore.model.job.file?.fileName;
-	return name ? extractFileName(name) : "";
-});
 const lastJob = computed(() => {
 	const name = machineStore.model.job.lastFileName;
 	return name ? extractFileName(name) : null;

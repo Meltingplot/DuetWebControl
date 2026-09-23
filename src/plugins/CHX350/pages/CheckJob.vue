@@ -193,14 +193,7 @@
 						<v-icon :color="allHomed ? 'success' : 'warning'">{{ allHomed ? "mdi-check-circle" : "mdi-alert-circle-outline" }}</v-icon>
 						{{ $t("plugins.CHX350.check.homed") }}
 					</div>
-					<div class="pre__row">
-						<v-icon :color="!job.state.doorOpen.value ? 'success' : 'warning'">{{ !job.state.doorOpen.value ? "mdi-check-circle" : "mdi-door-open" }}</v-icon>
-						{{ $t("plugins.CHX350.check.doorClosed") }}
-					</div>
-					<div class="pre__row">
-						<v-icon :color="job.state.isAutomatic.value ? 'success' : 'warning'">{{ job.state.isAutomatic.value ? "mdi-check-circle" : "mdi-lock-outline" }}</v-icon>
-						{{ $t("plugins.CHX350.check.automatic") }}
-					</div>
+					<!-- Door and mode are not listed: the header plate shows AUTOMATIK, or LEERLAUF with the reason -->
 					<div class="pre__row">
 						<v-icon :color="job.blocked.value ? 'warning' : 'success'">{{ job.blocked.value ? "mdi-alert" : "mdi-check-circle" }}</v-icon>
 						{{ job.blocked.value ? $t("plugins.CHX350.check.checkOpen") : $t("plugins.CHX350.check.checkOk") }}
@@ -257,8 +250,9 @@ const canStart = computed(() => !!filePath.value && machineStore.isConnected && 
 	&& !job.blocked.value && bedClear.value && job.state.isAutomatic.value && !job.state.doorOpen.value);
 
 const startHint = computed(() => {
+	// A running job is on the header plate (DRUCKT/PAUSIERT)
 	if (job.state.printing.value) {
-		return i18n.global.t("plugins.CHX350.check.hintPrinting");
+		return "";
 	}
 	if (!job.state.isAutomatic.value || job.state.doorOpen.value) {
 		return i18n.global.t("plugins.CHX350.check.hintMode");

@@ -170,9 +170,9 @@
 			<template v-else>
 				<ChxCamera />
 				<div v-if="settingsStore.webcam.enabled" class="badge badge--live">{{ $t("plugins.CHX350.start.live") }}</div>
-				<div v-if="locked" class="badge badge--lock">
+				<div v-if="lockBadge" class="badge badge--lock">
 					<v-icon size="18">mdi-lock-outline</v-icon>
-					{{ lockReason }}
+					{{ lockBadge }}
 				</div>
 			</template>
 		</ChxCameraBox>
@@ -286,6 +286,10 @@ const lockReason = computed(() => {
 	}
 	return "";
 });
+
+// The header plate already names the cause (DRUCKT/PAUSIERT, OFFLINE, or the mode and door line
+// under LEERLAUF). Only HEIZT AUF and ARBEITET hide it, e.g. while heating in default mode
+const lockBadge = computed(() => locked.value && (state.plate.value === "heating" || state.plate.value === "busy") ? lockReason.value : "");
 
 function toggleJog() {
 	if (jogMode.value) {

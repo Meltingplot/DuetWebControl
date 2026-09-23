@@ -176,9 +176,8 @@ const contacts = computed(() => [
 	{ icon: "mdi-web", label: t("web"), value: support.value.url, small: true }
 ].filter((c) => c.value));
 
+// Model and serial number are the header's name and host line
 const machineRows = computed(() => [
-	{ label: "model", value: support.value.model },
-	{ label: "serial", value: serial.value },
 	{ label: "board", value: board.value?.name ?? "—" },
 	{ label: "firmware", value: board.value?.firmwareVersion ?? "—" },
 	{ label: "dsf", value: dsfVersion.value },
