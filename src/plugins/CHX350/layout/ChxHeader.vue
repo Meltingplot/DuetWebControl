@@ -1,8 +1,8 @@
 <style scoped>
 .header {
 	/* Name, status and the right-hand block share one row. The right-hand block (hot-surface sign,
-	   readings, NOT-AUS) never shrinks; the status takes the free space, and on narrow screens the
-	   host line and then the machine name make room for it */
+	   chamber, bed and nozzle readings, NOT-AUS) never shrinks; the status takes the free space, and
+	   on narrow screens the host line and then the machine name make room for it */
 	container-type: inline-size;
 	display: flex;
 	align-items: center;
@@ -96,6 +96,13 @@
 				<div class="chx-label">{{ $t("plugins.CHX350.header.bed") }}</div>
 				<div class="chx-value">{{ formatTemp(temps.bedCurrent.value) }}</div>
 			</div>
+			<template v-for="n in headerNozzles" :key="n.heater">
+				<div class="divider" />
+				<div class="temp">
+					<div class="chx-label">{{ nozzleLabel(n.tool) }}</div>
+					<div class="chx-value">{{ formatTemp(n.current) }}</div>
+				</div>
+			</template>
 
 			<HoldButton :label="$t('plugins.CHX350.header.estop')" :hint="$t('plugins.CHX350.header.estopHold')"
 						:hold-ms="estopHoldMs" :disabled="state.uiFrozen.value" @held="emergencyStop" />
@@ -128,6 +135,30 @@ const hostname = computed(() => machineStore.model.network.name || machineStore.
 const chamberLabel = computed(() => temps.chamberSource.value === "szp"
 	? i18n.global.t("plugins.CHX350.header.chamberSzp")
 	: i18n.global.t("plugins.CHX350.header.chamber"));
+
+/*
+ * At most two nozzles print at once, and two readings are all the header has room for. Machines
+ * with up to two nozzles always show them; with more, the header shows the nozzles in use, the
+ * selected tool's first
+ */
+const MAX_HEADER_NOZZLES = 2;
+const headerNozzles = computed(() => {
+	const nozzles = temps.nozzles.value;
+	if (nozzles.length <= MAX_HEADER_NOZZLES) {
+		return nozzles;
+	}
+	return nozzles
+		.filter((n) => n.inUse)
+		.sort((a, b) => Number(b.selected) - Number(a.selected) || a.tool - b.tool)
+		.slice(0, MAX_HEADER_NOZZLES);
+});
+
+// A single-nozzle machine needs no tool number next to its nozzle
+function nozzleLabel(tool: number): string {
+	return temps.nozzles.value.length > 1
+		? i18n.global.t("plugins.CHX350.header.nozzleTool", { n: tool })
+		: i18n.global.t("plugins.CHX350.header.nozzle");
+}
 
 async function emergencyStop() {
 	try {

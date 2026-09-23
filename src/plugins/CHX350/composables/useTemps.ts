@@ -27,6 +27,21 @@ export interface ToolTemps {
 	extruderIndex: number;
 }
 
+/**
+ * A nozzle is a tool heater. A tool that prints with two nozzles at once shares the heaters of the
+ * single-nozzle tools, so nozzles are counted by heater rather than by tool
+ */
+export interface NozzleTemp {
+	heater: number;
+	/** Tool the nozzle is named after: the first tool that heats only this nozzle, else the first that heats it */
+	tool: number;
+	current: number | null;
+	/** The nozzle belongs to the selected tool */
+	selected: boolean;
+	/** The nozzle is selected, or its heater is on (not standby) */
+	inUse: boolean;
+}
+
 export function useTemps() {
 	const machineStore = useMachineStore();
 	const globals = useChxGlobals();
@@ -77,13 +92,36 @@ export function useTemps() {
 			};
 		}));
 
+	const nozzles = computed<Array<NozzleTemp>>(() => {
+		const currentTool = machineStore.model.state.currentTool;
+		const result = new Map<number, NozzleTemp>();
+		const tools = machineStore.model.tools
+			.filter((t): t is Tool => t !== null)
+			.sort((a, b) => a.heaters.length - b.heaters.length || a.number - b.number);
+		for (const tool of tools) {
+			for (const index of tool.heaters) {
+				let nozzle = result.get(index);
+				if (nozzle === undefined) {
+					const h = heater(index);
+					const on = h?.state === HeaterState.active || h?.state === HeaterState.tuning;
+					nozzle = { heater: index, tool: tool.number, current: h?.current ?? null, selected: false, inUse: on };
+					result.set(index, nozzle);
+				}
+				if (tool.number === currentTool) {
+					nozzle.selected = nozzle.inUse = true;
+				}
+			}
+		}
+		return [...result.values()].sort((a, b) => a.tool - b.tool);
+	});
+
 	const maxTemperature = computed(() => {
 		const values = [bedCurrent.value, chamberCurrent.value, ...tools.value.map((t) => t.current)]
 			.filter((v): v is number => typeof v === "number");
 		return values.length > 0 ? Math.max(...values) : null;
 	});
 
-	return { bedHeater, bedCurrent, bedActive, chamberHeater, hasChamberHeater, chamberCurrent, chamberSource, szpSensor, tools, maxTemperature };
+	return { bedHeater, bedCurrent, bedActive, chamberHeater, hasChamberHeater, chamberCurrent, chamberSource, szpSensor, tools, nozzles, maxTemperature };
 }
 
 export function formatTemp(value: number | null | undefined, digits = 1): string {

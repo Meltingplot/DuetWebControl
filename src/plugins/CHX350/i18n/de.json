@@ -36,6 +36,8 @@
 		"chamber": "Kammer",
 		"chamberSzp": "Kammer · SZP",
 		"bed": "Bett",
+		"nozzle": "Düse",
+		"nozzleTool": "Düse T{n}",
 		"estop": "NOT-AUS",
 		"estopHold": "GEDRÜCKT HALTEN",
 		"hot": "Warnung vor heißer Oberfläche"

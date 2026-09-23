@@ -36,6 +36,8 @@
 		"chamber": "Chamber",
 		"chamberSzp": "Chamber · SZP",
 		"bed": "Bed",
+		"nozzle": "Nozzle",
+		"nozzleTool": "Nozzle T{n}",
 		"estop": "E-STOP",
 		"estopHold": "HOLD TO STOP",
 		"hot": "Warning: hot surface"
