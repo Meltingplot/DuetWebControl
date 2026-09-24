@@ -90,6 +90,7 @@
 import { Axis, AxisLetter, MessageBox, MessageBoxMode } from "@duet3d/objectmodel";
 
 import { useComponentSettings } from "@/composables/useComponentSettings";
+import { isMessageBoxClaimed } from "@/plugins/interception";
 import { defaultMoveSteps, getMoveCellClass, isAxisAtLimit, type MoveStepMap, useMoveSteps } from "@/composables/useMoveSteps";
 import { useMachineStore } from "@/stores/machine";
 import { useSettingsStore } from "@/stores/settings";
@@ -134,13 +135,19 @@ function onVisibilityChange() {
 onMounted(() => document.addEventListener("visibilitychange", onVisibilityChange));
 onBeforeUnmount(() => document.removeEventListener("visibilitychange", onVisibilityChange));
 
+// A plugin (e.g. a custom layout) may show the box itself, see registerMessageBoxClaim
+const claimed = computed(() => {
+	const box = machineStore.model.state.messageBox;
+	return box !== null && box.mode !== null && isMessageBoxClaimed(box);
+});
+
 // Observers for message box data
 watch(() => machineStore.isReconnecting, (to) => {
 	if (to) {
 		setShown(false);
 	} else if (machineStore.model.state.messageBox !== null && machineStore.model.state.messageBox.mode !== null) {
 		// A box still open across a reconnect keeps its reference, so the messageBox watcher won't re-fire it
-		setShown(true);
+		setShown(!claimed.value);
 	}
 });
 
@@ -149,11 +156,19 @@ watch(() => machineStore.model.state.messageBox, (to) => {
 		numberInput.value = (typeof to.default === "number") ? to.default : 0;
 		stringInput.value = (typeof to.default === "string") ? to.default : "";
 		messageBox.update(to);
-		setShown(true);
+		setShown(!claimed.value);
 	} else {
 		setShown(false);
 	}
 }, { deep: true });
+
+// A claim that ends while the box is still open hands it back to this dialog, and vice versa
+watch(claimed, (to) => {
+	const box = machineStore.model.state.messageBox;
+	if (box !== null && box.mode !== null) {
+		setShown(!to);
+	}
+});
 
 const displayedAxes = computed(() => {
 	const axisControls = (messageBox.axisControls !== null) ? messageBox.axisControls : 0;

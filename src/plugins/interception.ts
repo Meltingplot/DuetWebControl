@@ -1,4 +1,6 @@
 import type ObjectModel from "@duet3d/objectmodel";
+import type { MessageBox } from "@duet3d/objectmodel";
+import { shallowReactive } from "vue";
 
 import { useMachineStore } from "@/stores/machine";
 
@@ -130,6 +132,57 @@ export async function interceptCode(code: string): Promise<CodeInterceptionResul
 		}
 	}
 	return (effectiveCode === code) ? undefined : { code: effectiveCode };
+}
+
+// #endregion
+
+// #region Message box claims
+
+/**
+ * Callback deciding whether a plugin shows a message box (M291) itself instead of DWC's dialog.
+ * It is evaluated reactively: reading reactive state inside it makes DWC re-evaluate the claim
+ * when that state changes
+ * @param box Message box of the object model
+ */
+export type MessageBoxClaim = (box: MessageBox) => boolean;
+
+const _messageBoxClaims = shallowReactive(new Map<string, MessageBoxClaim>());
+
+/**
+ * Register a callback that takes over the display of matching message boxes. While any claim
+ * returns true, DWC's message box dialog stays closed and the plugin is responsible for showing
+ * the box and answering it with M292
+ * @param id Unique identifier, conventionally the plugin id
+ * @param claim Callback to register
+ */
+export function registerMessageBoxClaim(id: string, claim: MessageBoxClaim) {
+	_messageBoxClaims.set(id, claim);
+}
+
+/**
+ * Remove a message box claim again
+ * @param id Identifier it was registered with
+ */
+export function unregisterMessageBoxClaim(id: string) {
+	_messageBoxClaims.delete(id);
+}
+
+/**
+ * Whether a registered plugin shows this message box itself.
+ * A throwing claim is reported and ignored, so the box falls back to DWC's dialog
+ * @param box Message box of the object model
+ */
+export function isMessageBoxClaimed(box: MessageBox): boolean {
+	for (const [id, claim] of _messageBoxClaims) {
+		try {
+			if (claim(box)) {
+				return true;
+			}
+		} catch (e) {
+			console.warn(`Message box claim "${id}" failed`, e);
+		}
+	}
+	return false;
 }
 
 // #endregion
