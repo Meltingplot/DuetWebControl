@@ -137,8 +137,12 @@
 				 them (e.g. filament change during a pause) -->
 			<ChxTile icon="mdi-swap-horizontal" :to="ROUTES.filament" :disabled="jobRunning"
 					 :title="$t('plugins.CHX350.start.filamentTitle')" :subtitle="jobRunning ? lockedSub : filamentSub" />
-			<ChxTile icon="mdi-tray-arrow-up" :to="ROUTES.prepareBed" :disabled="jobRunning"
-					 :title="$t('plugins.CHX350.start.bedTitle')" :subtitle="jobRunning ? lockedSub : $t('plugins.CHX350.start.bedSub')" />
+			<!-- Flow macros with `page: start` (e.g. Bett vorbereiten); their front matter decides when
+				 they may start -->
+			<ChxTile v-for="tile in flowTiles" :key="tile.path" :icon="tile.icon" :title="tile.title" :subtitle="tile.subtitle"
+					 :disabled="tile.disabled" @click="tile.run()">
+				<template v-if="tile.warn" #trail><v-icon color="warning">mdi-alert-outline</v-icon></template>
+			</ChxTile>
 			<ChxTile icon="mdi-thermometer-chevron-up" :to="ROUTES.preheat" :disabled="jobRunning"
 					 :title="$t('plugins.CHX350.start.preheatTitle')" :subtitle="jobRunning ? lockedSub : $t('plugins.CHX350.start.preheatSub')" />
 			<!-- Repeating goes through the job check like any other start -->
@@ -208,6 +212,7 @@ import ChxTile from "../components/ChxTile.vue";
 import { useJob } from "../composables/useJob";
 import { useMachineState } from "../composables/useMachineState";
 import { formatTemp, useTemps } from "../composables/useTemps";
+import { useFlowTiles } from "../flows/useFlowTiles";
 import { ROUTES } from "../routes";
 import { cameraLive } from "../webcam";
 
@@ -218,6 +223,7 @@ const state = useMachineState();
 const temps = useTemps();
 // Same progress figure as the job page
 const job = useJob();
+const flowTiles = useFlowTiles("start");
 
 const webcamEnabled = computed(() => settingsStore.webcam.enabled);
 

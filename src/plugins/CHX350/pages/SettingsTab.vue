@@ -60,11 +60,7 @@ const bedMap = computed(() => bedMapRef.value);
 const support = computed(() => supportRef.value);
 
 const macroFields: Array<{ key: keyof ChxMacroSettings; label: string }> = [
-	{ key: "prepareBed", label: "plugins.CHX350.settings.macroPrepareBed" },
 	{ key: "preheat", label: "plugins.CHX350.settings.macroPreheat" },
-	{ key: "calibrateZero", label: "plugins.CHX350.settings.macroCalibrateZero" },
-	{ key: "calibrateMesh", label: "plugins.CHX350.settings.macroCalibrateMesh" },
-	{ key: "calibrateAlignZ", label: "plugins.CHX350.settings.macroCalibrateAlignZ" },
 	{ key: "home", label: "plugins.CHX350.settings.macroHome" }
 ];
 const supportFields: Array<{ key: keyof ChxSupportSettings; label: string }> = [

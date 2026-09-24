@@ -6,6 +6,7 @@ import Events from "@/utils/events";
 
 import "./styles/chx.scss";
 import { ensureBackendRunning } from "./backend";
+import { useFlowStore } from "./flows/store";
 import de from "./i18n/de.json";
 import en from "./i18n/en.json";
 import ChxShell from "./layout/ChxShell.vue";
@@ -20,7 +21,6 @@ import Jobs from "./pages/Jobs.vue";
 import CheckJob from "./pages/CheckJob.vue";
 import RunningJob from "./pages/RunningJob.vue";
 import FilamentWizard from "./pages/FilamentWizard.vue";
-import PrepareBed from "./pages/PrepareBed.vue";
 import Preheat from "./pages/Preheat.vue";
 import Calibrate from "./pages/Calibrate.vue";
 import Home from "./pages/Home.vue";
@@ -52,7 +52,6 @@ const pages: Array<{ name: string; path: string; component: any; icon: string }>
 	{ name: "Jobs", path: ROUTES.jobs, component: Jobs, icon: "mdi-file-document-multiple-outline" },
 	{ name: "Check", path: ROUTES.check, component: CheckJob, icon: "mdi-clipboard-check-outline" },
 	{ name: "Filament", path: ROUTES.filament, component: FilamentWizard, icon: "mdi-swap-horizontal" },
-	{ name: "PrepareBed", path: ROUTES.prepareBed, component: PrepareBed, icon: "mdi-tray-arrow-up" },
 	{ name: "Preheat", path: ROUTES.preheat, component: Preheat, icon: "mdi-thermometer-chevron-up" },
 	{ name: "Calibrate", path: ROUTES.calibrate, component: Calibrate, icon: "mdi-target" },
 	{ name: "Home", path: ROUTES.home, component: Home, icon: "mdi-home-import-outline" },
@@ -98,7 +97,31 @@ registerLayout(ChxShell, {
 	}
 });
 
-// 7. SBC backend (slicer metadata, job history): start it if DSF left it stopped
+// 7. Flow macros: index the macro directories once connected and whenever files there change
+const flowStore = useFlowStore();
+let flowScanTimer: ReturnType<typeof setTimeout> | null = null;
+function scheduleFlowScan(delay = 1500) {
+	if (flowScanTimer !== null) {
+		clearTimeout(flowScanTimer);
+	}
+	flowScanTimer = setTimeout(() => {
+		flowScanTimer = null;
+		flowStore.scan().catch((e) => console.warn(e));
+	}, delay);
+}
+Events.on("connected", () => scheduleFlowScan(0));
+Events.on("filesOrDirectoriesChanged", ({ files }) => {
+	const model = useMachineStore().model;
+	const roots = [model.directories.macros || "0:/macros", model.directories.system || "0:/sys"];
+	if (!files || files.some((f) => roots.some((root) => f.startsWith(root)))) {
+		scheduleFlowScan();
+	}
+});
+if (useMachineStore().isConnected) {
+	scheduleFlowScan(0);
+}
+
+// 8. SBC backend (slicer metadata, job history): start it if DSF left it stopped
 Events.on("connected", () => { ensureBackendRunning().catch((e) => console.warn(e)); });
 if (useMachineStore().isConnected) {
 	ensureBackendRunning().catch((e) => console.warn(e));

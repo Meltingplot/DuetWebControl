@@ -35,6 +35,9 @@
 			<div v-else class="chx-content">
 				<DwcRouterView />
 			</div>
+
+			<!-- Flow macros: steps of a running flow over the page area -->
+			<FlowPanel />
 		</v-main>
 
 		<NotAusOverlay />
@@ -48,6 +51,7 @@ import { useRoute } from "vue-router";
 import DwcRouterView from "@/components/misc/DwcRouterView.vue";
 import { useMachineStore } from "@/stores/machine";
 
+import FlowPanel from "../flows/FlowPanel.vue";
 import { ROUTES } from "../routes";
 import { adoptChxThemeOnce } from "../theme";
 import ChxHeader from "./ChxHeader.vue";

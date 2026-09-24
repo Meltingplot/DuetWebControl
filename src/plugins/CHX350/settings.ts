@@ -7,17 +7,12 @@ export const PLUGIN_ID = "CHX350";
 /**
  * Machine actions the operator UI triggers. Each entry is a G-code string sent verbatim through
  * machineStore.sendCode(). The defaults are placeholders - the real macros are configured per
- * machine in Settings > CHX 350
+ * machine in Settings > CHX 350. Procedures with operator steps (Bett vorbereiten, the
+ * calibrations) are flow macros of the machine configuration instead, see flows/parse.ts
  */
 export interface ChxMacroSettings {
-	/** "Bett vorbereiten": park the print heads and lower the bed */
-	prepareBed: string;
 	/** "Vorheizen": bring bed and tools to their standby temperatures */
 	preheat: string;
-	/** "Kalibrieren": per calibration routine */
-	calibrateZero: string;
-	calibrateMesh: string;
-	calibrateAlignZ: string;
 	/** "Referenzieren": home all axes */
 	home: string;
 }
@@ -58,11 +53,7 @@ export const PLACEHOLDER_MACRO = 'M98 P""';
 
 export const CHX_DEFAULTS: ChxSettings = {
 	macros: {
-		prepareBed: PLACEHOLDER_MACRO,
 		preheat: PLACEHOLDER_MACRO,
-		calibrateZero: PLACEHOLDER_MACRO,
-		calibrateMesh: PLACEHOLDER_MACRO,
-		calibrateAlignZ: PLACEHOLDER_MACRO,
 		home: "G28"
 	},
 	bedMap: {

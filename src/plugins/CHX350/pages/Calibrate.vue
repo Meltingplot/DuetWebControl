@@ -89,15 +89,18 @@
 						{{ t("record") }}
 					</v-btn>
 				</div>
-				<div v-for="r in routines" :key="r.key" class="chx-card routine">
-					<v-icon size="32" class="routine__icon">{{ r.icon }}</v-icon>
+				<!-- Calibration flows of the machine configuration (`page: calibrate` in the front matter) -->
+				<div v-for="tile in flowTiles" :key="tile.path" class="chx-card routine">
+					<v-icon size="32" class="routine__icon">{{ tile.icon }}</v-icon>
 					<div class="flex-grow-1" style="min-width: 0">
-						<div class="routine__title">{{ r.title }}</div>
-						<div class="routine__desc">{{ r.configured ? r.desc : $t("plugins.CHX350.generic.notConfigured") }}</div>
-						<div v-if="r.error" class="routine__error">{{ r.error }}</div>
+						<div class="routine__title">
+							{{ tile.title }}
+							<v-icon v-if="tile.warn" size="18" color="warning">mdi-alert-outline</v-icon>
+						</div>
+						<div class="routine__desc">{{ tile.subtitle }}</div>
 					</div>
-					<!-- One routine at a time: a second one would queue behind the running macro -->
-					<v-btn color="secondary" size="large" class="chx-btn" :disabled="!r.configured || state.axesLocked.value || (anyBusy && !r.busy)" :loading="r.busy" @click="r.run()">
+					<!-- One flow at a time: a second one would queue behind the running macro -->
+					<v-btn color="secondary" size="large" class="chx-btn" :disabled="tile.disabled || hw.nozzle.busy.value" @click="tile.run()">
 						<v-icon start>mdi-play</v-icon>
 						{{ $t("plugins.CHX350.calibrate.run") }}
 					</v-btn>
@@ -133,27 +136,16 @@ import { nozzleTypeLabel, useChxGlobals } from "../composables/useChxGlobals";
 import { useHardwareMacros } from "../composables/useHardwareMacros";
 import { useMachineState } from "../composables/useMachineState";
 import { sendChecked, useMacroRunner } from "../composables/useMacroRunner";
+import { useFlowTiles } from "../flows/useFlowTiles";
 import { ROUTES } from "../routes";
-import { useChxSettings } from "../settings";
 
 const machineStore = useMachineStore();
 const router = useRouter();
 const state = useMachineState();
-const { macros } = useChxSettings();
 
-const zero = useMacroRunner(computed(() => macros.value.calibrateZero));
-const mesh = useMacroRunner(computed(() => macros.value.calibrateMesh));
-const alignZ = useMacroRunner(computed(() => macros.value.calibrateAlignZ));
+const flowTiles = useFlowTiles("calibrate");
 
 const t = (key: string) => i18n.global.t(`plugins.CHX350.calibrate.${key}`);
-const routines = computed(() => [
-	{ key: "zero", icon: "mdi-target", title: t("zeroTitle"), desc: t("zeroDesc"), runner: zero },
-	{ key: "mesh", icon: "mdi-grid", title: t("meshTitle"), desc: t("meshDesc"), runner: mesh },
-	{ key: "alignZ", icon: "mdi-align-vertical-center", title: t("alignZTitle"), desc: t("alignZDesc"), runner: alignZ }
-].map(({ runner, ...r }) => ({ ...r, configured: runner.configured.value, busy: runner.busy.value, error: runner.error.value, run: runner.run })));
-
-/** A routine (or any other macro, e.g. homing from another page) keeps the machine busy */
-const anyBusy = computed(() => routines.value.some((r) => r.busy) || hw.nozzle.busy.value || state.busy.value);
 
 // The HeightMap plugin registers its route when it is loaded
 const hasHeightMapRoute = computed(() => router.getRoutes().some((r) => r.path === "/Plugins/HeightMap"));
