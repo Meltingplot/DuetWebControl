@@ -1,0 +1,113 @@
+name: Meltingplot release
+
+# Builds DuetWebControl for a Meltingplot version tag (e.g. v3.7.0-rc.1+mp.1, annotated, on v3.7-dev)
+# and publishes a GitHub release of that tag with DuetWebControl-SBC.zip and DuetWebControl-SD.zip.
+# The asset names carry no version, so an image build pins
+#   https://github.com/Meltingplot/DuetWebControl/releases/download/<tag>/DuetWebControl-SBC.zip
+# by URL and sha256; both are in the release notes. The tag must match the version in package.json.
+# A manual run builds an existing tag again and replaces the notes and the assets
+
+on:
+  push:
+    tags:
+      - "v*\\+mp.*"
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Existing tag to build and release (e.g. v3.7.0-rc.1+mp.1)"
+        required: true
+        type: string
+
+permissions:
+  contents: write
+
+concurrency:
+  group: mp-release-${{ inputs.tag || github.ref_name }}
+  cancel-in-progress: false
+
+jobs:
+  release:
+    runs-on: ubuntu-24.04
+    env:
+      TAG: ${{ inputs.tag || github.ref_name }}
+      UPSTREAM_BRANCH: v3.7-dev
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      # The tag name goes into git and gh commands below, so only accept what a version tag can contain
+      - name: Check tag name
+        run: |
+          if ! [[ "$TAG" =~ ^v[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.]+)?\+mp\.[0-9]+$ ]]; then
+            echo "Refusing to build from tag '$TAG'"
+            exit 1
+          fi
+
+      # Full history and all tags, so the upstream base and the previous release can be found
+      - uses: actions/checkout@v7
+        with:
+          ref: refs/tags/${{ inputs.tag || github.ref_name }}
+          fetch-depth: 0
+          fetch-tags: true
+
+      - name: Check version
+        run: |
+          version=$(jq -r .version package.json)
+          if [ "v$version" != "$TAG" ]; then
+            echo "Tag $TAG does not match the package.json version $version" >&2
+            exit 1
+          fi
+          echo "VERSION=$version" >> "$GITHUB_ENV"
+
+      - name: Set up NodeJS
+        uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: npm
+
+      # Type check and build; the prerelease version ships its sourcemaps inside the zips
+      - name: Build DuetWebControl
+        run: |
+          npm ci
+          npm run build
+          cd dist
+          sha256sum *.zip > SHA256SUMS.txt
+          cat SHA256SUMS.txt
+
+      # The script is taken from the commit this workflow runs from, so a manual run for an older tag
+      # that predates the script works as well
+      - name: Write release notes
+        run: |
+          git fetch -q https://github.com/Duet3D/DuetWebControl.git "$UPSTREAM_BRANCH"
+          sbc=$(sha256sum dist/DuetWebControl-SBC.zip | cut -d' ' -f1)
+          {
+            bash <(git show "$GITHUB_SHA:.github/scripts/mp-release-notes.sh") "$TAG" FETCH_HEAD
+            echo
+            echo "## Assets"
+            echo
+            echo "| File | SHA-256 |"
+            echo "| --- | --- |"
+            for f in dist/*.zip; do
+              echo "| \`$(basename "$f")\` | \`$(sha256sum "$f" | cut -d' ' -f1)\` |"
+            done
+            echo
+            echo "Image pin: \`https://github.com/$GITHUB_REPOSITORY/releases/download/$TAG/DuetWebControl-SBC.zip\`, sha256 \`$sbc\`"
+            echo
+            echo "Built from \`$(git rev-parse --short HEAD)\` by the mp-release workflow."
+          } > release-notes.md
+          cat release-notes.md
+
+      # Prereleases (anything with a hyphen in the version) are marked as such. If the release already
+      # exists, e.g. after a re-run, the notes are rewritten and the assets are replaced
+      - name: Publish release
+        run: |
+          prerelease=""
+          case "$VERSION" in
+            *-*) prerelease="--prerelease" ;;
+          esac
+          if gh release view "$TAG" -R "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            gh release edit "$TAG" -R "$GITHUB_REPOSITORY" --notes-file release-notes.md
+          else
+            gh release create "$TAG" -R "$GITHUB_REPOSITORY" $prerelease --verify-tag \
+              --title "DuetWebControl $VERSION" --notes-file release-notes.md
+          fi
+          gh release upload "$TAG" -R "$GITHUB_REPOSITORY" --clobber dist/*.zip dist/SHA256SUMS.txt
+          gh release view "$TAG" -R "$GITHUB_REPOSITORY" --json assets -q '.assets[].name'
