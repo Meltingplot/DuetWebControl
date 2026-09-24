@@ -331,13 +331,19 @@ async function send(code: string) {
 	}
 }
 
+/**
+ * Select a tool on the machine. The CHX 350 tools sit on their own print heads for good (T0 and T1
+ * on the IDEX heads), so there is nothing to change and the tool change macros are skipped (P0);
+ * tpost would also wait for the nozzle temperature. A tool changer (Bondtech INDX) will need the
+ * macros for tools parked beside the bed
+ */
 async function selectTool(tool: number) {
 	if (tool === selectedTool.value) {
 		return;
 	}
 	selectedTool.value = tool;
 	if (!locked.value && !busy.value && machineStore.model.state.currentTool !== tool) {
-		await send(`T${tool}`);
+		await send(`T${tool} P0`);
 	}
 }
 
