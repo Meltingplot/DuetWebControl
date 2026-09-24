@@ -8,7 +8,8 @@ import { isPaused, isPrinting } from "@/utils/enums";
 import { useChxGlobals } from "./useChxGlobals";
 
 /** Operator-facing machine state shown on the header plate */
-export type PlateState = "estop" | "paused" | "printing" | "busy" | "heating" | "automatic" | "idle" | "offline";
+export type PlateState = "estop" | "pausing" | "paused" | "resuming" | "cancelling" | "simulating" | "printing"
+	| "busy" | "heating" | "automatic" | "idle" | "offline";
 
 /** Door switch inputs (sensors.gpIn indices) on the CHX 350; 1 = closed, 0 = open */
 const DOOR_INPUTS = [2, 3];
@@ -49,6 +50,12 @@ export function useMachineState() {
 		return setpoint > 0 && h.current < setpoint - 2;
 	}));
 	const heatersOn = computed(() => heaters.value.some((h) => h.state === HeaterState.active || h.state === HeaterState.standby));
+	/**
+	 * A job waits for its temperatures: the start code heats up before the first layer, so the
+	 * plate says HEIZT AUF instead of DRUCKT at 0 %
+	 */
+	const jobHeating = computed(() => status.value === MachineStatus.processing && machineStore.model.job.layer === null
+		&& heaters.value.some((h) => h.state === HeaterState.active && h.active > 0 && h.current < h.active - 2));
 
 	const plate = computed<PlateState>(() => {
 		if (!connected.value || status.value === MachineStatus.disconnected) {
@@ -57,8 +64,19 @@ export function useMachineState() {
 		if (halted.value) {
 			return "estop";
 		}
+		// The transitions take a while (pause.g parks the heads, cancel.g cools down), so they get
+		// their own label instead of reading as PAUSIERT
+		switch (status.value) {
+			case MachineStatus.pausing: return "pausing";
+			case MachineStatus.resuming: return "resuming";
+			case MachineStatus.cancelling: return "cancelling";
+			case MachineStatus.simulating: return "simulating";
+		}
 		if (paused.value) {
 			return "paused";
+		}
+		if (jobHeating.value) {
+			return "heating";
 		}
 		if (printing.value) {
 			return "printing";

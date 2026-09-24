@@ -30,7 +30,11 @@
 		"hintMode": "Default mode",
 		"hintDoorOpen": "Door open · no axis movement",
 		"hintNoAxes": "No axis movement",
-		"hintDoorCheck": "Door check: open and close both doors once"
+		"hintDoorCheck": "Door check: open and close both doors once",
+		"pausing": "PAUSING",
+		"resuming": "RESUMING",
+		"cancelling": "CANCELLING",
+		"simulating": "SIMULATING"
 	},
 	"header": {
 		"chamber": "Chamber",
@@ -60,7 +64,8 @@
 		"notConfigured": "Not configured yet – set the macro under Service › Settings › CHX 350.",
 		"backendMissing": "The CHX 350 backend is not installed or not running on the SBC.",
 		"lockedAxes": "AXES LOCKED",
-		"comingSoon": "This area will be completed by a later plugin."
+		"comingSoon": "This area will be completed by a later plugin.",
+		"close": "Close"
 	},
 	"bedSurface": {
 		"pei": "PEI smooth",
@@ -87,13 +92,11 @@
 		"jobTitle": "Running job",
 		"jobSub": "{progress} % · {name}",
 		"filamentTitle": "Change filament",
-		"filamentSub": "{tools}",
 		"bedTitle": "Prepare bed",
 		"bedSub": "Remove part · bed moves down",
 		"preheatTitle": "Preheat",
 		"preheatSub": "According to loaded material · tools on standby",
 		"repeatTitle": "Repeat last job",
-		"repeatSub": "{name}",
 		"repeatNone": "No job available",
 		"lockedPrinting": "Unavailable",
 		"homeTitle": "Home axes",
@@ -118,9 +121,17 @@
 			"tooLittleMovement": "too little movement",
 			"tooMuchMovement": "too much movement",
 			"sensorError": "sensor error",
-			"disabled": "off"
+			"disabled": "off",
+			"okPrinting": "OK · checks while printing"
 		},
-		"cameraOff": "No camera configured"
+		"cameraOff": "No camera configured",
+		"lastOutcome": {
+			"simulated": "simulated",
+			"cancelled": "cancelled",
+			"aborted": "ended with an error"
+		},
+		"filamentMonitorTool": "Filament monitor {tool}",
+		"filamentMonitors": "Filament monitors ({count})"
 	},
 	"service": {
 		"title": "Service area",
@@ -155,7 +166,9 @@
 		"loadingInfo": "Reading file information ({done}/{total})",
 		"filament": "{value} filament",
 		"range": "{from}–{to} of {total}",
-		"page": "Page {n} of {total}"
+		"page": "Page {n} of {total}",
+		"missing": "The job folder is missing on the machine.",
+		"error": "The job list could not be loaded."
 	},
 	"check": {
 		"title": "Check job",
@@ -186,12 +199,10 @@
 		"beforeStart": "Before starting",
 		"bedClear": "Bed is clear",
 		"homed": "Axes homed",
-		"checkOk": "File checked",
-		"checkOpen": "Check pending",
 		"start": "Start print",
 		"startBlocked": "Start blocked",
 		"hintMode": "The machine must be in automatic mode (doors closed).",
-		"hintBlocked": "Material, nozzle or filament diameter do not match the file.",
+		"hintBlocked": "At least one check on the left does not match the machine. Change the setup or re-slice.",
 		"hintBed": "Please confirm that the bed is clear.",
 		"filamentDiameterOk": "Filament diameter matches",
 		"filamentDiameterBad": "Filament diameter differs – re-slice",
@@ -209,7 +220,16 @@
 		"spoolNeeds": "needs {need} · {left} on the spool",
 		"spoolNeedsFull": "needs {need} · one spool holds {full}",
 		"surfaceInstalled": "Build plate: {surface}",
-		"surfaceFile": "File: {type}"
+		"surfaceFile": "File: {type}",
+		"homedAtStart": "Axes are homed when the job starts",
+		"checking": "Checking the file …",
+		"verdict": {
+			"ok": "File checked",
+			"blocked": "A check blocks the start",
+			"partial": "File only partly checkable"
+		},
+		"hintFile": "The file cannot be read.",
+		"fileError": "File not readable: {error}"
 	},
 	"job": {
 		"title": "Running job",
@@ -274,7 +294,8 @@
 		"legend": "Dark = low, light = high. Each layer carries the value recorded while printing.",
 		"findings": "Findings",
 		"findingsSoon": "Findings, part view and timelapse will follow with the quality assurance plugin.",
-		"noData": "No layer data available. The analysis covers the running or last job."
+		"noData": "No layer data available. The analysis covers the running or last job.",
+		"export": "Layer data (CSV)"
 	},
 	"control": {
 		"zAxis": "Z axis",
@@ -298,16 +319,16 @@
 		"zHint": "Drag and release moves Z · tap the value to enter it",
 		"notHomed": "not homed",
 		"homeAxis": "Home axis {axis}",
-		"selectedAxis": "T{tool} · axis {axis}"
+		"selectedAxis": "T{tool} · axis {axis}",
+		"lockNotHomed": "{axes} not homed · home it in the positions row below"
 	},
 	"prepareBed": {
 		"title": "Prepare bed",
 		"s1Title": "Open the build chamber",
 		"s1Body": "The machine parks the print heads and lowers the bed. Keep the build chamber clear while the movement runs.",
-		"s1Warn": "The bed may still be hotter than 60 °C.",
 		"s1Cta": "Lower the bed",
 		"s2Title": "Remove the part",
-		"s2Body": "Release the part from the build plate. With PA6 CF HT let the bed cool below 50 °C, then the part releases by itself.",
+		"s2Body": "Release the part from the build plate. Many materials come off more easily once the bed has cooled down.",
 		"s2Warn": "Do not place tools on the build plate.",
 		"s2Cta": "Part removed",
 		"s3Title": "Check the build plate",
@@ -316,7 +337,10 @@
 		"s3Cta": "Done",
 		"surface": "Installed build plate",
 		"surfaceNone": "not recorded",
-		"surfaceChange": "Different plate installed"
+		"surfaceChange": "Different plate installed",
+		"bedHot": "The bed is at {temp}. Touch it with gloves only.",
+		"bedTemp": "Bed temperature",
+		"bedOff": "Heater off"
 	},
 	"home": {
 		"title": "Home axes",
@@ -332,7 +356,8 @@
 		"s2CtaDone": "Continue",
 		"s3Title": "All axes homed",
 		"s3Body": "All axes are referenced. The machine is ready for the next step.",
-		"s3Cta": "Back to overview"
+		"s3Cta": "Back to overview",
+		"moving": "moving …"
 	},
 	"calibrate": {
 		"title": "Calibrate",
@@ -352,7 +377,12 @@
 		"probeValue": "Probe value",
 		"nozzleTitle": "Nozzle changed",
 		"nozzleDesc": "Record diameter and type · {tool}: {current}",
-		"record": "Record"
+		"record": "Record",
+		"babystepTitle": "Z offset {value} active",
+		"babystepDesc": "Babystepping from a print. Keep stores it as the probe's Z offset, Discard resets it.",
+		"babystepDescNoApply": "Babystepping from a print. It stays in effect until discarded.",
+		"babystepApply": "Keep",
+		"babystepDiscard": "Discard"
 	},
 	"preheat": {
 		"title": "Preheat",
@@ -362,7 +392,9 @@
 		"target": "Target",
 		"macroHint": "The preheat macro sets bed and tools according to the loaded filament profiles.",
 		"start": "Start preheating",
-		"allOff": "All heaters off"
+		"allOff": "All heaters off",
+		"noMaterial": "No material loaded. The target temperatures come from the filament profile, so load filament first.",
+		"loadFirst": "Load filament first"
 	},
 	"filament": {
 		"title": "Change filament",
@@ -393,7 +425,14 @@
 		"spoolValue": "{left} of {net}",
 		"spoolNone": "not recorded",
 		"spoolHint": "While loading, the machine asks for spool size, spool body and weight and tracks the remaining amount from then on. New spool of the same material, or a correction: \"Record spool\".",
-		"spoolRecord": "Record spool ({tool})"
+		"spoolRecord": "Record spool ({tool})",
+		"phase": {
+			"tool": "Select the tool",
+			"unload": "Unload the old filament",
+			"load": "Load the new filament",
+			"config": "Apply the filament profile"
+		},
+		"backToJob": "Back to the job"
 	},
 	"settings": {
 		"macros": "Macros",
@@ -422,7 +461,6 @@
 	},
 	"history": {
 		"title": "History",
-		"current": "Running",
 		"finished": "Finished",
 		"cancelled": "Cancelled",
 		"aborted": "Aborted (error)",
@@ -431,7 +469,11 @@
 		"empty": "No jobs logged yet.",
 		"printTime": "Print time {time}",
 		"refresh": "Refresh",
-		"running": "Running"
+		"running": "Running",
+		"repeat": "Print again",
+		"endedAt": "ended {date}",
+		"error": "The history could not be read: {error}",
+		"loggingOff": "The machine's event log is switched off (M929), so there is no history."
 	},
 	"support": {
 		"phone": "Phone",
@@ -457,10 +499,14 @@
 		"storage": "Storage free",
 		"vigilMissing": "Vigil data not available",
 		"diagnostics": "Diagnostics",
-		"diagnosticsHint": "Save object model, firmware diagnostics (M122) and event log as a file.",
+		"diagnosticsHint": "Save the object model, firmware diagnostics (M122) of every board, the configuration and the event log to a file.",
 		"export": "Export diagnostics",
 		"exportDone": "Diagnostics saved",
-		"exportError": "Diagnostics could not be created"
+		"exportError": "Diagnostics could not be created",
+		"expansions": "Expansion boards",
+		"expansionsMixed": "{count} · {versions} firmware builds",
+		"sbc": "Single-board computer",
+		"network": "Network"
 	},
 	"about": {
 		"title": "About this machine",
@@ -472,6 +518,36 @@
 		"hideLicenses": "Hide license texts",
 		"machineLicenses": "Licenses of the machine software",
 		"dwcLicense": "Duet Web Control (GPL-3.0)",
-		"fonts": "Jost · JetBrains Mono (SIL OFL 1.1)"
+		"fonts": "Jost · JetBrains Mono (SIL OFL 1.1)",
+		"note": {
+			"dwc": "User interface · Meltingplot fork",
+			"plugin": "CHX350 plugin",
+			"dsf": "SBC service",
+			"objectModel": "Object model",
+			"framework": "Framework",
+			"components": "Components",
+			"gcodeViewer": "G-code viewer",
+			"charts": "Charts",
+			"fonts": "Fonts"
+		}
+	},
+	"heaterPhase": {
+		"off": "off",
+		"heating": "heating",
+		"cooling": "cooling",
+		"reached": "reached"
+	},
+	"tune": {
+		"open": "Adjust",
+		"title": "Adjust the job",
+		"babystep": "Z offset (babystepping)",
+		"babystepHint": "− nozzle closer to the bed · + further away. Applies until reset, also to the next job; keep or discard it under Calibrate.",
+		"speed": "Speed",
+		"flow": "Extrusion {tool}",
+		"fan": "Part fan {tool}",
+		"extrude": "Extrude {tool}",
+		"extrudeHint": "For purging after a filament problem. On resume the machine primes the nozzle again.",
+		"extrudeCold": "Nozzle too cold, extruding needs {temp}.",
+		"temperatures": "Target temperatures"
 	}
 }

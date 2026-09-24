@@ -105,7 +105,14 @@
 
 <template>
 	<div class="chx-page">
-		<ChxPageHeader :subtitle="jobName" :back="ROUTES.history" />
+		<ChxPageHeader :subtitle="jobName" :back="ROUTES.history">
+			<template #actions>
+				<v-btn variant="outlined" class="chx-btn" :disabled="analysis.layers.value.length === 0" @click="exportCsv">
+					<v-icon start>mdi-download</v-icon>
+					{{ $t("plugins.CHX350.analysis.export") }}
+				</v-btn>
+			</template>
+		</ChxPageHeader>
 
 		<div v-if="analysis.layers.value.length > 0" class="analysis">
 			<div class="main">
@@ -183,6 +190,7 @@ import { computed, ref, watch } from "vue";
 import i18n from "@/i18n";
 import { useMachineStore } from "@/stores/machine";
 import { display, displayTime } from "@/utils/display";
+import { saveBlob } from "@/utils/download";
 import { extractFileName } from "@/utils/path";
 
 import ChxPageHeader from "../components/ChxPageHeader.vue";
@@ -202,9 +210,10 @@ const activeKey = ref("flow");
 const activeChannel = computed<LayerChannel>(() =>
 	analysis.channels.value.find((c) => c.key === activeKey.value) ?? analysis.channels.value[0]);
 const range = computed(() => channelRange(activeChannel.value));
-// Fifth KPI: the active channel, or the first temperature channel while flow is selected
+// Fifth KPI: the active channel, or the chamber (SZP) temperature while flow is selected, as on
+// the job page
 const kpiChannel = computed<LayerChannel>(() => activeChannel.value.key === "flow"
-	? (analysis.channels.value.find((c) => c.key.startsWith("sensor")) ?? activeChannel.value)
+	? (analysis.chamberChannel.value ?? analysis.channels.value.find((c) => c.key.startsWith("sensor")) ?? activeChannel.value)
 	: activeChannel.value);
 
 const layer = ref(analysis.currentIndex.value);
@@ -226,6 +235,26 @@ function channelIcon(key: string): string {
 function formatValue(v: number): string {
 	return `${v.toFixed(activeChannel.value.precision)} ${activeChannel.value.unit}`;
 }
+/**
+ * Per-layer record of the job as CSV (one row per layer, every channel), for the quality file of
+ * the part. Findings and pictures follow with the quality-assurance plugin
+ */
+function exportCsv() {
+	const job = machineStore.model.job;
+	const channels = analysis.channels.value;
+	const cell = (v: number | null | undefined, digits: number) => v === null || v === undefined || !Number.isFinite(v) ? "" : v.toFixed(digits);
+	const quote = (text: string) => `"${text.replace(/"/g, '""')}"`;
+	const lines = [
+		`# ${quote(jobName.value)}`,
+		`# ${machineStore.model.network.name} · ${new Date().toISOString()}`
+			+ (job.lastDuration && !job.file?.fileName ? ` · ${job.lastFileCancelled ? "cancelled" : (job.lastFileAborted ? "aborted" : "finished")} · ${job.lastDuration} s` : ""),
+		["layer", "z_mm", ...channels.map((c) => quote(`${channelLabel(c)} [${c.unit}]`))].join(","),
+		...analysis.layers.value.map((_l, i) => [i + 1, cell(analysis.heights.value[i], 3), ...channels.map((c) => cell(c.values[i], c.precision + 1))].join(","))
+	];
+	const base = jobName.value.replace(/\.[^.]+$/, "").replace(/[^\w.-]+/g, "_");
+	saveBlob(`${base}-layers.csv`, new Blob([lines.join("\n") + "\n"], { type: "text/csv" }));
+}
+
 function valueOf(key: string): string {
 	const ch = analysis.channels.value.find((c) => c.key === key);
 	const v = ch?.values[layer.value];

@@ -75,6 +75,8 @@
 					<span>{{ current.warn }}</span>
 				</div>
 				<slot name="step" :step="step" />
+				<!-- The firmware's reply when the step's action failed (macro aborted, code rejected) -->
+				<v-alert v-if="current.error" type="error" variant="tonal" density="compact" :text="current.error" />
 				<div class="cta">
 					<v-btn v-if="step > 0" variant="outlined" size="x-large" class="chx-btn" :disabled="busy" @click="$emit('update:step', step - 1)">
 						{{ $t("plugins.CHX350.generic.back") }}
@@ -102,6 +104,8 @@ export interface WizardStep {
 	cta: string;
 	icon?: string;
 	disabled?: boolean;
+	/** Error of the step's last action, shown above the buttons */
+	error?: string | null;
 }
 
 const props = defineProps<{

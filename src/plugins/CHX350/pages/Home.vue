@@ -32,9 +32,10 @@
 				<div class="chx-label">{{ $t("plugins.CHX350.home.axes") }}</div>
 				<div class="axes">
 					<div v-for="axis in axes" :key="axis.letter" class="axis">
-						<v-icon :color="axis.homed ? 'success' : undefined">{{ axis.homed ? "mdi-check-circle" : "mdi-circle-outline" }}</v-icon>
+						<v-progress-circular v-if="!axis.homed && homing" indeterminate size="22" width="3" color="primary" />
+						<v-icon v-else :color="axis.homed ? 'success' : undefined">{{ axis.homed ? "mdi-check-circle" : "mdi-circle-outline" }}</v-icon>
 						{{ axis.letter }}
-						<span class="axis__state" :class="{ 'axis__state--ok': axis.homed }">{{ axis.homed ? $t("plugins.CHX350.start.homed") : $t("plugins.CHX350.home.open") }}</span>
+						<span class="axis__state" :class="{ 'axis__state--ok': axis.homed }">{{ axis.homed ? $t("plugins.CHX350.start.homed") : (homing ? $t("plugins.CHX350.home.moving") : $t("plugins.CHX350.home.open")) }}</span>
 						<CodeButton v-if="step > 0" :code="`G28 ${axisGCodeLetter(axis.letter)}`" size="small" variant="outlined" :disabled="state.axesLocked.value" :log="false">
 							G28 {{ axis.letter }}
 						</CodeButton>
@@ -68,6 +69,8 @@ const { macros } = useChxSettings();
 const runner = useMacroRunner(computed(() => macros.value.home));
 
 const axes = computed(() => machineStore.model.move.axes.filter((a) => a.visible));
+/** Homing runs (ours, or a G28 button) and the axes still open are on their way to the end stops */
+const homing = computed(() => runner.busy.value || (step.value > 0 && state.busy.value));
 const allHomed = computed(() => axes.value.length > 0 && axes.value.every((a) => a.homed));
 
 const step = ref(0);
@@ -75,7 +78,10 @@ const t = (key: string) => i18n.global.t(`plugins.CHX350.home.${key}`);
 
 const steps = computed<Array<WizardStep>>(() => [
 	{ title: t("s1Title"), body: t("s1Body"), cta: t("s1Cta"), icon: "mdi-check", disabled: state.axesLocked.value || !runner.configured.value },
-	{ title: t("s2Title"), body: t("s2Body"), warn: t("s2Warn"), cta: allHomed.value ? t("s2CtaDone") : t("s2Cta"), icon: "mdi-home-import-outline", disabled: !allHomed.value && (state.busy.value || runner.busy.value) },
+	{
+		title: t("s2Title"), body: t("s2Body"), warn: t("s2Warn"), cta: allHomed.value ? t("s2CtaDone") : t("s2Cta"), icon: "mdi-home-import-outline",
+		disabled: !allHomed.value && (state.busy.value || runner.busy.value), error: runner.error.value
+	},
 	{ title: t("s3Title"), body: t("s3Body"), cta: t("s3Cta"), icon: "mdi-check-all" }
 ]);
 

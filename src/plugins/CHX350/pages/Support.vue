@@ -64,6 +64,10 @@
 .kv:last-child {
 	border-bottom: 0;
 }
+/* Expansion boards on different firmware builds */
+.kv b.kv--warn {
+	color: var(--text-warning);
+}
 .kv b {
 	font: 600 13px/1.35 var(--mp-font-mono, monospace);
 	color: var(--text-strong);
@@ -105,7 +109,7 @@
 				<div class="chx-label">{{ $t("plugins.CHX350.support.machine") }}</div>
 				<div>
 					<div v-for="row in machineRows" :key="row.label" class="kv">
-						<span>{{ $t(`plugins.CHX350.support.${row.label}`) }}</span><b>{{ row.value }}</b>
+						<span>{{ $t(`plugins.CHX350.support.${row.label}`) }}</span><b :title="row.title" :class="{ 'kv--warn': row.warn }">{{ row.value }}</b>
 					</div>
 				</div>
 			</div>
@@ -154,6 +158,7 @@ import { useMachineStore } from "@/stores/machine";
 import { LogLevel, useUiStore } from "@/stores/ui";
 import { displaySize, displayTime } from "@/utils/display";
 import { saveBlob } from "@/utils/download";
+import Path from "@/utils/path";
 
 import packageInfo from "../../../../package.json";
 import { PLUGIN_ID, useChxSettings } from "../settings";
@@ -176,14 +181,45 @@ const contacts = computed(() => [
 	{ icon: "mdi-web", label: t("web"), value: support.value.url, small: true }
 ].filter((c) => c.value));
 
+/** CAN-connected boards (tool board, expansion boards, SZP), all expected on one firmware build */
+const expansionBoards = computed(() => model.value.boards.slice(1));
+const expansionRow = computed(() => {
+	const boards = expansionBoards.value;
+	const versions = [...new Set(boards.map((b) => b.firmwareVersion))];
+	return {
+		label: "expansions",
+		value: versions.length === 1 ? `${boards.length} · ${versions[0]}` : i18n.global.t("plugins.CHX350.support.expansionsMixed", { count: boards.length, versions: versions.length }),
+		warn: versions.length > 1,
+		title: boards.map((b) => `${b.canAddress ?? "?"} ${b.shortName || b.name}: ${b.firmwareVersion}`).join("\n")
+	};
+});
+
+/** First connected network interface (on the SBC: the Pi's own interfaces) */
+const networkRow = computed(() => {
+	const iface = model.value.network.interfaces.find((i) => i.actualIP && i.actualIP !== "0.0.0.0") ?? null;
+	return { label: "network", value: iface ? `${iface.actualIP} · ${iface.type}` : "—", title: iface?.mac ?? "" };
+});
+
 // Model and serial number are the header's name and host line
-const machineRows = computed(() => [
-	{ label: "board", value: board.value?.name ?? "—" },
-	{ label: "firmware", value: board.value?.firmwareVersion ?? "—" },
-	{ label: "dsf", value: dsfVersion.value },
-	{ label: "dwc", value: `DWC ${dwcVersion} · CHX ${pluginVersion}` },
-	{ label: "uptime", value: displayTime(model.value.state.upTime) }
-]);
+const machineRows = computed(() => {
+	const rows: Array<{ label: string; value: string; warn?: boolean; title?: string }> = [
+		{ label: "board", value: board.value?.name ?? "—" },
+		{ label: "firmware", value: board.value?.firmwareVersion ?? "—" }
+	];
+	if (expansionBoards.value.length > 0) {
+		rows.push(expansionRow.value);
+	}
+	rows.push({ label: "dsf", value: dsfVersion.value });
+	if (model.value.sbc) {
+		rows.push({ label: "sbc", value: model.value.sbc.model || "—", title: model.value.sbc.distribution ?? "" });
+	}
+	rows.push(
+		networkRow.value,
+		{ label: "dwc", value: `DWC ${dwcVersion} · CHX ${pluginVersion}` },
+		{ label: "uptime", value: displayTime(model.value.state.upTime) }
+	);
+	return rows;
+});
 
 /** Operating counters published by the Vigil plugin (strings in its object model data) */
 const vigil = computed(() => {
@@ -244,10 +280,20 @@ async function exportDiagnostics() {
 			}
 		};
 		await section("M122", async () => (await machineStore.sendCode("M122", false, false)) ?? "");
-		await section("eventlog.log (tail)", async () => {
-			const log = await machineStore.download({ filename: "0:/sys/eventlog.log", type: "text" }, false, false, false);
+		// Tool and expansion boards report their own diagnostics (drivers, CAN errors)
+		for (const b of expansionBoards.value) {
+			if (b.canAddress !== null && b.canAddress !== undefined) {
+				await section(`M122 B${b.canAddress} (${b.shortName || b.name})`, async () => (await machineStore.sendCode(`M122 B${b.canAddress}`, false, false)) ?? "");
+			}
+		}
+		const logFile = model.value.state.logFile ?? "0:/sys/eventlog.log";
+		await section(`${logFile} (tail)`, async () => {
+			const log = await machineStore.download({ filename: logFile, type: "text" }, false, false, false);
 			return String(log).split("\n").slice(-500).join("\n");
 		});
+		for (const file of ["config.g", "config-override.g"]) {
+			await section(file, async () => String(await machineStore.download({ filename: Path.combine(model.value.directories.system || Path.system, file), type: "text" }, false, false, false)));
+		}
 		if ((model.value.plugins.get("Vigil")?.pid ?? -1) > 0) {
 			await section("Vigil", async () => JSON.stringify(await machineStore.request("GET", "machine/Vigil/export", { format: "json" }, "json"), null, 1));
 		}

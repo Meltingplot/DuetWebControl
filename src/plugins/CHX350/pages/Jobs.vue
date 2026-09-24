@@ -41,11 +41,14 @@
 	height: 100%;
 	object-fit: contain;
 }
+/* Two lines: slicer names of one part differ only at the end ("…_3h30m" vs "…_5h59m") */
 .row__name {
 	font: 600 15px/1.25 var(--mp-font-body, sans-serif);
-	white-space: nowrap;
+	overflow-wrap: anywhere;
+	display: -webkit-box;
+	-webkit-line-clamp: 2;
+	-webkit-box-orient: vertical;
 	overflow: hidden;
-	text-overflow: ellipsis;
 }
 .row__meta {
 	font: 400 12px/1.3 var(--mp-font-mono, monospace);
@@ -78,8 +81,10 @@
 .empty {
 	flex: 1;
 	display: flex;
+	flex-direction: column;
 	align-items: center;
 	justify-content: center;
+	gap: 14px;
 	color: var(--text-muted);
 }
 </style>
@@ -111,6 +116,14 @@
 			</template>
 			<div v-else-if="browser.loading.value" class="empty">
 				<v-progress-circular indeterminate color="primary" />
+			</div>
+			<div v-else-if="browser.errorReason.value" class="empty">
+				<v-icon size="48">{{ browser.errorReason.value === "missing" ? "mdi-folder-alert-outline" : "mdi-alert-circle-outline" }}</v-icon>
+				<div>{{ $t(`plugins.CHX350.jobs.${browser.errorReason.value === "missing" ? "missing" : "error"}`) }}</div>
+				<v-btn variant="outlined" size="large" class="chx-btn" @click="reload">
+					<v-icon start>mdi-refresh</v-icon>
+					{{ $t("plugins.CHX350.jobs.refresh") }}
+				</v-btn>
 			</div>
 			<div v-else class="empty">{{ $t("plugins.CHX350.jobs.empty") }}</div>
 		</div>

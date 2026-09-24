@@ -307,6 +307,14 @@
 	<div class="chx-page">
 		<ChxPageHeader :subtitle="job.fileName.value" :back="ROUTES.start">
 			<template #actions>
+				<!-- Speed, flow, fan, temperatures and Z babystep of the running job; a dot marks a
+					 value that differs from the file's -->
+				<v-badge v-if="job.active.value" :model-value="tuned" dot color="accent" offset-x="6" offset-y="6">
+					<v-btn variant="outlined" class="chx-btn" @click="tuneOpen = true">
+						<v-icon start>mdi-tune-variant</v-icon>
+						{{ $t("plugins.CHX350.tune.open") }}
+					</v-btn>
+				</v-badge>
 				<v-btn variant="outlined" class="chx-btn" :disabled="job.layersDone.value === 0" @click="router.push(ROUTES.analysis)">
 					<v-icon start>mdi-chart-box-outline</v-icon>
 					{{ $t("plugins.CHX350.job.analysis") }}
@@ -315,12 +323,13 @@
 		</ChxPageHeader>
 
 		<FaultBanner />
+		<JobTuneDialog v-model="tuneOpen" />
 
 		<template v-if="job.active.value || hasJobData">
 			<div class="top">
 				<ChxCameraBox fill class="camera">
 					<ChxCamera />
-					<div v-if="webcamEnabled" class="pill pill--live">{{ $t("plugins.CHX350.job.live") }}</div>
+					<div v-if="webcamEnabled && cameraLive" class="pill pill--live">{{ $t("plugins.CHX350.job.live") }}</div>
 					<div v-if="job.active.value && toolPill" class="pill pill--tool" :title="toolPill">{{ toolPill }}</div>
 				</ChxCameraBox>
 
@@ -481,7 +490,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref } from "vue";
+import { computed, ref, watch } from "vue";
 import { useRouter } from "vue-router";
 
 import CodeButton from "@/components/buttons/CodeButton.vue";
@@ -490,18 +499,19 @@ import i18n from "@/i18n";
 import { useMachineStore } from "@/stores/machine";
 import { useSettingsStore } from "@/stores/settings";
 import { display, displayTime } from "@/utils/display";
-import { escapeFilename, extractFileName } from "@/utils/path";
 
 import ChxCamera from "../components/ChxCamera.vue";
 import ChxCameraBox from "../components/ChxCameraBox.vue";
 import ChxPageHeader from "../components/ChxPageHeader.vue";
 import FaultBanner from "../components/FaultBanner.vue";
 import FilamentUsageChart from "../components/FilamentUsageChart.vue";
+import JobTuneDialog from "../components/JobTuneDialog.vue";
 import LayerStrip from "../components/LayerStrip.vue";
 import { useJob } from "../composables/useJob";
 import { channelRange, useJobAnalysis } from "../composables/useJobAnalysis";
 import { formatTemp, useTemps } from "../composables/useTemps";
 import { ROUTES } from "../routes";
+import { cameraLive } from "../webcam";
 
 const machineStore = useMachineStore();
 const settingsStore = useSettingsStore();
@@ -511,6 +521,17 @@ const analysis = useJobAnalysis();
 const job = useJob();
 
 const webcamEnabled = computed(() => settingsStore.webcam.enabled);
+
+const tuneOpen = ref(false);
+// Close the adjustments when the job ends; they only apply to a running job
+watch(() => job.active.value, (active) => { if (!active) tuneOpen.value = false; });
+/** Speed, flow or babystep differ from the defaults */
+const tuned = computed(() => {
+	const move = machineStore.model.move;
+	return Math.abs(move.speedFactor - 1) > 0.001
+		|| move.extruders.some((e) => Math.abs(e.factor - 1) > 0.001)
+		|| move.axes.some((a) => a.letter === "Z" && a.babystep !== 0);
+});
 const hasJobData = computed(() => job.layersDone.value > 0 || job.lastFilePath.value !== null);
 
 const progressLabel = computed(() => `${(job.progress.value * 100).toFixed(1)} %`);
@@ -561,10 +582,7 @@ const analysisDuration = computed(() => {
 });
 
 // Chamber temperature per layer: the chamber heater's sensor if any, else the SZP coil sensor
-const szpChannel = analysis.temperatureChannel((s) => (s.name ?? "").trim().toLowerCase() === "szp coil");
-const chamberSensorIndex = computed(() => temps.chamberHeater.value?.sensor ?? -1);
-const chamberChannel = analysis.temperatureChannel((_s, i) => i === chamberSensorIndex.value);
-const tempChannel = computed(() => chamberChannel.value ?? szpChannel.value);
+const tempChannel = analysis.chamberChannel;
 // The channel only resolves once a completed layer carries temperatures, so sensor presence is
 // taken from the live model rather than from the channel
 const hasChamberSensor = computed(() => temps.chamberSource.value !== "none");
@@ -634,14 +652,11 @@ async function cancelJob() {
 	}
 }
 
-async function repeat() {
+/** Repeating goes through the job check like any other start (material, nozzle, bed clear) */
+function repeat() {
 	const file = job.lastFilePath.value;
-	if (!file) {
-		return;
-	}
-	const name = extractFileName(file);
-	if (await showConfirmDialog(i18n.global.t("dialog.startJob.title", [name]), i18n.global.t("dialog.startJob.prompt", [name]), "mdi-play")) {
-		await machineStore.sendCode(`M32 "${escapeFilename(file)}"`);
+	if (file) {
+		router.push({ path: ROUTES.check, query: { file } });
 	}
 }
 </script>

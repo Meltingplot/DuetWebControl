@@ -135,6 +135,7 @@
 						<div class="file__name">{{ job.fileName.value }}</div>
 						<div class="text-body-2 text-medium-emphasis mt-1">{{ job.info.value?.generatedBy ?? "" }}</div>
 						<div v-if="job.loading.value" class="mt-2"><v-progress-linear indeterminate color="primary" /></div>
+						<v-alert v-else-if="job.infoError.value" class="mt-2" type="error" variant="tonal" density="compact" :text="$t('plugins.CHX350.check.fileError', { error: job.infoError.value })" />
 					</div>
 				</div>
 
@@ -194,18 +195,24 @@
 						<v-checkbox-btn v-model="bedClear" color="primary" />
 						{{ $t("plugins.CHX350.check.bedClear") }}
 					</label>
+					<!-- The machine's print start (print/prepare.g) homes unhomed axes itself -->
 					<div class="pre__row">
-						<v-icon :color="allHomed ? 'success' : 'warning'">{{ allHomed ? "mdi-check-circle" : "mdi-alert-circle-outline" }}</v-icon>
-						{{ $t("plugins.CHX350.check.homed") }}
+						<v-icon v-if="allHomed" color="success">mdi-check-circle</v-icon>
+						<v-icon v-else class="chx-icon-muted">mdi-information-outline</v-icon>
+						{{ allHomed ? $t("plugins.CHX350.check.homed") : $t("plugins.CHX350.check.homedAtStart") }}
 					</div>
 					<!-- Door and mode are not listed: the header plate shows AUTOMATIK, or LEERLAUF with the reason -->
 					<div class="pre__row">
-						<v-icon :color="job.blocked.value ? 'warning' : 'success'">{{ job.blocked.value ? "mdi-alert" : "mdi-check-circle" }}</v-icon>
-						{{ job.blocked.value ? $t("plugins.CHX350.check.checkOpen") : $t("plugins.CHX350.check.checkOk") }}
+						<v-progress-circular v-if="job.loading.value" indeterminate size="22" width="3" color="primary" />
+						<v-icon v-else-if="job.verdict.value === 'blocked'" color="warning">mdi-alert</v-icon>
+						<v-icon v-else-if="job.verdict.value === 'ok'" color="success">mdi-check-circle</v-icon>
+						<v-icon v-else class="chx-icon-muted">mdi-help-circle-outline</v-icon>
+						{{ job.loading.value ? $t("plugins.CHX350.check.checking") : $t(`plugins.CHX350.check.verdict.${job.verdict.value}`) }}
 					</div>
 				</div>
 
 				<div class="cta">
+					<v-alert v-if="startError" type="error" variant="tonal" density="compact" :text="startError" />
 					<div v-if="startHint" class="cta__hint">{{ startHint }}</div>
 					<v-btn color="secondary" size="x-large" class="chx-btn" block :disabled="!canStart" :loading="starting" @click="start">
 						<v-icon start>mdi-play</v-icon>
@@ -221,7 +228,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref } from "vue";
+import { computed, ref, watch } from "vue";
 import { useRoute, useRouter } from "vue-router";
 
 import ThumbnailImg from "@/components/misc/ThumbnailImg.vue";
@@ -229,10 +236,12 @@ import { showConfirmDialog } from "@/composables/useConfirmDialog";
 import i18n from "@/i18n";
 import { useMachineStore } from "@/stores/machine";
 import { display, displaySize, displayTime } from "@/utils/display";
+import { getErrorMessage } from "@/utils/errors";
 import { escapeFilename } from "@/utils/path";
 
 import ChxPageHeader from "../components/ChxPageHeader.vue";
 import { useJobMeta, type CheckState } from "../composables/useJobMeta";
+import { sendChecked } from "../composables/useMacroRunner";
 import { ROUTES } from "../routes";
 
 const CHECK_ICONS: Record<CheckState, { icon: string; color?: string }> = {
@@ -259,12 +268,16 @@ const allHomed = computed(() => {
 });
 
 const canStart = computed(() => !!filePath.value && machineStore.isConnected && !job.state.printing.value
+	&& !job.loading.value && job.infoError.value === null
 	&& !job.blocked.value && bedClear.value && job.state.isAutomatic.value && !job.state.doorOpen.value);
 
 const startHint = computed(() => {
 	// A running job is on the header plate (DRUCKT/PAUSIERT)
 	if (job.state.printing.value) {
 		return "";
+	}
+	if (job.infoError.value !== null) {
+		return i18n.global.t("plugins.CHX350.check.hintFile");
 	}
 	if (!job.state.isAutomatic.value || job.state.doorOpen.value) {
 		return i18n.global.t("plugins.CHX350.check.hintMode");
@@ -279,6 +292,8 @@ const startHint = computed(() => {
 });
 
 const starting = ref(false);
+const startError = ref<string | null>(null);
+watch(filePath, () => { startError.value = null; });
 async function start() {
 	if (!canStart.value) {
 		return;
@@ -288,9 +303,13 @@ async function start() {
 		return;
 	}
 	starting.value = true;
+	startError.value = null;
 	try {
-		await machineStore.sendCode(`M32 "${escapeFilename(filePath.value)}"`);
+		// start.g refuses with an error reply (doors, mode); stay on the page and show why
+		await sendChecked(`M32 "${escapeFilename(filePath.value)}"`);
 		router.push(ROUTES.job);
+	} catch (e) {
+		startError.value = getErrorMessage(e);
 	} finally {
 		starting.value = false;
 	}

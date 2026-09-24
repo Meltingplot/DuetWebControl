@@ -113,7 +113,7 @@
 		<div class="z__foot">
 			<div class="z__num" :class="{ 'z__num--target': target !== null }" @click="enter">{{ shown.toFixed(2) }}</div>
 			<div class="z__step">{{ $t("plugins.CHX350.control.zStep", { step: stepLabel }) }}</div>
-			<div class="z__hint">{{ locked ? $t("plugins.CHX350.generic.lockedAxes") : $t("plugins.CHX350.control.zHint") }}</div>
+			<div class="z__hint">{{ locked ? (lockHint || $t("plugins.CHX350.generic.lockedAxes")) : $t("plugins.CHX350.control.zHint") }}</div>
 		</div>
 	</div>
 </template>
@@ -133,6 +133,8 @@ const props = withDefaults(defineProps<{
 	min: number;
 	max: number;
 	locked?: boolean;
+	/** Why the tower is locked when the page's lock does not apply (e.g. Z not homed) */
+	lockHint?: string;
 	/** Transient: pointer input is ignored without any visual change (see Control.vue) */
 	busy?: boolean;
 }>(), {

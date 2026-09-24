@@ -23,9 +23,9 @@
 .plate--link {
 	cursor: pointer;
 }
-.plate--automatic, .plate--printing { background: var(--mp-primary-dark); color: #fff; }
+.plate--automatic, .plate--printing, .plate--resuming, .plate--simulating { background: var(--mp-primary-dark); color: #fff; }
 .plate--heating, .plate--busy { background: var(--mp-primary); color: #fff; }
-.plate--idle, .plate--paused { background: var(--mp-accent); color: var(--mp-neutral-900); }
+.plate--idle, .plate--paused, .plate--pausing, .plate--cancelling { background: var(--mp-accent); color: var(--mp-neutral-900); }
 .plate--estop { background: var(--mp-error); color: #fff; }
 .plate--offline { background: var(--mp-neutral-400); color: var(--mp-neutral-900); }
 .hint {
@@ -84,7 +84,11 @@ const icon = computed(() => {
 		case "heating": return "mdi-thermometer";
 		case "busy": return "mdi-timer-sand";
 		case "printing": return "mdi-play";
+		case "resuming": return "mdi-play-circle-outline";
+		case "simulating": return "mdi-flask-outline";
 		case "paused": return "mdi-pause";
+		case "pausing": return "mdi-pause-circle-outline";
+		case "cancelling": return "mdi-close-circle-outline";
 		case "estop": return "mdi-alert-octagon";
 		default: return "mdi-lan-disconnect";
 	}

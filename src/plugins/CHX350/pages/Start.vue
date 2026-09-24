@@ -141,9 +141,10 @@
 					 :title="$t('plugins.CHX350.start.bedTitle')" :subtitle="jobRunning ? lockedSub : $t('plugins.CHX350.start.bedSub')" />
 			<ChxTile icon="mdi-thermometer-chevron-up" :to="ROUTES.preheat" :disabled="jobRunning"
 					 :title="$t('plugins.CHX350.start.preheatTitle')" :subtitle="jobRunning ? lockedSub : $t('plugins.CHX350.start.preheatSub')" />
+			<!-- Repeating goes through the job check like any other start -->
 			<ChxTile icon="mdi-repeat" :disabled="lastJob === null || state.printing.value" @click="repeatLast"
 					 :title="$t('plugins.CHX350.start.repeatTitle')"
-					 :subtitle="state.printing.value ? lockedSub : (lastJob ? $t('plugins.CHX350.start.repeatSub', { name: lastJob }) : $t('plugins.CHX350.start.repeatNone'))" />
+					 :subtitle="state.printing.value ? lockedSub : (lastJob ? lastJobSub : $t('plugins.CHX350.start.repeatNone'))" />
 			<ChxTile icon="mdi-home-import-outline" :to="ROUTES.home" :disabled="jobRunning"
 					 :title="$t('plugins.CHX350.start.homeTitle')"
 					 :subtitle="jobRunning ? lockedSub : $t('plugins.CHX350.start.homeSub', { axes: axisLetters, state: allHomed ? $t('plugins.CHX350.start.homed') : $t('plugins.CHX350.start.notHomed') })" />
@@ -157,7 +158,7 @@
 					<ChxCamera />
 					<div class="camera__bar">
 						<span>{{ $t("plugins.CHX350.start.camera") }}</span>
-						<span v-if="webcamEnabled" class="camera__live">{{ $t("plugins.CHX350.start.live") }}</span>
+						<span v-if="webcamEnabled && cameraLive" class="camera__live">{{ $t("plugins.CHX350.start.live") }}</span>
 					</div>
 				</ChxCameraBox>
 			</button>
@@ -180,9 +181,9 @@
 						<div class="tool__target">{{ $t("plugins.CHX350.start.target", { t: (t.active ?? 0) > 0 ? formatTemp(t.active, 0) : $t("plugins.CHX350.generic.off") }) }}</div>
 					</div>
 				</div>
-				<div v-if="filamentMonitor" class="row">
-					<span class="row__key">{{ $t("plugins.CHX350.start.filamentMonitor") }}</span>
-					<v-chip size="small" :color="filamentMonitor.color" variant="tonal" label>{{ filamentMonitor.text }}</v-chip>
+				<div v-for="m in monitorRows" :key="m.key" class="row">
+					<span class="row__key">{{ m.label }}</span>
+					<v-chip size="small" :color="m.color" variant="tonal" label>{{ m.text }}</v-chip>
 				</div>
 			</div>
 		</aside>
@@ -190,17 +191,16 @@
 </template>
 
 <script setup lang="ts">
-import { FilamentMonitorStatus } from "@duet3d/objectmodel";
-import { computed, onMounted, ref } from "vue";
+import { FilamentMonitorEnableMode, FilamentMonitorStatus } from "@duet3d/objectmodel";
+import { computed, onBeforeUnmount, onMounted, ref } from "vue";
 import { useRouter } from "vue-router";
 
-import { showConfirmDialog } from "@/composables/useConfirmDialog";
 import i18n from "@/i18n";
 import { useMachineStore } from "@/stores/machine";
 import { useSettingsStore } from "@/stores/settings";
-import { display } from "@/utils/display";
+import { display, displayTime } from "@/utils/display";
 import Events from "@/utils/events";
-import Path, { escapeFilename, extractFileName } from "@/utils/path";
+import Path, { extractFileName } from "@/utils/path";
 
 import ChxCamera from "../components/ChxCamera.vue";
 import ChxCameraBox from "../components/ChxCameraBox.vue";
@@ -209,6 +209,7 @@ import { useJob } from "../composables/useJob";
 import { useMachineState } from "../composables/useMachineState";
 import { formatTemp, useTemps } from "../composables/useTemps";
 import { ROUTES } from "../routes";
+import { cameraLive } from "../webcam";
 
 const machineStore = useMachineStore();
 const settingsStore = useSettingsStore();
@@ -239,18 +240,58 @@ const filamentSub = computed(() => temps.tools.value
 	.map((t) => `T${t.number} ${t.filament || i18n.global.t("plugins.CHX350.start.noFilament")}`)
 	.join(" · "));
 
-const filamentMonitor = computed(() => {
-	const monitor = machineStore.model.sensors.filamentMonitors.find((m) => m !== null);
-	if (!monitor) {
-		return null;
+/** Last job's name with its outcome: duration when it finished, else how it ended */
+const lastJobSub = computed(() => {
+	const model = machineStore.model.job;
+	const outcome = model.lastFileSimulated ? "simulated" : (model.lastFileCancelled ? "cancelled" : (model.lastFileAborted ? "aborted" : null));
+	const tail = outcome !== null
+		? i18n.global.t(`plugins.CHX350.start.lastOutcome.${outcome}`)
+		: (model.lastDuration ? displayTime(model.lastDuration) : null);
+	return tail ? `${lastJob.value} · ${tail}` : (lastJob.value ?? "");
+});
+
+/**
+ * Filament monitor per extruder of the tools. A monitor in mode 1 (M591 S1) only checks while a job
+ * prints, so its idle status is not a finding; mode 0 is switched off
+ */
+const filamentMonitors = computed(() => temps.tools.value
+	.filter((t) => t.extruderIndex >= 0)
+	.map((t) => ({ tool: `T${t.number}`, extruder: t.extruderIndex, monitor: machineStore.model.sensors.filamentMonitors[t.extruderIndex] ?? null }))
+	.filter((entry, index, list) => entry.monitor !== null && list.findIndex((e) => e.extruder === entry.extruder) === index)
+	.map(({ tool, extruder, monitor }) => {
+		const status = monitor!.status;
+		const off = monitor!.enableMode === FilamentMonitorEnableMode.disabled || status === FilamentMonitorStatus.noMonitor;
+		const ok = status === FilamentMonitorStatus.ok;
+		let text = i18n.global.t(`plugins.CHX350.start.monitor.${off ? "disabled" : status}`);
+		if (!off && ok && monitor!.enableMode === FilamentMonitorEnableMode.enabled) {
+			text = i18n.global.t("plugins.CHX350.start.monitor.okPrinting");
+		}
+		return { tool, extruder, text, color: off ? undefined : (ok ? "success" : "warning") };
+	}));
+
+/** One row per monitor up to two; more (16-nozzle machine) are grouped by status with a count */
+const monitorRows = computed(() => {
+	const list = filamentMonitors.value;
+	if (list.length <= 2) {
+		return list.map((m) => ({
+			key: String(m.extruder),
+			label: list.length > 1 ? i18n.global.t("plugins.CHX350.start.filamentMonitorTool", { tool: m.tool }) : i18n.global.t("plugins.CHX350.start.filamentMonitor"),
+			text: m.text,
+			color: m.color
+		}));
 	}
-	const status = monitor.status;
-	const key = status === FilamentMonitorStatus.noMonitor ? "disabled" : status;
-	const ok = status === FilamentMonitorStatus.ok;
-	return {
-		text: i18n.global.t(`plugins.CHX350.start.monitor.${key}`),
-		color: ok ? "success" : (status === FilamentMonitorStatus.noMonitor ? undefined : "warning")
-	};
+	const groups = new Map<string, { key: string; tools: Array<string>; text: string; color?: string }>();
+	for (const m of list) {
+		const group = groups.get(m.text) ?? { key: m.text, tools: [], text: m.text, color: m.color };
+		group.tools.push(m.tool);
+		groups.set(m.text, group);
+	}
+	return [...groups.values()].map((g) => ({
+		key: g.key,
+		label: g.tools.length > 2 ? i18n.global.t("plugins.CHX350.start.filamentMonitors", { count: g.tools.length }) : i18n.global.t("plugins.CHX350.start.filamentMonitorTool", { tool: g.tools.join(", ") }),
+		text: g.text,
+		color: g.color
+	}));
 });
 
 // Number of job files on the machine (for the start tile subtitle). Fetched lazily and refreshed
@@ -260,7 +301,7 @@ async function loadJobCount() {
 	try {
 		const dir = machineStore.model.directories.gCodes || Path.gCodes;
 		const files = await machineStore.getFileList(dir);
-		jobCount.value = files.filter((f) => !f.isDirectory && Path.isGCodePath(Path.combine(dir, f.name), dir)).length;
+		jobCount.value = files.filter((f) => !f.isDirectory && Path.isGCodePath(f.name, dir)).length;
 	} catch {
 		jobCount.value = null;
 	}
@@ -272,17 +313,15 @@ onMounted(() => {
 	Events.on("connected", loadJobCount);
 	Events.on("filesOrDirectoriesChanged", loadJobCount);
 });
+onBeforeUnmount(() => {
+	Events.off("connected", loadJobCount);
+	Events.off("filesOrDirectoriesChanged", loadJobCount);
+});
 
-async function repeatLast() {
+function repeatLast() {
 	const file = machineStore.model.job.lastFileName;
-	if (!file) {
-		return;
-	}
-	const ok = await showConfirmDialog(i18n.global.t("dialog.startJob.title", [extractFileName(file)]),
-		i18n.global.t("dialog.startJob.prompt", [extractFileName(file)]), "mdi-play");
-	if (ok) {
-		await machineStore.sendCode(`M32 "${escapeFilename(file)}"`);
-		router.push(ROUTES.job);
+	if (file) {
+		router.push({ path: ROUTES.check, query: { file } });
 	}
 }
 </script>

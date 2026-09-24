@@ -30,7 +30,11 @@
 		"hintMode": "Betriebsart Default",
 		"hintDoorOpen": "Tür offen · keine Achsbewegung",
 		"hintNoAxes": "Keine Achsbewegung",
-		"hintDoorCheck": "Türkontrolle: beide Türen einmal öffnen und schließen"
+		"hintDoorCheck": "Türkontrolle: beide Türen einmal öffnen und schließen",
+		"pausing": "WIRD PAUSIERT",
+		"resuming": "WIRD FORTGESETZT",
+		"cancelling": "WIRD ABGEBROCHEN",
+		"simulating": "SIMULIERT"
 	},
 	"header": {
 		"chamber": "Kammer",
@@ -60,7 +64,8 @@
 		"notConfigured": "Noch nicht konfiguriert – Makro unter Service › Einstellungen › CHX 350 hinterlegen.",
 		"backendMissing": "Das CHX-350-Backend ist auf dem SBC nicht installiert oder gestartet.",
 		"lockedAxes": "ACHSEN GESPERRT",
-		"comingSoon": "Dieser Bereich wird mit einem späteren Plugin ergänzt."
+		"comingSoon": "Dieser Bereich wird mit einem späteren Plugin ergänzt.",
+		"close": "Schließen"
 	},
 	"bedSurface": {
 		"pei": "PEI glatt",
@@ -87,13 +92,11 @@
 		"jobTitle": "Laufender Auftrag",
 		"jobSub": "{progress} % · {name}",
 		"filamentTitle": "Filament wechseln",
-		"filamentSub": "{tools}",
 		"bedTitle": "Bett vorbereiten",
 		"bedSub": "Teil entnehmen · Bett fährt nach unten",
 		"preheatTitle": "Vorheizen",
 		"preheatSub": "Nach geladenem Material · Werkzeuge auf Standby",
 		"repeatTitle": "Letzten Auftrag wiederholen",
-		"repeatSub": "{name}",
 		"repeatNone": "Kein Auftrag vorhanden",
 		"lockedPrinting": "Nicht verfügbar",
 		"homeTitle": "Achsen referenzieren",
@@ -118,9 +121,17 @@
 			"tooLittleMovement": "zu wenig Bewegung",
 			"tooMuchMovement": "zu viel Bewegung",
 			"sensorError": "Sensorfehler",
-			"disabled": "aus"
+			"disabled": "aus",
+			"okPrinting": "OK · prüft beim Druck"
 		},
-		"cameraOff": "Keine Kamera konfiguriert"
+		"cameraOff": "Keine Kamera konfiguriert",
+		"lastOutcome": {
+			"simulated": "simuliert",
+			"cancelled": "abgebrochen",
+			"aborted": "mit Fehler beendet"
+		},
+		"filamentMonitorTool": "Filament-Monitor {tool}",
+		"filamentMonitors": "Filament-Monitore ({count})"
 	},
 	"service": {
 		"title": "Service-Bereich",
@@ -155,7 +166,9 @@
 		"loadingInfo": "Dateiinformationen werden gelesen ({done}/{total})",
 		"filament": "{value} Filament",
 		"range": "{from}–{to} von {total}",
-		"page": "Seite {n} von {total}"
+		"page": "Seite {n} von {total}",
+		"missing": "Der Auftragsordner fehlt auf der Maschine.",
+		"error": "Die Auftragsliste konnte nicht geladen werden."
 	},
 	"check": {
 		"title": "Auftrag prüfen",
@@ -186,12 +199,10 @@
 		"beforeStart": "Vor dem Start",
 		"bedClear": "Bett ist frei",
 		"homed": "Achsen referenziert",
-		"checkOk": "Datei geprüft",
-		"checkOpen": "Prüfung offen",
 		"start": "Druck starten",
 		"startBlocked": "Start gesperrt",
 		"hintMode": "Die Maschine muss in Betriebsart Automatik sein (Türen geschlossen).",
-		"hintBlocked": "Material, Düse oder Filamentdurchmesser passen nicht zur Datei.",
+		"hintBlocked": "Mindestens eine Prüfung links passt nicht zur Maschine. Umrüsten oder neu slicen.",
 		"hintBed": "Bitte bestätigen, dass das Bett frei ist.",
 		"filamentDiameterOk": "Filamentdurchmesser passt",
 		"filamentDiameterBad": "Filamentdurchmesser weicht ab – neu slicen",
@@ -209,7 +220,16 @@
 		"spoolNeeds": "braucht {need} · auf der Spule {left}",
 		"spoolNeedsFull": "braucht {need} · eine Spule fasst {full}",
 		"surfaceInstalled": "Druckbett: {surface}",
-		"surfaceFile": "Datei: {type}"
+		"surfaceFile": "Datei: {type}",
+		"homedAtStart": "Achsen werden beim Start referenziert",
+		"checking": "Datei wird geprüft …",
+		"verdict": {
+			"ok": "Datei geprüft",
+			"blocked": "Prüfung sperrt den Start",
+			"partial": "Datei nur teilweise prüfbar"
+		},
+		"hintFile": "Die Datei kann nicht gelesen werden.",
+		"fileError": "Datei nicht lesbar: {error}"
 	},
 	"job": {
 		"title": "Laufender Auftrag",
@@ -274,7 +294,8 @@
 		"legend": "Dunkel = niedrig, hell = hoch. Jede Schicht trägt den Wert, der beim Drucken erfasst wurde.",
 		"findings": "Schwachstellen",
 		"findingsSoon": "Befunde, Bauteilansicht und Zeitraffer folgen mit dem Quality-Assurance-Plugin.",
-		"noData": "Keine Schichtdaten vorhanden. Die Analyse steht für den laufenden bzw. letzten Auftrag zur Verfügung."
+		"noData": "Keine Schichtdaten vorhanden. Die Analyse steht für den laufenden bzw. letzten Auftrag zur Verfügung.",
+		"export": "Schichtdaten (CSV)"
 	},
 	"control": {
 		"zAxis": "Z-Achse",
@@ -298,16 +319,16 @@
 		"zHint": "Ziehen und loslassen fährt Z · Wert antippen zum Eingeben",
 		"notHomed": "nicht referenziert",
 		"homeAxis": "Achse {axis} referenzieren",
-		"selectedAxis": "T{tool} · Achse {axis}"
+		"selectedAxis": "T{tool} · Achse {axis}",
+		"lockNotHomed": "{axes} nicht referenziert · unten in der Positionszeile referenzieren"
 	},
 	"prepareBed": {
 		"title": "Bett vorbereiten",
 		"s1Title": "Bauraum öffnen lassen",
 		"s1Body": "Die Maschine fährt die Druckköpfe zur Seite und das Bett nach unten. Halten Sie den Bauraum frei, solange die Bewegung läuft.",
-		"s1Warn": "Bett kann noch über 60 °C heiß sein.",
 		"s1Cta": "Bett nach unten fahren",
 		"s2Title": "Teil entnehmen",
-		"s2Body": "Lösen Sie das Bauteil vom Druckbett. Bei PA6 CF HT das Bett auf unter 50 °C abkühlen lassen, dann löst sich das Teil von selbst.",
+		"s2Body": "Lösen Sie das Bauteil vom Druckbett. Viele Materialien lösen sich leichter, wenn das Bett abgekühlt ist.",
 		"s2Warn": "Keine Werkzeuge auf der Druckplatte ablegen.",
 		"s2Cta": "Teil ist entnommen",
 		"s3Title": "Druckplatte prüfen",
@@ -316,7 +337,10 @@
 		"s3Cta": "Fertig",
 		"surface": "Eingesetzte Druckplatte",
 		"surfaceNone": "nicht erfasst",
-		"surfaceChange": "Andere Platte eingesetzt"
+		"surfaceChange": "Andere Platte eingesetzt",
+		"bedHot": "Bett ist {temp} heiß. Nur mit Handschuhen anfassen.",
+		"bedTemp": "Betttemperatur",
+		"bedOff": "Heizung aus"
 	},
 	"home": {
 		"title": "Achsen referenzieren",
@@ -332,7 +356,8 @@
 		"s2CtaDone": "Weiter",
 		"s3Title": "Alle Achsen referenziert",
 		"s3Body": "Alle Achsen stehen. Die Maschine ist bereit für den nächsten Schritt.",
-		"s3Cta": "Zurück zur Übersicht"
+		"s3Cta": "Zurück zur Übersicht",
+		"moving": "fährt …"
 	},
 	"calibrate": {
 		"title": "Kalibrieren",
@@ -352,7 +377,12 @@
 		"probeValue": "Sondenwert",
 		"nozzleTitle": "Düse gewechselt",
 		"nozzleDesc": "Durchmesser und Typ erfassen · {tool}: {current}",
-		"record": "Erfassen"
+		"record": "Erfassen",
+		"babystepTitle": "Z-Versatz {value} aktiv",
+		"babystepDesc": "Babystepping aus einem Druck. Übernehmen speichert es als Z-Offset der Sonde, Verwerfen setzt es zurück.",
+		"babystepDescNoApply": "Babystepping aus einem Druck. Es gilt weiter, bis es verworfen wird.",
+		"babystepApply": "Übernehmen",
+		"babystepDiscard": "Verwerfen"
 	},
 	"preheat": {
 		"title": "Vorheizen",
@@ -362,7 +392,9 @@
 		"target": "Ziel",
 		"macroHint": "Das Vorheiz-Makro setzt Bett und Werkzeuge nach den geladenen Filamentprofilen.",
 		"start": "Vorheizen starten",
-		"allOff": "Alle Heizungen aus"
+		"allOff": "Alle Heizungen aus",
+		"noMaterial": "Kein Material geladen. Die Zieltemperaturen kommen aus dem Filamentprofil – bitte zuerst Filament laden.",
+		"loadFirst": "Zuerst Filament laden"
 	},
 	"filament": {
 		"title": "Filament wechseln",
@@ -393,7 +425,14 @@
 		"spoolValue": "{left} von {net}",
 		"spoolNone": "nicht erfasst",
 		"spoolHint": "Beim Laden fragt die Maschine nach Spulengröße, Spulenkörper und Gewicht und führt die Restmenge danach selbst mit. Neue Spule desselben Materials oder Korrektur: „Spule erfassen“.",
-		"spoolRecord": "Spule erfassen ({tool})"
+		"spoolRecord": "Spule erfassen ({tool})",
+		"phase": {
+			"tool": "Werkzeug anwählen",
+			"unload": "Altes Filament entladen",
+			"load": "Neues Filament laden",
+			"config": "Filamentprofil anwenden"
+		},
+		"backToJob": "Zurück zum Auftrag"
 	},
 	"settings": {
 		"macros": "Makros",
@@ -422,7 +461,6 @@
 	},
 	"history": {
 		"title": "Verlauf",
-		"current": "Läuft gerade",
 		"finished": "Fertig",
 		"cancelled": "Abgebrochen",
 		"aborted": "Abgebrochen (Fehler)",
@@ -431,7 +469,11 @@
 		"empty": "Noch keine Aufträge protokolliert.",
 		"printTime": "Druckzeit {time}",
 		"refresh": "Aktualisieren",
-		"running": "Läuft gerade"
+		"running": "Läuft gerade",
+		"repeat": "Erneut drucken",
+		"endedAt": "beendet {date}",
+		"error": "Verlauf konnte nicht gelesen werden: {error}",
+		"loggingOff": "Das Ereignisprotokoll der Maschine ist ausgeschaltet (M929), daher gibt es keinen Verlauf."
 	},
 	"support": {
 		"phone": "Telefon",
@@ -457,10 +499,14 @@
 		"storage": "Speicherplatz frei",
 		"vigilMissing": "Vigil-Daten nicht verfügbar",
 		"diagnostics": "Diagnose",
-		"diagnosticsHint": "Objektmodell, Firmware-Diagnose (M122) und Ereignisprotokoll als Datei speichern.",
+		"diagnosticsHint": "Objektmodell, Firmware-Diagnose (M122) aller Boards, Konfiguration und Ereignisprotokoll als Datei speichern.",
 		"export": "Diagnosedaten exportieren",
 		"exportDone": "Diagnosedaten gespeichert",
-		"exportError": "Diagnosedaten konnten nicht erstellt werden"
+		"exportError": "Diagnosedaten konnten nicht erstellt werden",
+		"expansions": "Erweiterungsboards",
+		"expansionsMixed": "{count} · {versions} Firmware-Stände",
+		"sbc": "Steuerrechner",
+		"network": "Netzwerk"
 	},
 	"about": {
 		"title": "Über diese Maschine",
@@ -472,6 +518,36 @@
 		"hideLicenses": "Lizenztexte ausblenden",
 		"machineLicenses": "Lizenzen der Maschinensoftware",
 		"dwcLicense": "Duet Web Control (GPL-3.0)",
-		"fonts": "Jost · JetBrains Mono (SIL OFL 1.1)"
+		"fonts": "Jost · JetBrains Mono (SIL OFL 1.1)",
+		"note": {
+			"dwc": "Bedienoberfläche · Meltingplot-Fork",
+			"plugin": "Plugin CHX350",
+			"dsf": "SBC-Dienst",
+			"objectModel": "Objektmodell",
+			"framework": "Framework",
+			"components": "Komponenten",
+			"gcodeViewer": "G-Code-Betrachter",
+			"charts": "Diagramme",
+			"fonts": "Schriften"
+		}
+	},
+	"heaterPhase": {
+		"off": "aus",
+		"heating": "heizt auf",
+		"cooling": "kühlt ab",
+		"reached": "erreicht"
+	},
+	"tune": {
+		"open": "Anpassen",
+		"title": "Auftrag anpassen",
+		"babystep": "Z-Versatz (Babystepping)",
+		"babystepHint": "− Düse näher ans Bett · + weiter weg. Gilt bis zum Zurücksetzen, auch für den nächsten Auftrag; unter Kalibrieren übernehmen oder verwerfen.",
+		"speed": "Geschwindigkeit",
+		"flow": "Extrusion {tool}",
+		"fan": "Bauteillüfter {tool}",
+		"extrude": "Extrudieren {tool}",
+		"extrudeHint": "Zum Spülen nach einem Filamentproblem. Beim Fortsetzen füllt die Maschine die Düse wieder auf.",
+		"extrudeCold": "Düse zu kalt – Extrudieren ab {temp}.",
+		"temperatures": "Solltemperaturen"
 	}
 }

@@ -124,6 +124,23 @@ export function useTemps() {
 	return { bedHeater, bedCurrent, bedActive, chamberHeater, hasChamberHeater, chamberCurrent, chamberSource, szpSensor, tools, nozzles, maxTemperature };
 }
 
+/** Where a heater stands against the setpoint of its state (standby compares with the standby value) */
+export type HeaterPhase = "off" | "heating" | "cooling" | "reached";
+
+export function heaterPhase(heater: Heater | null | undefined, tolerance = 2): HeaterPhase {
+	if (!heater) {
+		return "off";
+	}
+	const setpoint = heater.state === HeaterState.active ? heater.active : (heater.state === HeaterState.standby ? heater.standby : 0);
+	if (setpoint <= 0 || (heater.state !== HeaterState.active && heater.state !== HeaterState.standby)) {
+		return "off";
+	}
+	if (heater.current < setpoint - tolerance) {
+		return "heating";
+	}
+	return heater.current > setpoint + 2 * tolerance ? "cooling" : "reached";
+}
+
 export function formatTemp(value: number | null | undefined, digits = 1): string {
 	if (value === null || value === undefined || !Number.isFinite(value) || value < -50) {
 		return "—";

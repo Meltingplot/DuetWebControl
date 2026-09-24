@@ -50,7 +50,7 @@
 </template>
 
 <script setup lang="ts">
-import { FilamentMonitorStatus } from "@duet3d/objectmodel";
+import { FilamentMonitorEnableMode, FilamentMonitorStatus } from "@duet3d/objectmodel";
 import { computed } from "vue";
 
 import CodeButton from "@/components/buttons/CodeButton.vue";
@@ -69,14 +69,19 @@ const faults = computed(() => state.heaterFaults.value.map((index) => {
 	return { index, name };
 }));
 
+/** First filament monitor reporting a problem, over all extruders (T1 has its own on the IDEX) */
 const monitorIssue = computed(() => {
 	if (!state.printing.value) {
 		return null;
 	}
-	const monitor = machineStore.model.sensors.filamentMonitors.find((m) => m !== null);
-	if (!monitor || monitor.status === FilamentMonitorStatus.ok || monitor.status === FilamentMonitorStatus.noMonitor) {
+	const monitors = machineStore.model.sensors.filamentMonitors;
+	const index = monitors.findIndex((m) => m !== null && m.enableMode !== FilamentMonitorEnableMode.disabled
+		&& m.status !== FilamentMonitorStatus.ok && m.status !== FilamentMonitorStatus.noMonitor);
+	if (index < 0) {
 		return null;
 	}
-	return i18n.global.t(`plugins.CHX350.start.monitor.${monitor.status}`);
+	const status = i18n.global.t(`plugins.CHX350.start.monitor.${monitors[index]!.status}`);
+	const tool = machineStore.model.tools.find((t) => t !== null && (t.filamentExtruder === index || t.extruders.includes(index)));
+	return monitors.filter((m) => m !== null).length > 1 && tool ? `T${tool.number} · ${status}` : status;
 });
 </script>

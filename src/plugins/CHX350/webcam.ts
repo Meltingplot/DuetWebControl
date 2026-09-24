@@ -52,6 +52,12 @@ function loadStoredRatio(): number {
  */
 export const cameraRatio = ref(loadStoredRatio());
 
+/**
+ * The camera delivers pictures: set by the first decoded frame, cleared when the image errors (the
+ * stream is then re-opened). Drives the LIVE badges, which must not claim a live view without one
+ */
+export const cameraLive = ref(false);
+
 export function setCameraRatio(width: number, height: number): void {
 	if (width > 0 && height > 0) {
 		const ratio = Math.round((width / height) * 1000) / 1000;

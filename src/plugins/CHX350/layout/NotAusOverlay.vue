@@ -35,11 +35,23 @@
 
 <script setup lang="ts">
 import { MachineStatus } from "@duet3d/objectmodel";
-import { computed } from "vue";
+import { computed, watch } from "vue";
+import { useRouter } from "vue-router";
 
 import CodeButton from "@/components/buttons/CodeButton.vue";
 import { useMachineStore } from "@/stores/machine";
 
+import { ROUTES } from "../routes";
+
 const machineStore = useMachineStore();
+const router = useRouter();
 const halted = computed(() => machineStore.isConnected && machineStore.model.state.status === MachineStatus.halted);
+
+// After the reset the operator starts over from the overview; the page behind the overlay (a
+// wizard step, the job) no longer matches the machine
+watch(halted, (now, before) => {
+	if (before && !now && router.currentRoute.value.path !== ROUTES.start) {
+		router.push(ROUTES.start);
+	}
+});
 </script>

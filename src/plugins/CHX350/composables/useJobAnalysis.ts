@@ -3,6 +3,8 @@ import { computed, type ComputedRef } from "vue";
 
 import { useMachineStore } from "@/stores/machine";
 
+import { useTemps } from "./useTemps";
+
 /** A per-layer data channel derived from job.layers[] */
 export interface LayerChannel {
 	key: string;
@@ -25,6 +27,8 @@ export interface LayerAnalysis {
 	channels: ComputedRef<Array<LayerChannel>>;
 	/** Sensor-based temperature channels resolved by sensor name */
 	temperatureChannel: (predicate: (sensor: AnalogSensor, index: number) => boolean) => ComputedRef<LayerChannel | null>;
+	/** Chamber temperature per layer: the chamber heater's sensor if any, else the SZP coil sensor */
+	chamberChannel: ComputedRef<LayerChannel | null>;
 	/** Index of the layer currently printing (0-based) or the last one when idle */
 	currentIndex: ComputedRef<number>;
 }
@@ -147,6 +151,11 @@ export function useJobAnalysis(): LayerAnalysis {
 		return result;
 	});
 
+	const temps = useTemps();
+	const szpChannel = temperatureChannel((s) => (s.name ?? "").trim().toLowerCase() === "szp coil");
+	const heaterChannel = temperatureChannel((_s, i) => i === (temps.chamberHeater.value?.sensor ?? -1));
+	const chamberChannel = computed(() => heaterChannel.value ?? szpChannel.value);
+
 	const currentIndex = computed(() => {
 		const layer = machineStore.model.job.layer;
 		if (layer !== null && layer > 0) {
@@ -155,7 +164,7 @@ export function useJobAnalysis(): LayerAnalysis {
 		return Math.max(0, layers.value.length - 1);
 	});
 
-	return { layers, heights, cumulativeFilament, channels, temperatureChannel, currentIndex };
+	return { layers, heights, cumulativeFilament, channels, temperatureChannel, chamberChannel, currentIndex };
 }
 
 /** Meltingplot blue ramp used for per-layer colouring (dark = low, light = high) */

@@ -28,6 +28,14 @@
 				<div v-if="s === 0 && !runner.configured.value" class="text-body-2 text-medium-emphasis">
 					{{ $t("plugins.CHX350.generic.notConfigured") }}
 				</div>
+				<!-- Parts come off more easily once the bed has cooled; the reading shows how far it is -->
+				<div v-else-if="s === 1 && temps.bedHeater.value" class="plate">
+					<div class="plate__info">
+						<span class="text-body-2">{{ $t("plugins.CHX350.prepareBed.bedTemp") }}</span>
+						<b>{{ formatTemp(temps.bedCurrent.value) }}</b>
+					</div>
+					<span class="text-body-2">{{ bedTargetLabel }}</span>
+				</div>
 				<!-- A plate of another surface is recorded on the machine (global.bed_surface) -->
 				<div v-else-if="s === 2 && hw.hasBedSurface.value" class="plate">
 					<div class="plate__info">
@@ -45,6 +53,7 @@
 </template>
 
 <script setup lang="ts">
+import { HeaterState } from "@duet3d/objectmodel";
 import { computed, ref } from "vue";
 import { useRouter } from "vue-router";
 
@@ -56,6 +65,7 @@ import { bedSurfaceLabel, useChxGlobals } from "../composables/useChxGlobals";
 import { useHardwareMacros } from "../composables/useHardwareMacros";
 import { useMachineState } from "../composables/useMachineState";
 import { useMacroRunner } from "../composables/useMacroRunner";
+import { formatTemp, useTemps } from "../composables/useTemps";
 import { ROUTES } from "../routes";
 import { useChxSettings } from "../settings";
 
@@ -65,16 +75,31 @@ const { macros } = useChxSettings();
 const runner = useMacroRunner(computed(() => macros.value.prepareBed));
 const globals = useChxGlobals();
 const hw = useHardwareMacros();
+const temps = useTemps();
 const surfaceLabel = computed(() => globals.bedSurface.value !== null
 	? bedSurfaceLabel(globals.bedSurface.value)
 	: i18n.global.t("plugins.CHX350.prepareBed.surfaceNone"));
 
 const step = ref(0);
-const t = (key: string) => i18n.global.t(`plugins.CHX350.prepareBed.${key}`);
+const t = (key: string, params: Record<string, unknown> = {}) => i18n.global.t(`plugins.CHX350.prepareBed.${key}`, params);
+
+/** Above this the bed is too hot to touch without gloves */
+const HOT_BED = 45;
+const bedHot = computed(() => (temps.bedCurrent.value ?? 0) >= HOT_BED);
+const hotWarn = computed(() => bedHot.value ? t("bedHot", { temp: formatTemp(temps.bedCurrent.value, 0) }) : undefined);
+const bedTargetLabel = computed(() => {
+	const active = temps.bedActive.value ?? 0;
+	return temps.bedHeater.value?.state === HeaterState.active && active > 0
+		? i18n.global.t("plugins.CHX350.start.target", { t: formatTemp(active, 0) })
+		: t("bedOff");
+});
 
 const steps = computed<Array<WizardStep>>(() => [
-	{ title: t("s1Title"), body: t("s1Body"), warn: t("s1Warn"), cta: t("s1Cta"), icon: "mdi-tray-arrow-up", disabled: !runner.configured.value || state.axesLocked.value },
-	{ title: t("s2Title"), body: t("s2Body"), warn: t("s2Warn"), cta: t("s2Cta"), icon: "mdi-check" },
+	{
+		title: t("s1Title"), body: t("s1Body"), warn: hotWarn.value, cta: t("s1Cta"), icon: "mdi-tray-arrow-up",
+		disabled: !runner.configured.value || state.axesLocked.value, error: runner.error.value
+	},
+	{ title: t("s2Title"), body: t("s2Body"), warn: hotWarn.value ?? t("s2Warn"), cta: t("s2Cta"), icon: "mdi-check" },
 	{ title: t("s3Title"), body: t("s3Body"), warn: t("s3Warn"), cta: t("s3Cta"), icon: "mdi-check-all" }
 ]);
 

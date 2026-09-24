@@ -64,7 +64,7 @@ import { computed, onBeforeUnmount, onMounted, ref, watch } from "vue";
 import WebcamView from "@/components/panels/WebcamView.vue";
 import { useSettingsStore, WebcamFlip } from "@/stores/settings";
 
-import { resolveWebcamUrl, setCameraRatio } from "../webcam";
+import { cameraLive, resolveWebcamUrl, setCameraRatio } from "../webcam";
 
 const settingsStore = useSettingsStore();
 
@@ -125,6 +125,7 @@ function watchRatio() {
 		const el = img.value;
 		if (el && el.naturalWidth > 0 && el.naturalHeight > 0) {
 			setCameraRatio(el.naturalWidth, el.naturalHeight);
+			cameraLive.value = true;
 			stopRatioTimer();
 		} else if (++attempts > 20) {
 			stopRatioTimer();
@@ -142,10 +143,12 @@ function onLoad() {
 	const el = img.value;
 	if (el) {
 		setCameraRatio(el.naturalWidth, el.naturalHeight);
+		cameraLive.value = el.naturalWidth > 0;
 	}
 }
 
 function onError() {
+	cameraLive.value = false;
 	// Camera restarting or network hiccup: try again a bit later
 	if (retryTimer === null) {
 		retryTimer = setTimeout(() => {
@@ -166,6 +169,7 @@ function restart() {
 	}
 	if (!enabled.value || isRtc.value) {
 		src.value = "";
+		cameraLive.value = false;
 		return;
 	}
 	generation = 0;

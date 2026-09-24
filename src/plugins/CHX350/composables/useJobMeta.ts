@@ -4,6 +4,7 @@ import { computed, ref, watch, type Ref } from "vue";
 import i18n from "@/i18n";
 import { useCacheStore } from "@/stores/cache";
 import { useMachineStore } from "@/stores/machine";
+import { getErrorMessage } from "@/utils/errors";
 
 import { api, type SlicerConfig } from "../api";
 import { ABRASIVE_NOZZLE_TYPES, bedSurfaceLabel, filamentGrams, nozzleTypeLabel, useChxGlobals } from "./useChxGlobals";
@@ -86,12 +87,15 @@ export function useJobMeta(path: Ref<string>) {
 	const config = ref<SlicerConfig | null>(null);
 	const loading = ref(false);
 	const backendError = ref<string | null>(null);
+	/** The file itself could not be read (deleted since, e.g. the last job of the history) */
+	const infoError = ref<string | null>(null);
 
 	async function load() {
 		const file = path.value;
 		info.value = null;
 		config.value = null;
 		backendError.value = null;
+		infoError.value = null;
 		if (!file || !machineStore.isConnected) {
 			return;
 		}
@@ -106,7 +110,9 @@ export function useJobMeta(path: Ref<string>) {
 				info.value = cached;
 			}
 		} catch (e) {
-			console.warn(e);
+			if (path.value === file) {
+				infoError.value = getErrorMessage(e);
+			}
 		}
 		try {
 			const result = await api.fileinfo(file);
@@ -322,6 +328,18 @@ export function useJobMeta(path: Ref<string>) {
 
 	const blocked = computed(() => checks.value.some((c) => c.blocking && c.state === "mismatch"));
 
+	/**
+	 * Summary of the checks that can block: "blocked" on a mismatch, "ok" when every one of them
+	 * passed, "partial" when the file lacks the data for some (they do not block, see above)
+	 */
+	const verdict = computed<"blocked" | "ok" | "partial">(() => {
+		if (blocked.value) {
+			return "blocked";
+		}
+		const gating = checks.value.filter((c) => c.key !== "spool" && c.key !== "surface");
+		return gating.every((c) => c.state === "ok") ? "ok" : "partial";
+	});
+
 	const thumbnail = computed<ThumbnailInfo | null>(() => {
 		const list = info.value?.thumbnails ?? [];
 		if (list.length === 0) {
@@ -332,5 +350,5 @@ export function useJobMeta(path: Ref<string>) {
 
 	const totalFilament = computed(() => (info.value?.filament ?? []).reduce((a, b) => a + b, 0));
 
-	return { info, config, meta, checks, blocked, loading, backendError, thumbnail, fileName, usedTools, totalFilament, customInfo, state, reload: load };
+	return { info, config, meta, checks, blocked, verdict, loading, backendError, infoError, thumbnail, fileName, usedTools, totalFilament, customInfo, state, reload: load };
 }

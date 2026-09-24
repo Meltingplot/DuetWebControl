@@ -100,6 +100,8 @@
 				<template v-if="showLicenses">
 					<div class="chx-label">{{ $t("plugins.CHX350.about.dwcLicense") }}</div>
 					<div class="license">{{ dwcLicense }}</div>
+					<div class="chx-label">{{ $t("plugins.CHX350.about.fonts") }}</div>
+					<div class="license">{{ fontLicense }}</div>
 					<div class="chx-label">{{ $t("plugins.CHX350.about.machineLicenses") }}</div>
 					<div class="license">{{ machineLicenses ?? "…" }}</div>
 				</template>
@@ -111,11 +113,13 @@
 <script setup lang="ts">
 import { computed, ref } from "vue";
 
+import i18n from "@/i18n";
 import { getBuiltInPlugins } from "@/plugins";
 import { useMachineStore } from "@/stores/machine";
 
 import dwcLicense from "../../../../LICENSE?raw";
 import packageInfo from "../../../../package.json";
+import fontLicense from "../assets/fonts/OFL.txt?raw";
 import wordmarkSvg from "../assets/meltingplot-wordmark.svg?raw";
 import { PLUGIN_ID, useChxSettings } from "../settings";
 
@@ -126,17 +130,18 @@ const support = computed(() => supportRef.value);
 const model = computed(() => machineStore.model);
 const deps = packageInfo.dependencies as Record<string, string>;
 
+const note = (key: string) => i18n.global.t(`plugins.CHX350.about.note.${key}`);
 const components = computed(() => [
-	{ name: "Duet Web Control", version: packageInfo.version, license: "GPL-3.0", note: "Bedienoberfläche · Meltingplot-Fork" },
-	{ name: "CHX 350 UI", version: getBuiltInPlugins().find((p) => p.id === PLUGIN_ID)?.version ?? packageInfo.version, license: "GPL-3.0", note: "Plugin CHX350" },
+	{ name: "Duet Web Control", version: packageInfo.version, license: "GPL-3.0", note: note("dwc") },
+	{ name: "CHX 350 UI", version: getBuiltInPlugins().find((p) => p.id === PLUGIN_ID)?.version ?? packageInfo.version, license: "GPL-3.0", note: note("plugin") },
 	{ name: "RepRapFirmware", version: model.value.boards[0]?.firmwareVersion ?? "—", license: "GPL-3.0", note: model.value.boards[0]?.name ?? "" },
-	{ name: "Duet Software Framework", version: model.value.sbc?.dsf.version ?? "—", license: "GPL-3.0", note: "SBC-Dienst" },
-	{ name: "@duet3d/objectmodel", version: deps["@duet3d/objectmodel"], license: "GPL-3.0", note: "Objektmodell" },
-	{ name: "Vue", version: deps["vue"], license: "MIT", note: "Framework" },
-	{ name: "Vuetify", version: deps["vuetify"], license: "MIT", note: "Komponenten" },
-	{ name: "@duet3d/gcodeviewer", version: deps["@duet3d/gcodeviewer"], license: "GPL-3.0", note: "G-Code-Betrachter" },
-	{ name: "Chart.js", version: deps["chart.js"], license: "MIT", note: "Diagramme" },
-	{ name: "Jost · JetBrains Mono", version: "Google Fonts", license: "SIL OFL 1.1", note: "Schriften" }
+	{ name: "Duet Software Framework", version: model.value.sbc?.dsf.version ?? "—", license: "GPL-3.0", note: note("dsf") },
+	{ name: "@duet3d/objectmodel", version: deps["@duet3d/objectmodel"], license: "GPL-3.0", note: note("objectModel") },
+	{ name: "Vue", version: deps["vue"], license: "MIT", note: note("framework") },
+	{ name: "Vuetify", version: deps["vuetify"], license: "MIT", note: note("components") },
+	{ name: "@duet3d/gcodeviewer", version: deps["@duet3d/gcodeviewer"], license: "GPL-3.0", note: note("gcodeViewer") },
+	{ name: "Chart.js", version: deps["chart.js"], license: "MIT", note: note("charts") },
+	{ name: "Jost · JetBrains Mono", version: "Google Fonts", license: "SIL OFL 1.1", note: note("fonts") }
 ]);
 
 const showLicenses = ref(false);

@@ -162,14 +162,15 @@
 			<template v-if="jogMode">
 				<div class="jog">
 					<BedMap class="jog__map" :size-x="bedMap.sizeX" :size-y="bedMap.sizeY" :heads="heads" :selected-tool="selectedTool"
-							:head-spacing="bedMap.headSpacing" :tool1-axis="bedMap.tool1YAxis" :locked="locked" :busy="busy"
-							:lock-reason="lockReason" :moving="moving" :target="target" @move="moveTo" @select="selectTool" />
-					<ZTower v-if="zAxis" :current="zAxis.userPosition" :min="zAxis.min" :max="zAxis.max" :locked="locked" :busy="busy" @goto="gotoZ" />
+							:head-spacing="bedMap.headSpacing" :tool1-axis="bedMap.tool1YAxis" :locked="mapLocked" :busy="busy"
+							:lock-reason="mapLockReason" :moving="moving" :target="target" @move="moveTo" @select="selectTool" />
+					<ZTower v-if="zAxis" :current="zAxis.userPosition" :min="zAxis.min" :max="zAxis.max" :locked="locked || !zAxis.homed" :busy="busy"
+							:lock-hint="!locked && !zAxis.homed ? $t('plugins.CHX350.control.notHomed') : ''" @goto="gotoZ" />
 				</div>
 			</template>
 			<template v-else>
 				<ChxCamera />
-				<div v-if="settingsStore.webcam.enabled" class="badge badge--live">{{ $t("plugins.CHX350.start.live") }}</div>
+				<div v-if="settingsStore.webcam.enabled && cameraLive" class="badge badge--live">{{ $t("plugins.CHX350.start.live") }}</div>
 				<div v-if="lockBadge" class="badge badge--lock">
 					<v-icon size="18">mdi-lock-outline</v-icon>
 					{{ lockBadge }}
@@ -220,6 +221,7 @@ import i18n from "@/i18n";
 import { useMachineStore } from "@/stores/machine";
 import { useSettingsStore } from "@/stores/settings";
 import { LogLevel, useUiStore } from "@/stores/ui";
+import { getErrorMessage } from "@/utils/errors";
 import { axisGCodeLetter } from "@/utils/gcode";
 
 import BedMap from "../components/BedMap.vue";
@@ -227,7 +229,9 @@ import ChxCamera from "../components/ChxCamera.vue";
 import ChxCameraBox from "../components/ChxCameraBox.vue";
 import ZTower from "../components/ZTower.vue";
 import { useMachineState } from "../composables/useMachineState";
+import { sendChecked } from "../composables/useMacroRunner";
 import { useChxSettings } from "../settings";
+import { cameraLive } from "../webcam";
 
 const machineStore = useMachineStore();
 const settingsStore = useSettingsStore();
@@ -287,6 +291,16 @@ const lockReason = computed(() => {
 	return "";
 });
 
+/**
+ * Tap-to-move drives X and the selected tool's Y axis; while one of them is not homed the firmware
+ * rejects the move, so the map says so and points to the home buttons in the positions row
+ */
+const unhomedXY = computed(() => ["X", selectedYAxis.value].filter((letter) => axis(letter)?.homed === false));
+const mapLocked = computed(() => locked.value || unhomedXY.value.length > 0);
+const mapLockReason = computed(() => locked.value
+	? lockReason.value
+	: i18n.global.t("plugins.CHX350.control.lockNotHomed", { axes: unhomedXY.value.join(", ") }));
+
 // The header plate already names the cause (DRUCKT/PAUSIERT, OFFLINE, or the mode and door line
 // under LEERLAUF). Only HEIZT AUF and ARBEITET hide it, e.g. while heating in default mode
 const lockBadge = computed(() => locked.value && (state.plate.value === "heating" || state.plate.value === "busy") ? lockReason.value : "");
@@ -310,9 +324,10 @@ function isSelectedAxis(letter: string): boolean {
 
 async function send(code: string) {
 	try {
-		await machineStore.sendCode(code, false, false);
+		// Replies stay quiet, but a rejected move (e.g. an axis lost its homing) is reported
+		await sendChecked(code, false);
 	} catch (e) {
-		uiStore.log(LogLevel.error, i18n.global.t("plugins.CHX350.nav.control"), String(e));
+		uiStore.log(LogLevel.error, i18n.global.t("plugins.CHX350.nav.control"), getErrorMessage(e));
 	}
 }
 
