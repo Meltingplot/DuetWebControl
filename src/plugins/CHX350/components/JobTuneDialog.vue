@@ -128,8 +128,8 @@
 						<span class="item__value" :class="{ 'item__value--changed': t.flowPct !== 100 }">{{ t.flowPct }} %</span>
 					</div>
 					<div class="item__buttons">
-						<v-btn variant="outlined" :disabled="!canTune || t.extruder < 0 || t.flowPct <= FLOW_MIN" @click="setFlow(t.extruder, t.flowPct - 5)">−5</v-btn>
-						<v-btn variant="outlined" :disabled="!canTune || t.extruder < 0 || t.flowPct >= FLOW_MAX" @click="setFlow(t.extruder, t.flowPct + 5)">+5</v-btn>
+						<v-btn variant="outlined" :disabled="!canTune || t.extruder < 0 || t.flowPct <= FLOW_MIN" @click="setFlow(t.extruder, t.flowPct - 1)">−1</v-btn>
+						<v-btn variant="outlined" :disabled="!canTune || t.extruder < 0 || t.flowPct >= FLOW_MAX" @click="setFlow(t.extruder, t.flowPct + 1)">+1</v-btn>
 						<v-btn variant="outlined" :disabled="!canTune || t.extruder < 0 || t.flowPct === 100" @click="setFlow(t.extruder, 100)">100 %</v-btn>
 					</div>
 				</div>
