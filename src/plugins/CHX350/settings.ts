@@ -33,6 +33,8 @@ export interface ChxBedMapSettings {
 
 export interface ChxSupportSettings {
 	company: string;
+	/** Postal address shown under the company name */
+	address: string;
 	phone: string;
 	phoneHours: string;
 	email: string;
@@ -66,10 +68,11 @@ export const CHX_DEFAULTS: ChxSettings = {
 	},
 	support: {
 		company: "Meltingplot GmbH",
-		phone: "+49 431 000 000",
-		phoneHours: "Mo–Fr 8–17 Uhr",
-		email: "support@meltingplot.net",
-		url: "https://www.meltingplot.net",
+		address: "Edisonstrasse 3, 24145 Kiel",
+		phone: "+49 431 55681260",
+		phoneHours: "",
+		email: "info@meltingplot.de",
+		url: "https://www.meltingplot.de",
 		model: "CHX 350"
 	},
 	estopHoldMs: 1200
@@ -81,6 +84,27 @@ export const CHX_DEFAULTS: ChxSettings = {
 export function isPlaceholderMacro(code: string | null | undefined): boolean {
 	const trimmed = (code ?? "").trim();
 	return trimmed === "" || trimmed === PLACEHOLDER_MACRO;
+}
+
+/**
+ * Contact placeholders from the prototype that earlier versions saved as defaults. A stored field
+ * still holding one of them reads as the current default
+ */
+const PROTOTYPE_SUPPORT_PLACEHOLDERS: Partial<ChxSupportSettings> = {
+	phone: "+49 431 000 000",
+	phoneHours: "Mo–Fr 8–17 Uhr",
+	email: "support@meltingplot.net",
+	url: "https://www.meltingplot.net"
+};
+
+function withCurrentContact(support: ChxSupportSettings): ChxSupportSettings {
+	const result = { ...support };
+	for (const [key, placeholder] of Object.entries(PROTOTYPE_SUPPORT_PLACEHOLDERS) as Array<[keyof ChxSupportSettings, string]>) {
+		if (result[key] === placeholder) {
+			result[key] = CHX_DEFAULTS.support[key];
+		}
+	}
+	return result;
 }
 
 function clone<T>(value: T): T {
@@ -131,7 +155,7 @@ export function useChxSettings() {
 		set: (value) => writeSetting("bedMap", value)
 	});
 	const support: WritableComputedRef<ChxSupportSettings> = computed({
-		get: () => readSetting("support"),
+		get: () => withCurrentContact(readSetting("support")),
 		set: (value) => writeSetting("support", value)
 	});
 	const estopHoldMs: WritableComputedRef<number> = computed({

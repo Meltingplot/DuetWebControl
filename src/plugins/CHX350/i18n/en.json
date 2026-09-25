@@ -424,6 +424,7 @@
 		"support": "Support & machine",
 		"model": "Model",
 		"company": "Company",
+		"address": "Address",
 		"phone": "Phone",
 		"phoneHours": "Phone hours",
 		"email": "E-mail",

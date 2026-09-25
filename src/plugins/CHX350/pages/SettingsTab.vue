@@ -66,6 +66,7 @@ const macroFields: Array<{ key: keyof ChxMacroSettings; label: string }> = [
 const supportFields: Array<{ key: keyof ChxSupportSettings; label: string }> = [
 	{ key: "model", label: "plugins.CHX350.settings.model" },
 	{ key: "company", label: "plugins.CHX350.settings.company" },
+	{ key: "address", label: "plugins.CHX350.settings.address" },
 	{ key: "phone", label: "plugins.CHX350.settings.phone" },
 	{ key: "phoneHours", label: "plugins.CHX350.settings.phoneHours" },
 	{ key: "email", label: "plugins.CHX350.settings.email" },

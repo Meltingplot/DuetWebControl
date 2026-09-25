@@ -21,7 +21,7 @@
 	display: flex;
 	align-items: center;
 	gap: 14px;
-	padding: 6px 0;
+	padding: 3px 0;
 }
 .contact__icon {
 	width: 48px;
@@ -48,6 +48,10 @@
 	color: var(--text-body);
 	margin: 0;
 	max-width: 56ch;
+}
+
+.address {
+	margin-top: 2px;
 }
 
 /* Key/value rows */
@@ -93,7 +97,10 @@
 		<div class="grid">
 			<!-- Contact -->
 			<div class="chx-card card">
-				<div class="chx-label">{{ support.company }}</div>
+				<div>
+					<div class="chx-label">{{ support.company }}</div>
+					<p v-if="support.address" class="hint address">{{ support.address }}</p>
+				</div>
 				<div v-for="c in contacts" :key="c.icon" class="contact">
 					<span class="contact__icon"><v-icon size="26">{{ c.icon }}</v-icon></span>
 					<div style="min-width: 0">
