@@ -134,6 +134,7 @@ import i18n from "@/i18n";
 import { LogLevel, type LogMessage, useUiStore } from "@/stores/ui";
 import { copyToClipboard } from "@/utils/clipboard";
 import { saveBlob } from "@/utils/download";
+import { escapeHtml } from "@/utils/html";
 
 const uiStore = useUiStore();
 
@@ -178,16 +179,11 @@ function rowClass(type: LogLevel): string {
 // regardless of the UI locale, so localising the regex would stop matching real firmware
 // responses
 function formatMessage(message: string): string {
-	const escaped = message
-		.replace(/&/g, "&amp;")
-		.replace(/</g, "&lt;")
-		.replace(/>/g, "&gt;");
-
-	let result = escaped.replace(/Error:/g, "<strong>Error:</strong>").replace(/Warning:/g, "<strong>Warning:</strong>");
+	let result = escapeHtml(message).replace(/Error:/g, "<strong>Error:</strong>").replace(/Warning:/g, "<strong>Warning:</strong>");
 	if (message.startsWith("{") && message.endsWith("}")) {
 		try {
 			const json = JSON.parse(message);
-			result = JSON.stringify(json, null, 4).replace(/\n/g, "<br>").replace(/ /g, "&nbsp;");
+			result = escapeHtml(JSON.stringify(json, null, 4)).replace(/\n/g, "<br>").replace(/ /g, "&nbsp;");
 		} catch {
 			// fall through with the escaped + highlighted version
 		}

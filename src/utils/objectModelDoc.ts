@@ -7,6 +7,8 @@
 // only loads when an editor hover or the Object Model browser first needs it. Consumed by the Monaco
 // hover provider (src/utils/monaco.ts) and the Object Model browser plugin
 
+import { escapeHtml } from "@/utils/html";
+
 // A documented path maps either to a bare summary string, or to an object carrying any of summary /
 // remarks / per-value descriptions (the latter for enum and string-literal-union fields, where a
 // value with no documented description maps to null)
@@ -97,10 +99,6 @@ export async function getObjectModelDocumentation(path: string): Promise<ObjectM
 
 // URLs in the sidecar are plain text because they come straight from the XML docs
 const URL_REGEX = /https?:\/\/[^\s<>"']+/g;
-
-function escapeHtml(text: string): string {
-	return text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
-}
 
 /**
  * Render a documentation string as HTML with its URLs turned into links that open in a new tab

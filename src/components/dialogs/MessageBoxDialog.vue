@@ -11,7 +11,7 @@
 		<v-card :title="messageBox.title" class="text-center">
 			<v-card-text>
 				<!-- Main message -->
-				<div :class="{ 'mb-6': displayedAxes.length > 0 }" v-html="messageBox.message">
+				<div :class="{ 'mb-6': displayedAxes.length > 0 }" v-html="message">
 				</div>
 
 				<!-- Jog control -->
@@ -98,6 +98,7 @@ import { useSettingsStore } from "@/stores/settings";
 import i18n from "@/i18n";
 import { display, displayZ } from "@/utils/display";
 import { axisGCodeLetter } from "@/utils/gcode";
+import { sanitizeHtml } from "@/utils/html";
 import { isNumber } from "@/utils/numbers";
 
 const machineStore = useMachineStore(), settingsStore = useSettingsStore();
@@ -169,6 +170,9 @@ watch(claimed, (to) => {
 		setShown(!to);
 	}
 });
+
+// M291 messages may contain markup, but they can come from any G-code source
+const message = computed(() => sanitizeHtml(messageBox.message ?? ""));
 
 const displayedAxes = computed(() => {
 	const axisControls = (messageBox.axisControls !== null) ? messageBox.axisControls : 0;
