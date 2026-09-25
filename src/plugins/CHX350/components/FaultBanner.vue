@@ -40,6 +40,14 @@
 			<div class="banner__body">{{ $t("plugins.CHX350.job.doorOpenBody") }}</div>
 		</div>
 	</div>
+	<!-- A nozzle heater that constantly needs most of its power leaves the process no headroom -->
+	<div v-for="n in overloaded" :key="`load${n.heater}`" class="banner banner--warn">
+		<v-icon size="26">mdi-fire-alert</v-icon>
+		<div class="flex-grow-1">
+			<div class="banner__title">{{ $t(n.level === "limit" ? "plugins.CHX350.job.heaterLoadLimit" : "plugins.CHX350.job.heaterLoadHigh", { tool: `T${n.tool}`, load: formatLoad(n.mean) }) }}</div>
+			<div class="banner__body">{{ $t("plugins.CHX350.job.heaterLoadBody") }}</div>
+		</div>
+	</div>
 	<div v-if="monitorIssue" class="banner banner--warn">
 		<v-icon size="26">mdi-alert-outline</v-icon>
 		<div class="flex-grow-1">
@@ -58,9 +66,11 @@ import i18n from "@/i18n";
 import { useMachineStore } from "@/stores/machine";
 
 import { useMachineState } from "../composables/useMachineState";
+import { formatLoad, useHeaterLoadStore } from "../stores/heaterLoad";
 
 const machineStore = useMachineStore();
 const state = useMachineState();
+const heaterLoadStore = useHeaterLoadStore();
 
 const faults = computed(() => state.heaterFaults.value.map((index) => {
 	const bed = machineStore.bedHeaterMapping.some((slot) => slot.includes(index));
@@ -68,6 +78,8 @@ const faults = computed(() => state.heaterFaults.value.map((index) => {
 	const name = bed ? i18n.global.t("plugins.CHX350.header.bed") : (tool ? `T${tool.number}` : `H${index}`);
 	return { index, name };
 }));
+
+const overloaded = computed(() => heaterLoadStore.nozzles.filter((n) => n.level !== null));
 
 /** First filament monitor reporting a problem, over all extruders (T1 has its own on the IDEX) */
 const monitorIssue = computed(() => {

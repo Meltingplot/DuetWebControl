@@ -256,6 +256,9 @@
 		"doorOpenBody": "The build chamber is open. Chamber temperature is dropping.",
 		"filamentMonitor": "Filament monitor: {status}",
 		"filamentMonitorBody": "Check filament path, spool and feeder.",
+		"heaterLoadHigh": "{tool}: heater load {load} – little headroom",
+		"heaterLoadLimit": "{tool}: heater load {load} – at the limit",
+		"heaterLoadBody": "For a minute the nozzle heater has needed so much power on average that the process is no longer stable. Lower the speed under “Adjust”; reduce the maximum volumetric speed in the slicer.",
 		"live": "LIVE",
 		"duration": "Duration",
 		"elapsed": "Print time",
@@ -515,7 +518,9 @@
 		"extrude": "Extrude {tool}",
 		"extrudeHint": "For purging after a filament problem. On resume the machine primes the nozzle again.",
 		"extrudeCold": "Nozzle too cold, extruding needs {temp}.",
-		"temperatures": "Target temperatures"
+		"temperatures": "Target temperatures",
+		"heaterLoad": "Heater load",
+		"heaterLoadHint": "constantly above {limit} the process becomes unstable"
 	},
 	"flows": {
 		"steps": "Procedure",

@@ -12,6 +12,7 @@ import en from "./i18n/en.json";
 import ChxShell from "./layout/ChxShell.vue";
 import { ROUTES } from "./routes";
 import { PLUGIN_ID, registerChxSettingDefaults } from "./settings";
+import { useHeaterLoadStore } from "./stores/heaterLoad";
 import { LAYOUT_ID, registerChxThemes } from "./theme";
 import { normalizeWebcamUrls } from "./webcam";
 
@@ -121,7 +122,11 @@ if (useMachineStore().isConnected) {
 	scheduleFlowScan(0);
 }
 
-// 8. SBC backend (slicer metadata, job history): start it if DSF left it stopped
+// 8. Nozzle heater load: sampled from plugin load on, so the one-minute mean is ready whichever
+//    page is open when it matters
+useHeaterLoadStore();
+
+// 9. SBC backend (slicer metadata, job history): start it if DSF left it stopped
 Events.on("connected", () => { ensureBackendRunning().catch((e) => console.warn(e)); });
 if (useMachineStore().isConnected) {
 	ensureBackendRunning().catch((e) => console.warn(e));

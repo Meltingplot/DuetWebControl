@@ -256,6 +256,9 @@
 		"doorOpenBody": "Bauraum ist offen. Die Kammertemperatur fällt.",
 		"filamentMonitor": "Filament-Monitor: {status}",
 		"filamentMonitorBody": "Filamentweg, Spule und Einzug prüfen.",
+		"heaterLoadHigh": "{tool}: Heizleistung {load} – wenig Reserve",
+		"heaterLoadLimit": "{tool}: Heizleistung {load} – am Limit",
+		"heaterLoadBody": "Der Düsenheizer braucht seit einer Minute im Mittel so viel Leistung, dass der Prozess nicht mehr stabil ist. Geschwindigkeit unter „Anpassen“ senken; im Slicer den maximalen Volumenstrom reduzieren.",
 		"live": "LIVE",
 		"duration": "Dauer",
 		"elapsed": "Druckzeit",
@@ -515,7 +518,9 @@
 		"extrude": "Extrudieren {tool}",
 		"extrudeHint": "Zum Spülen nach einem Filamentproblem. Beim Fortsetzen füllt die Maschine die Düse wieder auf.",
 		"extrudeCold": "Düse zu kalt – Extrudieren ab {temp}.",
-		"temperatures": "Solltemperaturen"
+		"temperatures": "Solltemperaturen",
+		"heaterLoad": "Heizleistung",
+		"heaterLoadHint": "dauerhaft über {limit} wird der Prozess instabil"
 	},
 	"flows": {
 		"steps": "Ablauf",

@@ -60,6 +60,20 @@
 	min-height: var(--chx-touch, 56px);
 	font-family: var(--mp-font-mono, monospace);
 }
+.load {
+	font-weight: 600;
+	white-space: nowrap;
+}
+.load + .load::before {
+	content: "· ";
+}
+/* Ink tones, as HeaterPhaseLabel */
+.load--high {
+	color: var(--text-warning);
+}
+.load--limit {
+	color: rgb(var(--v-theme-error));
+}
 .temps {
 	display: grid;
 	grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -99,6 +113,12 @@
 						<v-btn variant="outlined" :disabled="!canTune || speedPct <= SPEED_MIN" @click="setSpeed(speedPct - 10)">−10</v-btn>
 						<v-btn variant="outlined" :disabled="!canTune || speedPct >= SPEED_MAX" @click="setSpeed(speedPct + 10)">+10</v-btn>
 						<v-btn variant="outlined" :disabled="!canTune || speedPct === 100" @click="setSpeed(100)">100 %</v-btn>
+					</div>
+					<!-- Live heater load of the nozzles in use: the speed is the lever against an overloaded heater -->
+					<div v-if="loads.length > 0" class="item__hint">
+						{{ $t("plugins.CHX350.tune.heaterLoad") }}
+						<span v-for="l in loads" :key="l.number" class="load" :class="l.level && `load--${l.level}`">T{{ l.number }} {{ formatLoad(l.load) }}</span>
+						· {{ $t("plugins.CHX350.tune.heaterLoadHint", { limit: formatLoad(LOAD_HIGH) }) }}
 					</div>
 				</div>
 
@@ -176,6 +196,7 @@ import { getErrorMessage } from "@/utils/errors";
 import { useMachineState } from "../composables/useMachineState";
 import { sendChecked } from "../composables/useMacroRunner";
 import { formatTemp, useTemps } from "../composables/useTemps";
+import { formatLoad, heaterLoad, LOAD_HIGH, useHeaterLoadStore } from "../stores/heaterLoad";
 
 const BABYSTEPS = [-0.05, -0.01, 0.01, 0.05];
 const SPEED_MIN = 20;
@@ -195,6 +216,7 @@ const emit = defineEmits<{
 const machineStore = useMachineStore();
 const state = useMachineState();
 const temps = useTemps();
+const heaterLoadStore = useHeaterLoadStore();
 
 const uiFrozen = computed(() => state.uiFrozen.value);
 /** Adjustments apply to a running or paused job */
@@ -232,6 +254,16 @@ const toolsInUse = computed(() => {
 		};
 	});
 });
+/** Live load of the heated nozzles in use; the colour follows the one-minute mean the banner uses */
+const loads = computed(() => toolsInUse.value.map((t) => {
+	const index = machineStore.model.tools[t.number]?.heaters[0] ?? -1;
+	const heater = machineStore.model.heat.heaters[index];
+	return {
+		number: t.number,
+		load: heater?.state === HeaterState.active ? heaterLoad(heater) : null,
+		level: heaterLoadStore.nozzles.find((n) => n.heater === index)?.level ?? null
+	};
+}).filter((l) => l.load !== null));
 const toolsWithFan = computed(() => toolsInUse.value.filter((t) => t.fan >= 0 && machineStore.model.fans[t.fan]));
 
 const coldExtrude = computed(() => machineStore.model.heat.coldExtrudeTemperature);
