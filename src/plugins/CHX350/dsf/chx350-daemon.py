@@ -20,6 +20,7 @@ import logging
 import os
 import signal
 import sys
+import threading
 import time
 import traceback
 from typing import Callable, Dict, Optional, Tuple
@@ -136,13 +137,17 @@ from dsf.object_model import HttpEndpointType  # noqa: E402
 _started = time.monotonic()
 _history = EventLogHistory()
 _shutdown = False
+# dsf-python serves every endpoint from its own thread, but all handlers share one command
+# connection, which is not thread-safe: concurrent requests could mix up DSF's replies
+_cmd_lock = threading.Lock()
 
 
 # --- DSF helpers ----------------------------------------------------------------
 
 def resolve_path(cmd: CommandConnection, virtual: str) -> str:
     """``0:/gcodes/x.gcode`` -> real filesystem path via DSF."""
-    response = cmd.resolve_path(virtual)
+    with _cmd_lock:
+        response = cmd.resolve_path(virtual)
     real = getattr(response, "result", response)
     return real if isinstance(real, str) else str(real)
 

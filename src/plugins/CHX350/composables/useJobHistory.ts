@@ -70,20 +70,18 @@ export function useJobHistory() {
 		loading.value = true;
 		error.value = null;
 		try {
-			const result = await api.history(HISTORY_LIMIT);
-			entries.value = result.entries ?? [];
-		} catch (e) {
-			if (backendAvailable.value === false) {
+			if (backendAvailable.value) {
 				try {
-					entries.value = await readEventLog();
-				} catch (fallbackError) {
-					entries.value = [];
-					error.value = getErrorMessage(fallbackError);
+					entries.value = (await api.history(HISTORY_LIMIT)).entries ?? [];
+					return;
+				} catch (e) {
+					console.warn("[CHX350] backend history failed, reading the event log instead", e);
 				}
-			} else {
-				entries.value = [];
-				error.value = getErrorMessage(e);
 			}
+			entries.value = await readEventLog();
+		} catch (e) {
+			entries.value = [];
+			error.value = getErrorMessage(e);
 		} finally {
 			loading.value = false;
 		}

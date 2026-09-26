@@ -10,6 +10,7 @@
 	"sbcRequired": true,
 	"sbcDsfVersion": "3.7",
 	"sbcExecutable": "chx350-daemon.py",
+	"sbcAutoRestart": true,
 	"sbcOutputRedirected": true,
 	"sbcPermissions": [
 		"commandExecution",

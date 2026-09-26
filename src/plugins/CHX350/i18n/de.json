@@ -379,6 +379,8 @@
 		"expansions": "Erweiterungsboards",
 		"expansionsMixed": "{count} · {versions} Firmware-Stände",
 		"sbc": "Steuerrechner",
+		"backend": "Backend",
+		"backendOff": "nicht aktiv",
 		"network": "Netzwerk"
 	},
 	"about": {

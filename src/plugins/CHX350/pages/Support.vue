@@ -168,6 +168,7 @@ import { saveBlob } from "@/utils/download";
 import Path from "@/utils/path";
 
 import packageInfo from "../../../../package.json";
+import { api, backendAvailable } from "../api";
 import { PLUGIN_ID, useChxSettings } from "../settings";
 
 const machineStore = useMachineStore();
@@ -219,6 +220,9 @@ const machineRows = computed(() => {
 	rows.push({ label: "dsf", value: dsfVersion.value });
 	if (model.value.sbc) {
 		rows.push({ label: "sbc", value: model.value.sbc.model || "—", title: model.value.sbc.distribution ?? "" });
+		rows.push(backendAvailable.value
+			? { label: "backend", value: model.value.plugins.get(PLUGIN_ID)?.version ?? "—" }
+			: { label: "backend", value: t("backendOff"), warn: true, title: i18n.global.t("plugins.CHX350.generic.backendMissing") });
 	}
 	rows.push(
 		networkRow.value,
@@ -300,6 +304,12 @@ async function exportDiagnostics() {
 		});
 		for (const file of ["config.g", "config-override.g"]) {
 			await section(file, async () => String(await machineStore.download({ filename: Path.combine(model.value.directories.system || Path.system, file), type: "text" }, false, false, false)));
+		}
+		if (backendAvailable.value) {
+			await section("CHX 350 backend", async () => {
+				const d = await api.diagnostics();
+				return JSON.stringify({ version: d.version, python: d.python, uptime: d.uptime }, null, 1);
+			});
 		}
 		if ((model.value.plugins.get("Vigil")?.pid ?? -1) > 0) {
 			await section("Vigil", async () => JSON.stringify(await machineStore.request("GET", "machine/Vigil/export", { format: "json" }, "json"), null, 1));

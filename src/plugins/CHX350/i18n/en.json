@@ -379,6 +379,8 @@
 		"expansions": "Expansion boards",
 		"expansionsMixed": "{count} · {versions} firmware builds",
 		"sbc": "Single-board computer",
+		"backend": "Backend",
+		"backendOff": "not running",
 		"network": "Network"
 	},
 	"about": {

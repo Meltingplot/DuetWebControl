@@ -182,7 +182,7 @@
 							<div class="chk__detail">{{ chk.detail }}</div>
 						</div>
 					</div>
-					<div v-if="job.backendError.value && job.meta.value.source !== 'backend'" class="text-caption text-medium-emphasis px-3">
+					<div v-if="job.backendError.value && !job.infoError.value && job.meta.value.source !== 'backend'" class="text-caption text-medium-emphasis px-3">
 						{{ $t("plugins.CHX350.check.noBackend") }}
 					</div>
 				</div>

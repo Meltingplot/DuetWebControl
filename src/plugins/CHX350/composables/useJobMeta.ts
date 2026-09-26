@@ -6,7 +6,7 @@ import { useCacheStore } from "@/stores/cache";
 import { useMachineStore } from "@/stores/machine";
 import { getErrorMessage } from "@/utils/errors";
 
-import { api, type SlicerConfig } from "../api";
+import { api, backendAvailable, type SlicerConfig } from "../api";
 import { ABRASIVE_NOZZLE_TYPES, bedSurfaceLabel, filamentGrams, nozzleTypeLabel, useChxGlobals } from "./useChxGlobals";
 import { useMachineState } from "./useMachineState";
 import { useTemps, type ToolTemps } from "./useTemps";
@@ -114,18 +114,22 @@ export function useJobMeta(path: Ref<string>) {
 				infoError.value = getErrorMessage(e);
 			}
 		}
-		try {
-			const result = await api.fileinfo(file);
-			if (path.value === file) {
-				config.value = result.config ?? {};
+		if (backendAvailable.value) {
+			try {
+				const result = await api.fileinfo(file);
+				if (path.value === file) {
+					config.value = result.config ?? {};
+				}
+			} catch (e) {
+				backendError.value = getErrorMessage(e);
 			}
-		} catch (e) {
-			backendError.value = String((e as Error)?.message ?? e);
-		} finally {
-			loading.value = false;
+		} else {
+			backendError.value = "backend not running";
 		}
+		loading.value = false;
 	}
-	watch([path, () => machineStore.isConnected], load, { immediate: true });
+	// Reload when the daemon comes up after the page opened (it starts after connecting)
+	watch([path, () => machineStore.isConnected, backendAvailable], load, { immediate: true });
 
 	const customInfo = computed<Record<string, unknown>>(() => {
 		const ci = info.value?.customInfo;
