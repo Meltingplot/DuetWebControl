@@ -21,10 +21,7 @@ import Service from "./pages/Service.vue";
 import Jobs from "./pages/Jobs.vue";
 import CheckJob from "./pages/CheckJob.vue";
 import RunningJob from "./pages/RunningJob.vue";
-import FilamentWizard from "./pages/FilamentWizard.vue";
-import Preheat from "./pages/Preheat.vue";
 import Calibrate from "./pages/Calibrate.vue";
-import Home from "./pages/Home.vue";
 import Control from "./pages/Control.vue";
 import History from "./pages/History.vue";
 import Analysis from "./pages/Analysis.vue";
@@ -52,10 +49,7 @@ Events.on("settingsLoaded", normalizeWebcamUrls);
 const pages: Array<{ name: string; path: string; component: any; icon: string }> = [
 	{ name: "Jobs", path: ROUTES.jobs, component: Jobs, icon: "mdi-file-document-multiple-outline" },
 	{ name: "Check", path: ROUTES.check, component: CheckJob, icon: "mdi-clipboard-check-outline" },
-	{ name: "Filament", path: ROUTES.filament, component: FilamentWizard, icon: "mdi-swap-horizontal" },
-	{ name: "Preheat", path: ROUTES.preheat, component: Preheat, icon: "mdi-thermometer-chevron-up" },
 	{ name: "Calibrate", path: ROUTES.calibrate, component: Calibrate, icon: "mdi-target" },
-	{ name: "Home", path: ROUTES.home, component: Home, icon: "mdi-home-import-outline" },
 	{ name: "Control", path: ROUTES.control, component: Control, icon: "mdi-axis-arrow" },
 	{ name: "History", path: ROUTES.history, component: History, icon: "mdi-history" },
 	{ name: "Analysis", path: ROUTES.analysis, component: Analysis, icon: "mdi-chart-box-outline" },
@@ -77,7 +71,7 @@ for (const page of pages) {
 	});
 }
 
-// 5. Settings tab (macros, bed map, support data) in the stock Settings page
+// 5. Settings tab (bed map, support data) in the stock Settings page
 registerSettingTab({
 	key: PLUGIN_ID,
 	icon: "mdi-printer-3d",

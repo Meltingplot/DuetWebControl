@@ -5,18 +5,21 @@ import { load as loadYaml } from "js-yaml";
  * it as a sequence of steps lives in comments, which the firmware skips:
  *
  * - A YAML front matter at the very top, written as comment lines between two `; ---` lines
- *   (Jekyll style), turns the macro into a flow with a tile: title, icon, page, order, ...
+ *   (Jekyll style), turns the macro into a flow with a tile: title, icon, page(s), order, ...
  * - `;;` lines directly above an M291 are that prompt's Markdown, like `///` doc comments in Rust.
  *   Blank lines and plain `;` comments may sit in between. The prompt's literal R title is the key
  *   the UI matches `state.messageBox.title` against, so it has to be unique within the file
- * - `{{ }}` / `{% %}` in the Markdown and in the front matter fields description, hint and enabled
- *   are Jinja (Nunjucks), evaluated by the UI against the live object model
+ * - `{{ }}` / `{% %}` in the Markdown and in the front matter fields description, hint, enabled and
+ *   visible are Jinja (Nunjucks), evaluated by the UI against the live object model
  *
  * This module is pure (no DOM, no Vue) so it can be tested on its own
  */
 
-/** Pages that show flow tiles */
-export const FLOW_PAGES = ["start", "calibrate", "service"] as const;
+/**
+ * Pages that show flow tiles: start (the daily cycle), job (pause controls of the running-job page,
+ * while a job is paused), calibrate (hardware changed, calibrations), service (technician)
+ */
+export const FLOW_PAGES = ["start", "job", "calibrate", "service"] as const;
 export type FlowPage = typeof FLOW_PAGES[number];
 
 /** Front matter of a flow */
@@ -26,12 +29,14 @@ export interface FlowMeta {
 	description: string | null;
 	/** mdi icon name */
 	icon: string | null;
-	/** Page that shows the tile; null = no tile, the flow only renders while it runs */
-	page: FlowPage | null;
-	/** Sort order on the page, ascending */
+	/** Pages that show the tile (`page: start` or `page: [start, job]`); empty = no tile, the flow only renders while it runs */
+	pages: Array<FlowPage>;
+	/** Sort order, ascending; the same on every page of the flow */
 	order: number;
 	/** Jinja template that renders "true" when the tile may be started; null = while the machine is idle */
 	enabled: string | null;
+	/** Jinja template that renders "true" when the tile is shown; null = always */
+	visible: string | null;
 	/** Shown instead of the description while the tile is disabled (Jinja) */
 	hint: string | null;
 }
@@ -81,7 +86,7 @@ export interface GCodeParameter {
 
 const FRONT_MATTER_FENCE = /^\s*;\s?---\s*$/;
 const DOC_LINE = /^\s*;;/;
-const KNOWN_META_KEYS = ["title", "description", "icon", "page", "order", "enabled", "hint"];
+const KNOWN_META_KEYS = ["title", "description", "icon", "page", "order", "enabled", "visible", "hint"];
 
 /**
  * Split a line into its code and comment part. A `;` inside a double-quoted string (also inside
@@ -227,13 +232,17 @@ function parseFrontMatter(lines: Array<string>, firstLine: number, issues: Array
 		return null;
 	}
 
-	let page: FlowPage | null = null;
-	const pageValue = asText(record.page);
-	if (pageValue !== null) {
-		if ((FLOW_PAGES as ReadonlyArray<string>).includes(pageValue)) {
-			page = pageValue as FlowPage;
+	// One page or a YAML list of pages; unknown entries are reported and skipped
+	const pages: Array<FlowPage> = [];
+	const pageValues = (record.page === undefined || record.page === null) ? [] : (Array.isArray(record.page) ? record.page : [record.page]);
+	for (const value of pageValues) {
+		const name = asText(value);
+		if (name !== null && (FLOW_PAGES as ReadonlyArray<string>).includes(name)) {
+			if (!pages.includes(name as FlowPage)) {
+				pages.push(name as FlowPage);
+			}
 		} else {
-			issues.push({ line: firstLine, key: "invalidPage", params: { page: pageValue, pages: FLOW_PAGES.join(", ") } });
+			issues.push({ line: firstLine, key: "invalidPage", params: { page: String(name), pages: FLOW_PAGES.join(", ") } });
 		}
 	}
 
@@ -250,10 +259,11 @@ function parseFrontMatter(lines: Array<string>, firstLine: number, issues: Array
 		title: title.trim(),
 		description: asText(record.description),
 		icon: asText(record.icon),
-		page,
+		pages,
 		order,
 		// YAML reads an unquoted true/false as a boolean
 		enabled: asText(record.enabled),
+		visible: asText(record.visible),
 		hint: asText(record.hint)
 	};
 }

@@ -35,7 +35,8 @@ export interface ActiveFlow {
 const MAX_FILE_SIZE = 256 * 1024;
 const MAX_DEPTH = 4;
 const SKIPPED_EXTENSIONS = /\.(png|jpe?g|webp|gif|svg|bmp|ico|bin|uf2|zip|csv|json|html?|css|js|map|txt|md)$/i;
-const CACHE_KEY = "chx350.flowIndex.v1";
+// Bump the version whenever the parse result changes shape (v2: `pages` list and `visible`)
+const CACHE_KEY = "chx350.flowIndex.v2";
 
 interface CacheEntry {
 	stamp: string;
@@ -54,6 +55,7 @@ function readCache(): Record<string, CacheEntry> {
 
 function writeCache(cache: Record<string, CacheEntry>) {
 	try {
+		localStorage.removeItem("chx350.flowIndex.v1");
 		localStorage.setItem(CACHE_KEY, JSON.stringify(cache));
 	} catch {
 		// Private window or full storage: the index is simply built again next time
@@ -88,7 +90,7 @@ function checkFile(parsed: ParsedFlowFile): Array<FlowIssue> {
 		html(step.docLine, renderMarkdown(step.markdown));
 	}
 	if (parsed.meta) {
-		for (const field of [parsed.meta.description, parsed.meta.enabled, parsed.meta.hint]) {
+		for (const field of [parsed.meta.description, parsed.meta.enabled, parsed.meta.visible, parsed.meta.hint]) {
 			if (field) {
 				for (const finding of checkTemplate(field)) {
 					issues.push({ line: 1, ...finding });
@@ -127,7 +129,7 @@ export const useFlowStore = defineStore("chx350Flows", {
 	},
 	actions: {
 		flowsOn(page: FlowPage): Array<FlowFile> {
-			return this.flows.filter((file) => file.meta!.page === page);
+			return this.flows.filter((file) => file.meta!.pages.includes(page));
 		},
 
 		hasIssues(path: string): boolean {

@@ -21,8 +21,8 @@ export interface FlowTile {
 }
 
 /**
- * Tiles of the flows that name this page in their front matter. `enabled` and the texts are
- * templates, so the tiles follow the machine state. One flow runs at a time
+ * Tiles of the flows that name this page in their front matter. `visible`, `enabled` and the texts
+ * are templates, so the tiles follow the machine state. One flow runs at a time
  */
 export function useFlowTiles(page: FlowPage) {
 	const flowStore = useFlowStore();
@@ -35,7 +35,8 @@ export function useFlowTiles(page: FlowPage) {
 		}
 		const context = flowContext();
 		const running = flowStore.active !== null && flowStore.active.result === null;
-		return files.map((file) => {
+		const shown = files.filter((file) => file.meta!.visible === null || renderFlag(file.meta!.visible, context));
+		return shown.map((file) => {
 			const meta = file.meta!;
 			// Without `enabled` a flow may start only while the machine is idle
 			const enabled = (meta.enabled === null) ? state.status.value === MachineStatus.idle : renderFlag(meta.enabled, context);

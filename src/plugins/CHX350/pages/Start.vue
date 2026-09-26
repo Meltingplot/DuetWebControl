@@ -5,13 +5,15 @@
 	gap: 16px;
 	align-items: stretch;
 }
+/* The flows of the configuration decide how many tiles there are; beyond what fits, the tiles scroll */
 .tiles {
 	min-width: 0;
 	min-height: 0;
 	display: grid;
 	grid-template-columns: repeat(2, minmax(0, 1fr));
-	grid-auto-rows: minmax(0, 1fr);
+	grid-auto-rows: minmax(84px, 1fr);
 	gap: 12px;
+	overflow-y: auto;
 }
 .tiles > .span-2 {
 	grid-column: span 2;
@@ -133,25 +135,18 @@
 					 :title="$t('plugins.CHX350.start.printTitle')"
 					 :subtitle="jobCount === null ? $t('plugins.CHX350.start.printSubLoading') : $t('plugins.CHX350.start.printSub', { count: jobCount })" />
 
-			<!-- Machine actions are unavailable while a job is being processed; a paused job keeps
-				 them (e.g. filament change during a pause) -->
-			<ChxTile icon="mdi-swap-horizontal" :to="ROUTES.filament" :disabled="jobRunning"
-					 :title="$t('plugins.CHX350.start.filamentTitle')" :subtitle="jobRunning ? lockedSub : filamentSub" />
-			<!-- Flow macros with `page: start` (e.g. Bett vorbereiten); their front matter decides when
-				 they may start -->
+			<!-- Flow macros with `page: start` (preheat, homing, filament, prepare bed, ...); their front
+				 matter decides when they show and when they may start -->
 			<ChxTile v-for="tile in flowTiles" :key="tile.path" :icon="tile.icon" :title="tile.title" :subtitle="tile.subtitle"
 					 :disabled="tile.disabled" @click="tile.run()">
 				<template v-if="tile.warn" #trail><v-icon color="warning">mdi-alert-outline</v-icon></template>
 			</ChxTile>
-			<ChxTile icon="mdi-thermometer-chevron-up" :to="ROUTES.preheat" :disabled="jobRunning"
-					 :title="$t('plugins.CHX350.start.preheatTitle')" :subtitle="jobRunning ? lockedSub : $t('plugins.CHX350.start.preheatSub')" />
 			<!-- Repeating goes through the job check like any other start -->
 			<ChxTile icon="mdi-repeat" :disabled="lastJob === null || state.printing.value" @click="repeatLast"
 					 :title="$t('plugins.CHX350.start.repeatTitle')"
 					 :subtitle="state.printing.value ? lockedSub : (lastJob ? lastJobSub : $t('plugins.CHX350.start.repeatNone'))" />
-			<ChxTile icon="mdi-home-import-outline" :to="ROUTES.home" :disabled="jobRunning"
-					 :title="$t('plugins.CHX350.start.homeTitle')"
-					 :subtitle="jobRunning ? lockedSub : $t('plugins.CHX350.start.homeSub', { axes: axisLetters, state: allHomed ? $t('plugins.CHX350.start.homed') : $t('plugins.CHX350.start.notHomed') })" />
+			<!-- The flows with `page: calibrate` (hardware changed, calibrations); unavailable while a job
+				 is being processed, a paused job keeps them -->
 			<ChxTile icon="mdi-target" :to="ROUTES.calibrate" :disabled="jobRunning"
 					 :title="$t('plugins.CHX350.start.calibrateTitle')" :subtitle="jobRunning ? lockedSub : $t('plugins.CHX350.start.calibrateSub')" />
 		</section>
@@ -235,16 +230,6 @@ const lastJob = computed(() => {
 	const name = machineStore.model.job.lastFileName;
 	return name ? extractFileName(name) : null;
 });
-
-const axisLetters = computed(() => machineStore.model.move.axes.filter((a) => a.visible).map((a) => a.letter).join(", "));
-const allHomed = computed(() => {
-	const axes = machineStore.model.move.axes.filter((a) => a.visible);
-	return axes.length > 0 && axes.every((a) => a.homed);
-});
-
-const filamentSub = computed(() => temps.tools.value
-	.map((t) => `T${t.number} ${t.filament || i18n.global.t("plugins.CHX350.start.noFilament")}`)
-	.join(" · "));
 
 /** Last job's name with its outcome: duration when it finished, else how it ended */
 const lastJobSub = computed(() => {

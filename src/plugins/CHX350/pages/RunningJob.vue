@@ -149,6 +149,18 @@
 	grid-template-columns: repeat(2, minmax(0, 1fr));
 	gap: 10px;
 }
+.controls__wide {
+	grid-column: span 2;
+}
+/* Flow titles come from the machine configuration; two lines fit half the card */
+.controls__flow {
+	font-size: 15px;
+	line-height: 1.2;
+}
+.controls__flow :deep(.v-btn__content) {
+	white-space: normal;
+	text-align: left;
+}
 .chart-card {
 	padding: 12px 16px;
 	display: flex;
@@ -388,11 +400,14 @@
 							{{ job.paused.value ? $t("plugins.CHX350.job.resume") : $t("plugins.CHX350.job.pause") }}
 						</CodeButton>
 						<div v-if="job.paused.value" class="controls__row">
-							<v-btn variant="outlined" size="x-large" class="chx-btn" :disabled="job.cancelling.value" @click="router.push(ROUTES.filament)">
-								<v-icon start>mdi-swap-horizontal</v-icon>
-								{{ $t("plugins.CHX350.nav.filament") }}
+							<!-- Flow macros with `page: job` (filament change, spool, nozzle swap) -->
+							<v-btn v-for="flow in jobFlows" :key="flow.path" variant="outlined" size="x-large" class="chx-btn controls__flow"
+								   :disabled="flow.disabled || job.cancelling.value" @click="flow.run()">
+								<v-icon start>{{ flow.icon }}</v-icon>
+								{{ flow.title }}
 							</v-btn>
-							<v-btn color="error" variant="outlined" size="x-large" class="chx-btn" :disabled="job.cancelling.value" :loading="cancelling || job.cancelling.value" @click="cancelJob">
+							<v-btn color="error" variant="outlined" size="x-large" class="chx-btn" :class="{ controls__wide: jobFlows.length % 2 === 0 }"
+								   :disabled="job.cancelling.value" :loading="cancelling || job.cancelling.value" @click="cancelJob">
 								<v-icon start>mdi-close</v-icon>
 								{{ $t("plugins.CHX350.job.cancel") }}
 							</v-btn>
@@ -510,6 +525,7 @@ import LayerStrip from "../components/LayerStrip.vue";
 import { useJob } from "../composables/useJob";
 import { channelRange, useJobAnalysis } from "../composables/useJobAnalysis";
 import { formatTemp, useTemps } from "../composables/useTemps";
+import { useFlowTiles } from "../flows/useFlowTiles";
 import { ROUTES } from "../routes";
 import { cameraLive } from "../webcam";
 
@@ -519,6 +535,7 @@ const router = useRouter();
 const temps = useTemps();
 const analysis = useJobAnalysis();
 const job = useJob();
+const jobFlows = useFlowTiles("job");
 
 const webcamEnabled = computed(() => settingsStore.webcam.enabled);
 

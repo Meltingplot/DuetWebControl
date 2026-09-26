@@ -3,20 +3,6 @@
 		<v-col cols="12" md="6">
 			<v-card>
 				<v-card-title>
-					<v-icon class="mr-2">mdi-script-text-outline</v-icon>
-					{{ $t("plugins.CHX350.settings.macros") }}
-				</v-card-title>
-				<v-card-text>
-					<p class="text-body-2 text-medium-emphasis mb-4">{{ $t("plugins.CHX350.settings.macrosHint") }}</p>
-					<v-textarea v-for="field in macroFields" :key="field.key" :model-value="macros[field.key]" :label="$t(field.label)"
-								variant="outlined" density="comfortable" rows="2" auto-grow class="mb-2 font-mono"
-								@update:model-value="setMacro(field.key, $event)" />
-				</v-card-text>
-			</v-card>
-		</v-col>
-		<v-col cols="12" md="6">
-			<v-card class="mb-4">
-				<v-card-title>
 					<v-icon class="mr-2">mdi-axis-arrow</v-icon>
 					{{ $t("plugins.CHX350.settings.bedMap") }}
 				</v-card-title>
@@ -31,6 +17,8 @@
 					</v-row>
 				</v-card-text>
 			</v-card>
+		</v-col>
+		<v-col cols="12" md="6">
 			<v-card>
 				<v-card-title>
 					<v-icon class="mr-2">mdi-headset</v-icon>
@@ -51,17 +39,12 @@
 <script setup lang="ts">
 import { computed } from "vue";
 
-import { useChxSettings, type ChxBedMapSettings, type ChxMacroSettings, type ChxSupportSettings } from "../settings";
+import { useChxSettings, type ChxBedMapSettings, type ChxSupportSettings } from "../settings";
 
-const { macros: macrosRef, bedMap: bedMapRef, support: supportRef, estopHoldMs } = useChxSettings();
-const macros = computed(() => macrosRef.value);
+const { bedMap: bedMapRef, support: supportRef, estopHoldMs } = useChxSettings();
 const bedMap = computed(() => bedMapRef.value);
 const support = computed(() => supportRef.value);
 
-const macroFields: Array<{ key: keyof ChxMacroSettings; label: string }> = [
-	{ key: "preheat", label: "plugins.CHX350.settings.macroPreheat" },
-	{ key: "home", label: "plugins.CHX350.settings.macroHome" }
-];
 const supportFields: Array<{ key: keyof ChxSupportSettings; label: string }> = [
 	{ key: "model", label: "plugins.CHX350.settings.model" },
 	{ key: "company", label: "plugins.CHX350.settings.company" },
@@ -77,9 +60,6 @@ function toNumber(value: unknown, fallback: number): number {
 	return Number.isFinite(n) ? n : fallback;
 }
 
-function setMacro(key: keyof ChxMacroSettings, value: string) {
-	macrosRef.value = { ...macros.value, [key]: value };
-}
 function setBed(key: keyof ChxBedMapSettings, value: unknown) {
 	bedMapRef.value = { ...bedMap.value, [key]: toNumber(value, bedMap.value[key] as number) };
 }

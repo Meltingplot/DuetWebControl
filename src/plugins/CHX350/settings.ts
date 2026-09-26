@@ -4,19 +4,6 @@ import { useSettingsStore } from "@/stores/settings";
 
 export const PLUGIN_ID = "CHX350";
 
-/**
- * Machine actions the operator UI triggers. Each entry is a G-code string sent verbatim through
- * machineStore.sendCode(). The defaults are placeholders - the real macros are configured per
- * machine in Settings > CHX 350. Procedures with operator steps (Bett vorbereiten, the
- * calibrations) are flow macros of the machine configuration instead, see flows/parse.ts
- */
-export interface ChxMacroSettings {
-	/** "Vorheizen": bring bed and tools to their standby temperatures */
-	preheat: string;
-	/** "Referenzieren": home all axes */
-	home: string;
-}
-
 export interface ChxBedMapSettings {
 	/** Printable bed size in mm (X and Y). Defaults match the CHX 350 */
 	sizeX: number;
@@ -42,20 +29,13 @@ export interface ChxSupportSettings {
 }
 
 export interface ChxSettings {
-	macros: ChxMacroSettings;
 	bedMap: ChxBedMapSettings;
 	support: ChxSupportSettings;
 	/** Press-and-hold duration for NOT-AUS in ms */
 	estopHoldMs: number;
 }
 
-export const PLACEHOLDER_MACRO = 'M98 P""';
-
 export const CHX_DEFAULTS: ChxSettings = {
-	macros: {
-		preheat: PLACEHOLDER_MACRO,
-		home: "G28"
-	},
 	bedMap: {
 		sizeX: 880,
 		sizeY: 422,
@@ -74,14 +54,6 @@ export const CHX_DEFAULTS: ChxSettings = {
 	},
 	estopHoldMs: 1200
 };
-
-/**
- * Whether a configured macro is still the placeholder (nothing to run)
- */
-export function isPlaceholderMacro(code: string | null | undefined): boolean {
-	const trimmed = (code ?? "").trim();
-	return trimmed === "" || trimmed === PLACEHOLDER_MACRO;
-}
 
 /**
  * Contact placeholders from the prototype that earlier versions saved as defaults. A stored field
@@ -143,10 +115,6 @@ function writeSetting<K extends keyof ChxSettings>(key: K, value: ChxSettings[K]
  * missing or partially persisted record never yields undefined fields
  */
 export function useChxSettings() {
-	const macros: WritableComputedRef<ChxMacroSettings> = computed({
-		get: () => readSetting("macros"),
-		set: (value) => writeSetting("macros", value)
-	});
 	const bedMap: WritableComputedRef<ChxBedMapSettings> = computed({
 		get: () => readSetting("bedMap"),
 		set: (value) => writeSetting("bedMap", value)
@@ -159,5 +127,5 @@ export function useChxSettings() {
 		get: () => readSetting("estopHoldMs"),
 		set: (value) => writeSetting("estopHoldMs", value)
 	});
-	return { macros, bedMap, support, estopHoldMs };
+	return { bedMap, support, estopHoldMs };
 }
