@@ -433,6 +433,7 @@
 		"close": "Schließen",
 		"done": "Abgeschlossen.",
 		"failed": "Nicht abgeschlossen",
+		"cancelled": "Abgebrochen",
 		"running": "Läuft …",
 		"axis": "Achse {axis}",
 		"range": "Erlaubt: {min} bis {max}",

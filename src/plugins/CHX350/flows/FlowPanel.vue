@@ -70,6 +70,13 @@
 	background: rgb(var(--v-theme-success));
 	color: #fff;
 }
+.steps li.stopped .steps__dot {
+	background: rgb(var(--v-theme-warning));
+	color: #fff;
+}
+.steps li.stopped.failed .steps__dot {
+	background: rgb(var(--v-theme-error));
+}
 .main {
 	min-height: 0;
 	padding: 22px 24px;
@@ -152,6 +159,10 @@
 	padding: 4px 10px;
 	border-bottom: 1px solid var(--border-subtle);
 	text-align: left;
+}
+/* v-alert grows in a flex column (flex: 1 1) */
+.result {
+	flex: none;
 }
 .working {
 	display: flex;
@@ -242,9 +253,11 @@
 			<div class="chx-label">{{ $t("plugins.CHX350.flows.steps") }}</div>
 			<div class="steps__title">{{ flowTitle }}</div>
 			<ol ref="stepListEl">
-				<li v-for="(s, i) in stepList" :key="s.title" :class="{ current: i === currentIndex, done: i < progress && i !== currentIndex }">
+				<li v-for="(s, i) in stepList" :key="s.title"
+					:class="{ current: i === currentIndex, done: i < progress && i !== currentIndex, stopped: i === stoppedIndex, failed: i === stoppedIndex && result?.outcome === 'failed' }">
 					<span class="steps__dot">
-						<v-icon v-if="i < progress && i !== currentIndex" size="16">mdi-check</v-icon>
+						<v-icon v-if="i === stoppedIndex" size="16">mdi-close</v-icon>
+						<v-icon v-else-if="i < progress && i !== currentIndex" size="16">mdi-check</v-icon>
 						<template v-else>{{ i + 1 }}</template>
 					</span>
 					<span>{{ s.title }}</span>
@@ -267,8 +280,10 @@
 					</div>
 
 					<template v-if="result">
-						<v-alert v-if="result.ok" type="success" variant="tonal" :text="$t('plugins.CHX350.flows.done')" />
-						<v-alert v-else type="error" variant="tonal" :title="$t('plugins.CHX350.flows.failed')" :text="result.error ?? ''" />
+						<v-alert v-if="result.outcome === 'done'" class="result" type="success" variant="tonal" :text="$t('plugins.CHX350.flows.done')" />
+						<v-alert v-else-if="result.outcome === 'cancelled'" class="result" type="warning" variant="tonal" icon="mdi-cancel"
+								 :title="$t('plugins.CHX350.flows.cancelled')" :text="result.error ?? ''" />
+						<v-alert v-else class="result" type="error" variant="tonal" :title="$t('plugins.CHX350.flows.failed')" :text="result.error ?? ''" />
 					</template>
 
 					<!-- Number input with an on-screen keypad (touch panels have no keyboard) -->
@@ -450,11 +465,16 @@ watch(currentIndex, async (to) => {
 watch(() => active.value?.path, () => { lastIndex.value = currentIndex.value; });
 /** Steps below this index are done */
 const progress = computed(() => {
-	if (result.value?.ok) {
+	if (result.value?.outcome === "done") {
 		return stepList.value.length;
+	}
+	if (result.value) {
+		return Math.max(lastIndex.value, 0);
 	}
 	return currentIndex.value >= 0 ? currentIndex.value : lastIndex.value + 1;
 });
+/** Step a cancelled or failed flow ended on, -1 when none */
+const stoppedIndex = computed(() => (result.value && result.value.outcome !== "done") ? lastIndex.value : -1);
 
 const heading = computed(() => box.value?.title || flowTitle.value);
 const isWorking = computed(() => result.value === null && (box.value === null || box.value.mode === MessageBoxMode.noButtons || box.value.mode === MessageBoxMode.closeOnly));
@@ -583,6 +603,7 @@ function ok() {
 	if (!b || !canConfirm.value || answering.value) {
 		return;
 	}
+	flowStore.noteAnswer(false);
 	if (needsNumber.value) {
 		answer(`M292 R{${numberValue.value}} S${b.seq}`);
 	} else if (needsString.value) {
@@ -594,12 +615,14 @@ function ok() {
 
 function accept(choice: number) {
 	if (box.value && !answering.value) {
+		flowStore.noteAnswer(false);
 		answer(`M292 R{${choice}} S${box.value.seq}`);
 	}
 }
 
 function cancel() {
 	if (box.value?.cancelButton && !answering.value) {
+		flowStore.noteAnswer(true);
 		answer(`M292 P1 S${box.value.seq}`);
 	}
 }

@@ -3,6 +3,7 @@ import { defineStore } from "pinia";
 
 import { useMachineStore } from "@/stores/machine";
 import { getErrorMessage } from "@/utils/errors";
+import Events from "@/utils/events";
 import Path from "@/utils/path";
 
 import { replyError } from "../composables/useMacroRunner";
@@ -21,19 +22,26 @@ export interface FileIssue extends FlowIssue {
 	path: string;
 }
 
+/** How a flow started here ended: an `Error:` line counts as cancelled when the operator cancelled its last prompt */
+export type FlowOutcome = "done" | "failed" | "cancelled";
+
 /** The flow shown in the panel */
 export interface ActiveFlow {
 	/** File of the flow (a flow with front matter, or a file that only documents prompts) */
 	path: string;
 	/** Started from a tile of this client: the macro's reply ends it. Otherwise the panel follows the machine */
 	startedHere: boolean;
+	/** The last prompt answered in this panel was cancelled */
+	cancelled: boolean;
 	/** Outcome once the macro has returned (started here only) */
-	result: { ok: boolean; error: string | null } | null;
+	result: { outcome: FlowOutcome; error: string | null } | null;
 }
 
 /** Largest file the index reads; macros are a few kB */
 const MAX_FILE_SIZE = 256 * 1024;
 const MAX_DEPTH = 4;
+/** How long an `Error:` message may trail the macro's reply (websocket patch vs. HTTP response) */
+const MESSAGE_SETTLE_TIME = 1000;
 const SKIPPED_EXTENSIONS = /\.(png|jpe?g|webp|gif|svg|bmp|ico|bin|uf2|zip|csv|json|html?|css|js|map|txt|md)$/i;
 // Bump the version whenever the parse result changes shape (v2: `pages` list and `visible`)
 const CACHE_KEY = "chx350.flowIndex.v2";
@@ -264,7 +272,7 @@ export const useFlowStore = defineStore("chx350Flows", {
 		/** Follow a flow that was not started here (console, second panel, reload) */
 		attach(path: string) {
 			if (this.active === null) {
-				this.active = { path, startedHere: false, result: null };
+				this.active = { path, startedHere: false, cancelled: false, result: null };
 			}
 		},
 
@@ -273,18 +281,38 @@ export const useFlowStore = defineStore("chx350Flows", {
 			if (this.active !== null && this.active.result === null) {
 				return;
 			}
-			this.active = { path, startedHere: true, result: null };
-			let result: ActiveFlow["result"];
+			this.active = { path, startedHere: true, cancelled: false, result: null };
+
+			// A flow reports failure with `echo "Error: …"` (chx350-config, "Flows in the CHX 350 UI").
+			// Standalone RRF puts that line into the reply of M98, DSF sends the output of a macro's
+			// codes as messages instead (the toast) and replies with nothing. Any error message while
+			// the flow runs counts, the machine does not say which channel it came from
+			let error: string | null = null;
+			const onMessage = ({ content }: { content: string }) => { error ??= replyError(content); };
+			Events.on("message", onMessage);
 			try {
 				// The reply arrives when the macro has returned, prompts included
 				const reply = await useMachineStore().sendCode(`M98 P"${path.replace(/"/g, '""')}"`, false, true) ?? "";
-				const error = replyError(reply);
-				result = { ok: error === null, error };
+				error ??= replyError(reply);
+				if (error === null) {
+					await new Promise((resolve) => setTimeout(resolve, MESSAGE_SETTLE_TIME));
+				}
 			} catch (e) {
-				result = { ok: false, error: getErrorMessage(e) };
+				error ??= getErrorMessage(e);
+			} finally {
+				Events.off("message", onMessage);
 			}
-			if (this.active?.path === path && this.active.startedHere && this.active.result === null) {
-				this.active.result = result;
+
+			const flow = this.active;
+			if (flow?.path === path && flow.startedHere && flow.result === null) {
+				flow.result = { outcome: (error === null) ? "done" : (flow.cancelled ? "cancelled" : "failed"), error };
+			}
+		},
+
+		/** Remember whether the operator cancelled the prompt they answered last */
+		noteAnswer(cancelled: boolean) {
+			if (this.active !== null && this.active.result === null) {
+				this.active.cancelled = cancelled;
 			}
 		},
 
