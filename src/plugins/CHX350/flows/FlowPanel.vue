@@ -283,7 +283,10 @@
 						<v-alert v-if="result.outcome === 'done'" class="result" type="success" variant="tonal" :text="$t('plugins.CHX350.flows.done')" />
 						<v-alert v-else-if="result.outcome === 'cancelled'" class="result" type="warning" variant="tonal" icon="mdi-cancel"
 								 :title="$t('plugins.CHX350.flows.cancelled')" :text="result.error ?? ''" />
-						<v-alert v-else class="result" type="error" variant="tonal" :title="$t('plugins.CHX350.flows.failed')" :text="result.error ?? ''" />
+						<v-alert v-else-if="result.outcome === 'failed'" class="result" type="error" variant="tonal"
+								 :title="$t('plugins.CHX350.flows.failed')" :text="result.error ?? $t('plugins.CHX350.flows.notReached')" />
+						<v-alert v-else class="result" variant="tonal" icon="mdi-information-outline"
+								 :title="$t('plugins.CHX350.flows.ended')" :text="result.error ?? $t('plugins.CHX350.flows.endedHint')" />
 					</template>
 
 					<!-- Number input with an on-screen keypad (touch panels have no keyboard) -->
@@ -468,13 +471,13 @@ const progress = computed(() => {
 	if (result.value?.outcome === "done") {
 		return stepList.value.length;
 	}
-	if (result.value) {
-		return Math.max(lastIndex.value, 0);
+	if (stoppedIndex.value >= 0) {
+		return stoppedIndex.value;
 	}
 	return currentIndex.value >= 0 ? currentIndex.value : lastIndex.value + 1;
 });
 /** Step a cancelled or failed flow ended on, -1 when none */
-const stoppedIndex = computed(() => (result.value && result.value.outcome !== "done") ? lastIndex.value : -1);
+const stoppedIndex = computed(() => (result.value?.outcome === "cancelled" || result.value?.outcome === "failed") ? lastIndex.value : -1);
 
 const heading = computed(() => box.value?.title || flowTitle.value);
 const isWorking = computed(() => result.value === null && (box.value === null || box.value.mode === MessageBoxMode.noButtons || box.value.mode === MessageBoxMode.closeOnly));

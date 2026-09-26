@@ -11,6 +11,8 @@ import { load as loadYaml } from "js-yaml";
  *   the UI matches `state.messageBox.title` against, so it has to be unique within the file
  * - `{{ }}` / `{% %}` in the Markdown and in the front matter fields description, hint, enabled and
  *   visible are Jinja (Nunjucks), evaluated by the UI against the live object model
+ * - `echo ";; Completed"` is the line a flow reaches when it went through. Only that output makes
+ *   the UI report it as completed; error lines on the way do not decide (homing resolves some itself)
  *
  * This module is pure (no DOM, no Vue) so it can be tested on its own
  */
@@ -74,8 +76,13 @@ export interface ParsedFlowFile {
 	meta: FlowMeta | null;
 	steps: Array<FlowStep>;
 	prompts: Array<FlowPrompt>;
+	/** The file has the completion line, so a run that does not reach it has failed */
+	completes: boolean;
 	issues: Array<FlowIssue>;
 }
+
+/** Output of the completion line `echo ";; Completed"` */
+export const COMPLETION_MARKER = ";; Completed";
 
 /** A parameter of a G-code command as written in the file */
 export interface GCodeParameter {
@@ -86,6 +93,7 @@ export interface GCodeParameter {
 
 const FRONT_MATTER_FENCE = /^\s*;\s?---\s*$/;
 const DOC_LINE = /^\s*;;/;
+const COMPLETION_LINE = /^echo\s+";; Completed"$/;
 const KNOWN_META_KEYS = ["title", "description", "icon", "page", "order", "enabled", "visible", "hint"];
 
 /**
@@ -278,6 +286,7 @@ export function parseFlowFile(text: string): ParsedFlowFile {
 	const steps: Array<FlowStep> = [];
 	const prompts: Array<FlowPrompt> = [];
 	let meta: FlowMeta | null = null;
+	let completes = false;
 
 	let index = 0;
 	while (index < lines.length && lines[index].trim() === "") {
@@ -333,6 +342,9 @@ export function parseFlowFile(text: string): ParsedFlowFile {
 			continue;
 		}
 
+		if (COMPLETION_LINE.test(code)) {
+			completes = true;
+		}
 		const params = parseM291(code);
 		if (params !== null) {
 			const r = params.get("R"), p = params.get("P"), s = params.get("S");
@@ -359,6 +371,9 @@ export function parseFlowFile(text: string): ParsedFlowFile {
 	if (doc.length > 0) {
 		issues.push({ line: docLine, key: "docWithoutPrompt" });
 	}
+	if (meta !== null && !completes) {
+		issues.push({ line: 1, key: "noCompletion" });
+	}
 
-	return { meta, steps, prompts, issues };
+	return { meta, steps, prompts, completes, issues };
 }

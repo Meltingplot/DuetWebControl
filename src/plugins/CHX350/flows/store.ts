@@ -6,8 +6,7 @@ import { getErrorMessage } from "@/utils/errors";
 import Events from "@/utils/events";
 import Path from "@/utils/path";
 
-import { replyError } from "../composables/useMacroRunner";
-import { parseFlowFile, type FlowIssue, type FlowPage, type FlowStep, type ParsedFlowFile } from "./parse";
+import { COMPLETION_MARKER, parseFlowFile, type FlowIssue, type FlowPage, type FlowStep, type ParsedFlowFile } from "./parse";
 import { checkTemplate, renderMarkdown, sanitizeHtml } from "./render";
 
 /** An indexed macro: parse result plus where it came from */
@@ -22,8 +21,12 @@ export interface FileIssue extends FlowIssue {
 	path: string;
 }
 
-/** How a flow started here ended: an `Error:` line counts as cancelled when the operator cancelled its last prompt */
-export type FlowOutcome = "done" | "failed" | "cancelled";
+/**
+ * How a flow started here ended: done when it reached its completion line, else cancelled when the
+ * operator cancelled the prompt they answered last, else failed. A file without a completion line
+ * cannot tell, it has ended
+ */
+export type FlowOutcome = "done" | "cancelled" | "failed" | "ended";
 
 /** The flow shown in the panel */
 export interface ActiveFlow {
@@ -40,11 +43,12 @@ export interface ActiveFlow {
 /** Largest file the index reads; macros are a few kB */
 const MAX_FILE_SIZE = 256 * 1024;
 const MAX_DEPTH = 4;
-/** How long an `Error:` message may trail the macro's reply (websocket patch vs. HTTP response) */
+/** How long the macro's last output may trail its reply (websocket patch vs. HTTP response) */
 const MESSAGE_SETTLE_TIME = 1000;
 const SKIPPED_EXTENSIONS = /\.(png|jpe?g|webp|gif|svg|bmp|ico|bin|uf2|zip|csv|json|html?|css|js|map|txt|md)$/i;
-// Bump the version whenever the parse result changes shape (v2: `pages` list and `visible`)
-const CACHE_KEY = "chx350.flowIndex.v2";
+// Bump the version whenever the parse result changes shape (v2: `pages` list and `visible`, v3: `completes`)
+const CACHE_KEY = "chx350.flowIndex.v3";
+const OLD_CACHE_KEYS = ["chx350.flowIndex.v1", "chx350.flowIndex.v2"];
 
 interface CacheEntry {
 	stamp: string;
@@ -63,7 +67,9 @@ function readCache(): Record<string, CacheEntry> {
 
 function writeCache(cache: Record<string, CacheEntry>) {
 	try {
-		localStorage.removeItem("chx350.flowIndex.v1");
+		for (const key of OLD_CACHE_KEYS) {
+			localStorage.removeItem(key);
+		}
 		localStorage.setItem(CACHE_KEY, JSON.stringify(cache));
 	} catch {
 		// Private window or full storage: the index is simply built again next time
@@ -283,29 +289,56 @@ export const useFlowStore = defineStore("chx350Flows", {
 			}
 			this.active = { path, startedHere: true, cancelled: false, result: null };
 
-			// A flow reports failure with `echo "Error: …"` (chx350-config, "Flows in the CHX 350 UI").
-			// Standalone RRF puts that line into the reply of M98, DSF sends the output of a macro's
-			// codes as messages instead (the toast) and replies with nothing. Any error message while
-			// the flow runs counts, the machine does not say which channel it came from
-			let error: string | null = null;
-			const onMessage = ({ content }: { content: string }) => { error ??= replyError(content); };
+			// Standalone RRF puts the output of a macro into the reply of M98, DSF sends it line by line
+			// as messages (the toast) and replies with nothing, so both are read. Only the completion
+			// line decides; the last error line is the reason shown when it is missing, as a routine may
+			// report an error it resolves itself (homing). The machine does not say which channel a
+			// message came from
+			const run = { completed: false, error: null as string | null, onCompleted: () => {} };
+			const read = (text: string) => {
+				for (const line of text.split("\n").map((l) => l.trim())) {
+					if (line === COMPLETION_MARKER) {
+						run.completed = true;
+						run.onCompleted();
+					} else if (line.startsWith("Error:")) {
+						run.error = line.replace(/^Error:\s*/, "");
+					}
+				}
+			};
+			const onMessage = ({ content }: { content: string }) => read(content);
 			Events.on("message", onMessage);
+			let requestError: string | null = null;
 			try {
 				// The reply arrives when the macro has returned, prompts included
-				const reply = await useMachineStore().sendCode(`M98 P"${path.replace(/"/g, '""')}"`, false, true) ?? "";
-				error ??= replyError(reply);
-				if (error === null) {
-					await new Promise((resolve) => setTimeout(resolve, MESSAGE_SETTLE_TIME));
+				read(await useMachineStore().sendCode(`M98 P"${path.replace(/"/g, '""')}"`, false, true) ?? "");
+				if (!run.completed) {
+					await new Promise<void>((resolve) => {
+						const timer = setTimeout(resolve, MESSAGE_SETTLE_TIME);
+						run.onCompleted = () => {
+							clearTimeout(timer);
+							resolve();
+						};
+					});
 				}
 			} catch (e) {
-				error ??= getErrorMessage(e);
+				requestError = getErrorMessage(e);
 			} finally {
 				Events.off("message", onMessage);
 			}
 
 			const flow = this.active;
 			if (flow?.path === path && flow.startedHere && flow.result === null) {
-				flow.result = { outcome: (error === null) ? "done" : (flow.cancelled ? "cancelled" : "failed"), error };
+				let outcome: FlowOutcome;
+				if (run.completed) {
+					outcome = "done";
+				} else if (flow.cancelled) {
+					outcome = "cancelled";
+				} else if (requestError !== null || this.files[path]?.completes) {
+					outcome = "failed";
+				} else {
+					outcome = "ended";
+				}
+				flow.result = { outcome, error: (outcome === "done") ? null : (requestError ?? run.error) };
 			}
 		},
 
