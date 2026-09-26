@@ -55,16 +55,24 @@ const jobProgress = computed(() => machineStore.jobProgress);
 
 // Title and favicon wedge share one watcher so the title write is always the last writer:
 // Piecon.reset() restores the document.title it captured on its first setProgress call, which
-// would otherwise clobber the title back to a stale "(x%) name" when a print stops
-let wasPrinting = false;
+// would otherwise clobber the title back to a stale "(x%) name" when a print stops.
+// Every Piecon.setProgress call swaps in a new data-URL favicon that the browser loads as a
+// request of its own, and jobProgress changes with every status update while printing. A 16/32 px
+// wedge cannot show more than whole percents, so the favicon is only redrawn when those change
+let wasPrinting = false, faviconPercent: number | null = null;
 watch([machineName, status, jobProgress], () => {
 	const printing = isPrinting(status.value);
 	const showProgress = printing && jobProgress.value > 0;
 
 	if (showProgress) {
-		Piecon.setProgress(Math.min(100, Math.max(0, jobProgress.value * 100)));
+		const percent = Math.round(Math.min(100, Math.max(0, jobProgress.value * 100)));
+		if (percent !== faviconPercent) {
+			Piecon.setProgress(percent);
+			faviconPercent = percent;
+		}
 	} else if (wasPrinting && !printing) {
 		Piecon.reset();
+		faviconPercent = null;
 	}
 	wasPrinting = printing;
 
