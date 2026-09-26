@@ -32,8 +32,23 @@ from chx350_gcode import file_info  # noqa: E402
 
 PLUGIN_ID = "CHX350"
 API_NAMESPACE = "CHX350"
-VERSION = "1.0.0"
 EVENT_LOG_VIRTUAL = "0:/sys/eventlog.log"
+
+
+def _read_version() -> str:
+    """Version from the installed manifest, which the package build sets to the DWC version.
+    DSF (and the image seed) put it next to the plugin directory: <plugins>/CHX350.json beside
+    <plugins>/CHX350/dsf/<this file>"""
+    plugin_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    manifest = os.path.join(os.path.dirname(plugin_dir), f"{PLUGIN_ID}.json")
+    try:
+        with open(manifest, "r", encoding="utf-8-sig") as handle:
+            return str(json.load(handle).get("version") or "unknown")
+    except (OSError, ValueError):
+        return "unknown"
+
+
+VERSION = _read_version()
 
 logging.basicConfig(
     level=logging.INFO,
@@ -250,13 +265,8 @@ def main() -> None:
         logger.error("giving up: %s", last_error)
         sys.exit(1)
 
-    try:
-        cmd.set_plugin_data(PLUGIN_ID, "backendVersion", VERSION)
-    except Exception as exc:  # noqa: BLE001
-        logger.debug("set_plugin_data failed: %s", exc)
-
     endpoints = register_endpoints(cmd)
-    logger.info("ready - %d endpoints", len(endpoints))
+    logger.info("ready - version %s, %d endpoints", VERSION, len(endpoints))
 
     try:
         while not _shutdown:
