@@ -347,7 +347,7 @@
 </template>
 
 <script setup lang="ts">
-import { AxisLetter, MachineStatus, MessageBoxMode, type Axis, type MessageBox } from "@duet3d/objectmodel";
+import { AxisLetter, InputChannelState, MachineStatus, MessageBoxMode, type Axis, type MessageBox } from "@duet3d/objectmodel";
 import { computed, nextTick, onBeforeUnmount, onMounted, reactive, ref, watch } from "vue";
 
 import { isAxisAtLimit } from "@/composables/useMoveSteps";
@@ -602,6 +602,26 @@ function cancel() {
 		answer(`M292 P1 S${box.value.seq}`);
 	}
 }
+
+/**
+ * RRF queues message boxes and the object model only shows the first one. A new box cuts queued
+ * non-blocking boxes to 1 s, but not one without a timeout: a progress step (M291 S1 T0) stays in
+ * front of the macro's next prompt until somebody closes it, and the panel would show "working"
+ * for good. Only blocking boxes make a channel wait for an acknowledgement, so a waiting channel
+ * behind an open non-blocking box means one is queued: close the open box like DWC's Close button
+ */
+const hidesBlockingBox = computed(() => {
+	const b = box.value;
+	if (active.value === null || b === null || (b.mode !== MessageBoxMode.noButtons && b.mode !== MessageBoxMode.closeOnly)) {
+		return null;
+	}
+	return machineStore.model.inputs.some((input) => input?.state === InputChannelState.awaitingAcknowledgement) ? b.seq : null;
+});
+watch(hidesBlockingBox, (seq) => {
+	if (seq !== null && !answering.value) {
+		answer(`M292 S${seq}`);
+	}
+}, { immediate: true });
 
 // #endregion
 
