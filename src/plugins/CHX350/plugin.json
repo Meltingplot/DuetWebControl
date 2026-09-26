@@ -6,6 +6,7 @@
 	"license": "GPL-3.0-or-later",
 	"homepage": "https://www.meltingplot.de",
 	"tags": ["meltingplot", "chx350", "layout"],
+	"dwcVersion": "auto-major",
 	"sbcRequired": true,
 	"sbcDsfVersion": "3.7",
 	"sbcExecutable": "chx350-daemon.py",

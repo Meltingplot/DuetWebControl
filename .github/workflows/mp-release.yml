@@ -1,9 +1,11 @@
 name: Meltingplot release
 
 # Builds DuetWebControl for a Meltingplot version tag (e.g. v3.7.0-rc.1+mp.1, annotated, on v3.7-dev)
-# and publishes a GitHub release of that tag with DuetWebControl-SBC.zip and DuetWebControl-SD.zip.
+# and publishes a GitHub release of that tag with DuetWebControl-SBC.zip and DuetWebControl-SD.zip,
+# plus CHX350-SBC.zip, the SBC backend of the built-in CHX 350 plugin (its UI ships inside DWC).
 # The asset names carry no version, so an image build pins
 #   https://github.com/Meltingplot/DuetWebControl/releases/download/<tag>/DuetWebControl-SBC.zip
+#   https://github.com/Meltingplot/DuetWebControl/releases/download/<tag>/CHX350-SBC.zip
 # by URL and sha256; both are in the release notes. The tag must match the version in package.json.
 # A manual run builds an existing tag again and replaces the notes and the assets
 
@@ -68,6 +70,8 @@ jobs:
         run: |
           npm ci
           npm run build
+          npm run build-chx350-sbc
+          cp "src/plugins/CHX350/CHX350-$VERSION.zip" dist/CHX350-SBC.zip
           cd dist
           sha256sum *.zip > SHA256SUMS.txt
           cat SHA256SUMS.txt
@@ -78,6 +82,7 @@ jobs:
         run: |
           git fetch -q https://github.com/Duet3D/DuetWebControl.git "$UPSTREAM_BRANCH"
           sbc=$(sha256sum dist/DuetWebControl-SBC.zip | cut -d' ' -f1)
+          chx=$(sha256sum dist/CHX350-SBC.zip | cut -d' ' -f1)
           {
             bash <(git show "$GITHUB_SHA:.github/scripts/mp-release-notes.sh") "$TAG" FETCH_HEAD
             echo
@@ -90,6 +95,8 @@ jobs:
             done
             echo
             echo "Image pin: \`https://github.com/$GITHUB_REPOSITORY/releases/download/$TAG/DuetWebControl-SBC.zip\`, sha256 \`$sbc\`"
+            echo
+            echo "CHX 350 backend pin: \`https://github.com/$GITHUB_REPOSITORY/releases/download/$TAG/CHX350-SBC.zip\`, sha256 \`$chx\`"
             echo
             echo "Built from \`$(git rev-parse --short HEAD)\` by the mp-release workflow."
           } > release-notes.md
