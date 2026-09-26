@@ -418,7 +418,6 @@
 		"sizeY": "Bed Y",
 		"headSpacing": "Minimum head spacing",
 		"tool1YAxis": "Y axis of T1",
-		"moveFeedrate": "Move feedrate",
 		"zSteps": "Z steps",
 		"estopHold": "E-stop hold time",
 		"support": "Support & machine",

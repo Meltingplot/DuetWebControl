@@ -418,7 +418,6 @@
 		"sizeY": "Bett Y",
 		"headSpacing": "Mindestabstand der Köpfe",
 		"tool1YAxis": "Y-Achse von T1",
-		"moveFeedrate": "Verfahrgeschwindigkeit",
 		"zSteps": "Z-Schritte",
 		"estopHold": "NOT-AUS Haltedauer",
 		"support": "Support & Maschine",

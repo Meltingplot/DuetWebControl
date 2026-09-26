@@ -360,6 +360,7 @@ import { isNumber } from "@/utils/numbers";
 
 import ChxCamera from "../components/ChxCamera.vue";
 import ChxCameraBox from "../components/ChxCameraBox.vue";
+import { maxFeedrate } from "../motion";
 import { PLUGIN_ID, useChxSettings } from "../settings";
 import { flowContext } from "./context";
 import { renderStepHtml, sanitizeHtml, type SanitizedHtml } from "./render";
@@ -649,7 +650,7 @@ function axisPosition(axis: Axis): string {
 }
 
 function jog(axis: Axis, distance: number) {
-	const code = `M120\nG91\nG1 ${axisGCodeLetter(axis.letter)}${distance} F${bedMap.value.moveFeedrate}\nM121`;
+	const code = `M120\nG91\nG1 ${axisGCodeLetter(axis.letter)}${distance} F${maxFeedrate(axis.letter)}\nM121`;
 	machineStore.sendCode(code, false, false, true).catch((e) => console.warn(e));
 }
 

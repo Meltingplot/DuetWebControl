@@ -230,6 +230,7 @@ import ChxCameraBox from "../components/ChxCameraBox.vue";
 import ZTower from "../components/ZTower.vue";
 import { useMachineState } from "../composables/useMachineState";
 import { sendChecked } from "../composables/useMacroRunner";
+import { maxFeedrate } from "../motion";
 import { useChxSettings } from "../settings";
 import { cameraLive } from "../webcam";
 
@@ -354,7 +355,7 @@ async function moveTo(point: { x: number; y: number }) {
 	target.value = point;
 	moving.value = true;
 	try {
-		await send(`M120\nG90\nG1 X${point.x} ${selectedYAxis.value}${point.y} F${bedMap.value.moveFeedrate}\nM121`);
+		await send(`M120\nG90\nG1 X${point.x} ${selectedYAxis.value}${point.y} F${maxFeedrate("X", selectedYAxis.value)}\nM121`);
 	} finally {
 		moving.value = false;
 		target.value = null;
@@ -384,7 +385,7 @@ async function gotoZ(z: number) {
 	}
 	moving.value = true;
 	try {
-		await send(`M120\nG90\nG1 Z${z} F${bedMap.value.moveFeedrate}\nM121`);
+		await send(`M120\nG90\nG1 Z${z} F${maxFeedrate("Z")}\nM121`);
 	} finally {
 		moving.value = false;
 	}

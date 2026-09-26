@@ -25,8 +25,6 @@ export interface ChxBedMapSettings {
 	headSpacing: number;
 	/** Axis letter the second tool's Y motion uses */
 	tool1YAxis: string;
-	/** Feedrate for tap-to-move and Z jogs in mm/min */
-	moveFeedrate: number;
 	/** Selectable Z step sizes in mm */
 	zSteps: Array<number>;
 }
@@ -63,7 +61,6 @@ export const CHX_DEFAULTS: ChxSettings = {
 		sizeY: 422,
 		headSpacing: 60,
 		tool1YAxis: "U",
-		moveFeedrate: 6000,
 		zSteps: [0.01, 0.1, 1, 5]
 	},
 	support: {
