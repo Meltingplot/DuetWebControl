@@ -1,5 +1,5 @@
 import { BaseConnector, CancellationToken, CodeBufferError, connect, DisconnectedError, FileListItem, FileNotFoundError, InvalidPasswordError, NetworkError, OnProgressCallback, OperationFailedError, PollConnector, RestConnector } from "@duet3d/connectors";
-import ObjectModel, { CodeChannel, GCodeFileInfo, initObject, MachineStatus, MessageType, Plugin } from "@duet3d/objectmodel";
+import ObjectModel, { CodeChannel, GCodeFileInfo, initObject, InputChannelState, MachineStatus, MessageType, Plugin } from "@duet3d/objectmodel";
 import type JSZip from "jszip";
 import { defineStore } from "pinia";
 
@@ -19,6 +19,23 @@ import Events from "@/utils/events";
 import Path from "@/utils/path";
 
 import packageInfo from "../../package.json";
+
+/**
+ * Replies the REST connector makes up when a code request fails: it turns a 5xx status (a proxy's
+ * 504 Gateway Timeout included) and a dropped connection into an error reply instead of throwing
+ */
+const FAILED_REQUEST_REPLY = /^Error: (Operation failed|Network error)\b/;
+
+/** Whether the HTTP channel is still in a macro or executing a code */
+function isHttpChannelBusy(model: ObjectModel): boolean {
+	const input = model.inputs[CodeChannel.http];
+	return !!input && (input.stackDepth > 0 || (input.state !== InputChannelState.idle && input.state !== InputChannelState.unused));
+}
+
+/** Reply of a code whose request ended before the code did */
+export function lostCodeReply(): string {
+	return `Warning: ${i18n.global.t("error.codeReplyLost")}`;
+}
 
 /**
  * Item type for downloads. `rawPath` bypasses the SD-card prefix and pulls the file straight
@@ -632,6 +649,20 @@ export const useMachineStore = defineStore("machine", {
 				}
 
 				let reply = await this.connector.sendCode(interception?.code ?? code, noWait ?? false);
+				if (typeof reply === "string" && this.connector instanceof RestConnector && FAILED_REQUEST_REPLY.test(reply) && isHttpChannelBusy(this.model)) {
+					// A proxy in front of DSF times out a code that runs long (a macro waiting for the
+					// operator, a long G29) or drops the connection. DSF runs the code on, so this is not
+					// its result: wait until the HTTP channel is done, the real reply is lost
+					await new Promise<void>((resolve) => {
+						const stop = watch(() => this.connector === null || !isHttpChannelBusy(this.model), (done) => {
+							if (done) {
+								stop();
+								resolve();
+							}
+						});
+					});
+					reply = lostCodeReply();
+				}
 				if (typeof reply === "string") {
 					reply = translateResponse(reply);
 					Events.emit("codeExecuted", { code, reply: reply as string });

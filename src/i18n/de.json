@@ -403,6 +403,7 @@
 		"startupError": "Fehler in Startdatei {0} Zeile {1}: {2}"
 	},
 	"error": {
+		"codeReplyLost": "Die Verbindung endete vor der Antwort der Maschine. Der Code lief weiter und ist beendet, seine Antwort fehlt.",
 		"editorLoadFailed": "Konnte den Code-Editor nicht laden: {0}",
 		"enterValidNumber": "Bitte geben Sie eine gültige Zahl ein",
 		"filamentsLoadFailed": "Konnte Filamente nicht laden",
