@@ -41,6 +41,8 @@
 	align-items: center;
 	gap: 10px;
 	padding: 7px 8px;
+	/* Steps of a called flow sit below the call */
+	padding-left: calc(8px + var(--nest, 0) * 20px);
 	border-radius: var(--mp-radius);
 	font: 500 14px/1.3 var(--mp-font-body, sans-serif);
 	color: var(--text-body);
@@ -61,6 +63,14 @@
 	font: 700 12px/1 var(--mp-font-mono, monospace);
 	background: var(--surface-sunken);
 	color: var(--text-body);
+}
+.steps li.nested {
+	font-size: 13px;
+}
+.steps li.nested .steps__dot {
+	width: 22px;
+	height: 22px;
+	font-size: 11px;
 }
 .steps li.current .steps__dot {
 	background: var(--mp-primary);
@@ -253,20 +263,20 @@
 			<div class="chx-label">{{ $t("plugins.CHX350.flows.steps") }}</div>
 			<div class="steps__title">{{ flowTitle }}</div>
 			<ol ref="stepListEl">
-				<li v-for="(s, i) in stepList" :key="s.title"
-					:class="{ current: i === currentIndex, done: i < progress && i !== currentIndex, stopped: i === stoppedIndex, failed: i === stoppedIndex && result?.outcome === 'failed' }">
+				<li v-for="(s, i) in stepList" :key="`${s.path}:${s.step.line}`" :style="{ '--nest': s.via.length }"
+					:class="{ nested: s.via.length > 0, current: i === currentIndex, done: i < progress && i !== currentIndex, stopped: i === stoppedIndex, failed: i === stoppedIndex && result?.outcome === 'failed' }">
 					<span class="steps__dot">
 						<v-icon v-if="i === stoppedIndex" size="16">mdi-close</v-icon>
 						<v-icon v-else-if="i < progress && i !== currentIndex" size="16">mdi-check</v-icon>
 						<template v-else>{{ i + 1 }}</template>
 					</span>
-					<span>{{ s.title }}</span>
+					<span>{{ s.step.title }}</span>
 				</li>
 			</ol>
 		</aside>
 
 		<section class="chx-card main">
-			<div v-if="stepList.length <= 1 && flowTitle && flowTitle !== heading" class="chx-label main__flow">{{ flowTitle }}</div>
+			<div v-if="showTrail" class="chx-label main__flow">{{ trail.join(" › ") }}</div>
 			<h2 class="main__title">{{ heading }}</h2>
 
 			<div class="main__body" :class="{ 'main__body--jog': jogAxes.length > 0 }">
@@ -381,6 +391,7 @@ import ChxCameraBox from "../components/ChxCameraBox.vue";
 import { maxFeedrate } from "../motion";
 import { PLUGIN_ID, useChxSettings } from "../settings";
 import { flowContext } from "./context";
+import type { FlowStep } from "./parse";
 import { renderStepHtml, sanitizeHtml, type SanitizedHtml } from "./render";
 import { useFlowStore } from "./store";
 
@@ -401,10 +412,16 @@ const box = computed<MessageBox | null>(() => {
 	const b = machineStore.model.state.messageBox;
 	return (b !== null && b.mode !== null) ? b : null;
 });
+/** Where the index documents the open box (the active flow first) */
 const match = computed(() => box.value ? flowStore.findStep(box.value.title) : null);
 
-// A documented box of a flow nobody started here (console, other panel, reload): follow it. A box
-// of another flow replaces a followed one
+/**
+ * A documented box of a flow nobody started here (console, other panel, reload): follow it. The
+ * box of another flow shows as a step inserted into the followed one, as flows call flows, also
+ * through files the index cannot resolve (M701 → load.g → e-steps). It takes over only from a file
+ * without front matter, or when its flow runs the followed one: the panel attached to a called
+ * flow first and now sees its caller
+ */
 watch(match, (to) => {
 	if (to === null) {
 		return;
@@ -412,7 +429,8 @@ watch(match, (to) => {
 	const current = flowStore.active;
 	if (current === null) {
 		flowStore.attach(to.file.path);
-	} else if (!current.startedHere && current.path !== to.file.path && to.file.meta !== null) {
+	} else if (!current.startedHere && current.path !== to.file.path && to.file.meta !== null &&
+			   (!flowStore.files[current.path]?.meta || flowStore.runs(to.file.path, current.path))) {
 		flowStore.close();
 		flowStore.attach(to.file.path);
 	}
@@ -451,11 +469,32 @@ onBeforeUnmount(() => {
 });
 
 const flowTitle = computed(() => file.value?.meta?.title ?? "");
-const stepList = computed(() => (file.value?.meta ? file.value.steps : []));
+/** The flow's steps with those of the files it calls */
+const stepList = computed(() => (file.value?.meta ? flowStore.stepsOf(file.value.path) : []));
 
-/** Index of the open box among the flow's steps, -1 when the box is not one of them */
-const currentIndex = computed(() => (match.value && match.value.file.path === active.value?.path) ? match.value.index : -1);
+/** Step list index of the last box shown */
 const lastIndex = ref(-1);
+/**
+ * Index of the open box in the step list, -1 when the box is not one of them. A title can occur in
+ * the flow and in a file it calls: the first one from the last step shown on wins
+ */
+const currentIndex = computed(() => {
+	const title = box.value?.title;
+	let first = -1;
+	if (title) {
+		for (let i = 0; i < stepList.value.length; i++) {
+			if (stepList.value[i].step.title === title) {
+				if (i >= lastIndex.value) {
+					return i;
+				}
+				if (first < 0) {
+					first = i;
+				}
+			}
+		}
+	}
+	return first;
+});
 const stepListEl = ref<HTMLElement | null>(null);
 watch(currentIndex, async (to) => {
 	if (to >= 0) {
@@ -465,7 +504,10 @@ watch(currentIndex, async (to) => {
 		stepListEl.value?.children[to]?.scrollIntoView({ block: "nearest", behavior: "smooth" });
 	}
 });
-watch(() => active.value?.path, () => { lastIndex.value = currentIndex.value; });
+watch(() => active.value?.path, () => {
+	lastIndex.value = -1;
+	lastIndex.value = currentIndex.value;
+});
 /** Steps below this index are done */
 const progress = computed(() => {
 	if (result.value?.outcome === "done") {
@@ -479,7 +521,34 @@ const progress = computed(() => {
 /** Step a cancelled or failed flow ended on, -1 when none */
 const stoppedIndex = computed(() => (result.value?.outcome === "cancelled" || result.value?.outcome === "failed") ? lastIndex.value : -1);
 
+/** The open box's step: from the step list, else wherever the index documents it */
+const current = computed<{ path: string; step: FlowStep; via: Array<string> } | null>(() => {
+	if (currentIndex.value >= 0) {
+		return stepList.value[currentIndex.value];
+	}
+	const found = match.value;
+	if (found === null) {
+		return null;
+	}
+	// Not in the list: the step of a flow inserted into this one, or of a helper
+	const inserted = found.file.meta !== null && found.file.path !== active.value?.path;
+	return { path: found.file.path, step: found.step, via: inserted ? [found.file.path] : [] };
+});
+
 const heading = computed(() => box.value?.title || flowTitle.value);
+/** The flow, then the called flows the open step sits in */
+const trail = computed(() => {
+	const titles = flowTitle.value ? [flowTitle.value] : [];
+	for (const path of current.value?.via ?? []) {
+		const title = flowStore.files[path]?.meta?.title;
+		if (title) {
+			titles.push(title);
+		}
+	}
+	return titles;
+});
+// The step list names the flow already, unless the step sits in a called one
+const showTrail = computed(() => trail.value.length > 1 || (stepList.value.length <= 1 && trail.value.length === 1 && trail.value[0] !== heading.value));
 const isWorking = computed(() => result.value === null && (box.value === null || box.value.mode === MessageBoxMode.noButtons || box.value.mode === MessageBoxMode.closeOnly));
 
 // #region Content
@@ -509,8 +578,8 @@ onBeforeUnmount(() => {
 });
 
 const content = computed<SanitizedHtml & { line: number | null }>(() => {
-	if (match.value) {
-		return { ...renderStepHtml(match.value.step.markdown, flowContext(), resolveImage), line: match.value.step.docLine };
+	if (current.value) {
+		return { ...renderStepHtml(current.value.step.markdown, flowContext(), resolveImage), line: current.value.step.docLine };
 	}
 	if (box.value) {
 		// A box nobody documented, inside a running flow: the firmware's text, sanitized
@@ -521,8 +590,8 @@ const content = computed<SanitizedHtml & { line: number | null }>(() => {
 
 // What a template or the firmware produced is sanitized again; report what that removed
 watch(content, (to) => {
-	if (to.removed.length > 0 && to.line !== null && match.value) {
-		flowStore.reportRuntimeIssue(match.value.file.path, to.line, to.removed);
+	if (to.removed.length > 0 && to.line !== null && current.value) {
+		flowStore.reportRuntimeIssue(current.value.path, to.line, to.removed);
 	}
 });
 

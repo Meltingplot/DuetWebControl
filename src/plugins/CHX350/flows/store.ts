@@ -11,7 +11,7 @@ import Path from "@/utils/path";
 import { COMPLETION_MARKER, parseFlowFile, type FlowIssue, type FlowPage, type FlowStep, type ParsedFlowFile } from "./parse";
 import { checkTemplate, renderMarkdown, sanitizeHtml } from "./render";
 
-/** An indexed macro: parse result plus where it came from */
+/** An indexed macro (a flow, documents prompts or calls other files): parse result plus where it came from */
 export interface FlowFile extends ParsedFlowFile {
 	path: string;
 	/** Size and modification time the parse result belongs to */
@@ -21,6 +21,18 @@ export interface FlowFile extends ParsedFlowFile {
 /** A flow issue with the file it belongs to */
 export interface FileIssue extends FlowIssue {
 	path: string;
+}
+
+/** A step of a flow's step list */
+export interface FlowStepEntry {
+	/** File that documents the step */
+	path: string;
+	step: FlowStep;
+	/**
+	 * Called flows (files with front matter) the step sits in, outermost first. Empty for the flow's
+	 * own steps and for those of the helpers it calls, which count as its own
+	 */
+	via: Array<string>;
 }
 
 /**
@@ -45,17 +57,35 @@ export interface ActiveFlow {
 /** Largest file the index reads; macros are a few kB */
 const MAX_FILE_SIZE = 256 * 1024;
 const MAX_DEPTH = 4;
+/** RRF runs at most 10 nested macros */
+const MAX_CALL_DEPTH = 10;
 /** How long the macro's last output may trail the end of the macro (separate model updates) */
 const MESSAGE_SETTLE_TIME = 1000;
 const SKIPPED_EXTENSIONS = /\.(png|jpe?g|webp|gif|svg|bmp|ico|bin|uf2|zip|csv|json|html?|css|js|map|txt|md)$/i;
-// Bump the version whenever the parse result changes shape (v2: `pages` list and `visible`, v3: `completes`)
-const CACHE_KEY = "chx350.flowIndex.v3";
-const OLD_CACHE_KEYS = ["chx350.flowIndex.v1", "chx350.flowIndex.v2"];
+// Bump the version whenever the parse result changes shape (v2: `pages` list and `visible`, v3: `completes`, v4: `calls`)
+const CACHE_KEY = "chx350.flowIndex.v4";
+const OLD_CACHE_KEYS = ["chx350.flowIndex.v1", "chx350.flowIndex.v2", "chx350.flowIndex.v3"];
 
 interface CacheEntry {
 	stamp: string;
-	/** Omitted for files without front matter or doc blocks, so they are not downloaded again */
+	/** Omitted for files the index does not keep, so they are not downloaded again */
 	parsed?: ParsedFlowFile;
+}
+
+/** Whether the index keeps a file: a flow, a file that documents prompts or calls other files, or one with issues */
+function isRelevant(parsed: ParsedFlowFile): boolean {
+	return parsed.meta !== null || parsed.steps.length > 0 || parsed.calls.length > 0 || parsed.issues.length > 0;
+}
+
+/** The indexed file an M98 runs; a relative path starts in the system directory, as with M98 */
+function callTarget(files: Record<string, FlowFile>, path: string): FlowFile | null {
+	let absolute = path;
+	if (absolute.startsWith("/")) {
+		absolute = `0:${absolute}`;
+	} else if (!/^\d+:/.test(absolute)) {
+		absolute = Path.combine(useMachineStore().model.directories.system || Path.system, absolute);
+	}
+	return files[absolute] ?? null;
 }
 
 function readCache(): Record<string, CacheEntry> {
@@ -144,7 +174,7 @@ function stampOf(size: bigint | number, lastModified: Date | null): string {
 
 export const useFlowStore = defineStore("chx350Flows", {
 	state: () => ({
-		/** Indexed files that are flows or document prompts, by path */
+		/** Indexed files by path */
 		files: {} as Record<string, FlowFile>,
 		scanning: false,
 		scanError: null as string | null,
@@ -161,7 +191,13 @@ export const useFlowStore = defineStore("chx350Flows", {
 		},
 		issues(state): Array<FileIssue> {
 			const fromFiles = Object.values(state.files).flatMap((file) => file.issues.map((issue) => ({ ...issue, path: file.path })));
-			return [...fromFiles, ...state.runtimeIssues].sort((a, b) => a.path.localeCompare(b.path) || a.line - b.line);
+			// A called flow writes its completion line unless the caller passes C0, and that line would
+			// report the flow the UI started as completed while it still runs
+			const fromCalls = Object.values(state.files).flatMap((file) => file.calls.flatMap((call) => {
+				const target = (call.c0 === false) ? callTarget(state.files, call.path) : null;
+				return (target?.completes) ? [{ path: file.path, line: call.line, key: "callWithoutC0", params: { flow: target.path } }] : [];
+			}));
+			return [...fromFiles, ...fromCalls, ...state.runtimeIssues].sort((a, b) => a.path.localeCompare(b.path) || a.line - b.line);
 		}
 	},
 	actions: {
@@ -177,18 +213,63 @@ export const useFlowStore = defineStore("chx350Flows", {
 		 * Find the step a message box belongs to: in the active flow first, then in the flows, then
 		 * in files that only document prompts (e.g. the door check in the sys helpers)
 		 */
-		findStep(title: string): { file: FlowFile; step: FlowStep; index: number } | null {
+		findStep(title: string): { file: FlowFile; step: FlowStep } | null {
 			const candidates = Object.values(this.files).sort((a, b) => {
 				const rank = (file: FlowFile) => (file.path === this.active?.path) ? 0 : (file.meta !== null ? 1 : 2);
 				return rank(a) - rank(b);
 			});
 			for (const file of candidates) {
-				const index = file.steps.findIndex((step) => step.title === title);
-				if (index >= 0) {
-					return { file, step: file.steps[index], index };
+				const step = file.steps.find((s) => s.title === title);
+				if (step) {
+					return { file, step };
 				}
 			}
 			return null;
+		},
+
+		/**
+		 * Steps of a flow in the order of its file, with the documented prompts of the files it calls
+		 * (M98 with a literal path) where the call stands, further down as well. A file is listed at its
+		 * first call only, so a helper called in several places does not repeat its steps
+		 */
+		stepsOf(path: string): Array<FlowStepEntry> {
+			const entries: Array<FlowStepEntry> = [];
+			const visited = new Set<string>();
+			const visit = (file: FlowFile, via: Array<string>, depth: number) => {
+				visited.add(file.path);
+				const items = [
+					...file.steps.map((step) => ({ line: step.line, step, call: null })),
+					...file.calls.map((call) => ({ line: call.line, step: null, call }))
+				].sort((a, b) => a.line - b.line);
+				for (const { step, call } of items) {
+					if (step !== null) {
+						entries.push({ path: file.path, step, via });
+						continue;
+					}
+					const target = callTarget(this.files, call!.path);
+					if (target !== null && !visited.has(target.path) && depth < MAX_CALL_DEPTH) {
+						visit(target, target.meta ? [...via, target.path] : via, depth + 1);
+					}
+				}
+			};
+			const root = this.files[path];
+			if (root) {
+				visit(root, [], 1);
+			}
+			return entries;
+		},
+
+		/** Whether a file runs another one through its calls (M98 with a literal path), directly or further down */
+		runs(from: string, to: string): boolean {
+			const visited = new Set<string>();
+			const visit = (path: string): boolean => {
+				visited.add(path);
+				return (this.files[path]?.calls ?? []).some((call) => {
+					const target = callTarget(this.files, call.path);
+					return target !== null && (target.path === to || (!visited.has(target.path) && visit(target.path)));
+				});
+			};
+			return visit(from);
 		},
 
 		/** Whether the CHX 350 shell shows this message box instead of DWC's dialog */
@@ -200,7 +281,7 @@ export const useFlowStore = defineStore("chx350Flows", {
 		ingest(path: string, text: string, stamp = "") {
 			const parsed = parseFlowFile(text);
 			parsed.issues.push(...checkFile(parsed));
-			if (parsed.meta !== null || parsed.steps.length > 0 || parsed.issues.length > 0) {
+			if (isRelevant(parsed)) {
 				this.files[path] = { ...parsed, path, stamp };
 			} else {
 				delete this.files[path];
@@ -264,8 +345,7 @@ export const useFlowStore = defineStore("chx350Flows", {
 					try {
 						const text = String(await machineStore.download({ filename: path, type: "text" }, false, false, false));
 						const parsed = this.ingest(path, text, stamp);
-						const relevant = parsed.meta !== null || parsed.steps.length > 0 || parsed.issues.length > 0;
-						nextCache[path] = relevant ? { stamp, parsed } : { stamp };
+						nextCache[path] = isRelevant(parsed) ? { stamp, parsed } : { stamp };
 					} catch (e) {
 						console.warn(`[CHX350] flow index: ${path}`, e);
 					}

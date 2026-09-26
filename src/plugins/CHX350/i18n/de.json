@@ -455,6 +455,7 @@
 			"duplicateTitle": "R-Titel „{title}“ kommt in dieser Datei mehrfach vor.",
 			"docWithoutPrompt": ";;-Block ohne folgendes M291.",
 			"noCompletion": "Flow ohne die Zeile echo \";; Completed\" – die UI meldet ihn nie als abgeschlossen.",
+			"callWithoutC0": "Ruft den Flow {flow} ohne C0 auf – dessen Zeile echo \";; Completed\" meldet sonst den aufrufenden Flow als abgeschlossen.",
 			"markupRemoved": "Enthält Markup, das beim Anzeigen entfernt wird: {removed}",
 			"markupRemovedLive": "Beim Anzeigen wurde Markup entfernt: {removed}",
 			"templateSyntax": "Jinja-Fehler: {error}",

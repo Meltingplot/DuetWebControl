@@ -13,6 +13,9 @@ import { load as loadYaml } from "js-yaml";
  *   visible are Jinja (Nunjucks), evaluated by the UI against the live object model
  * - `echo ";; Completed"` is the line a flow reaches when it went through. Only that output makes
  *   the UI report it as completed; error lines on the way do not decide (homing resolves some itself)
+ * - An `M98` with a literal P path is a call. The UI lists the documented prompts of the called file
+ *   as steps of the caller, where the call stands. A called flow takes `C0` from its caller and
+ *   leaves out its completion line: only the flow the UI started ends with it
  *
  * This module is pure (no DOM, no Vue) so it can be tested on its own
  */
@@ -64,6 +67,16 @@ export interface FlowPrompt {
 	message: string | null;
 }
 
+/** An M98 with a literal P path */
+export interface FlowCall {
+	/** 1-based line of the M98 */
+	line: number;
+	/** Literal P parameter; a relative path starts in the system directory, as with M98 */
+	path: string;
+	/** The call passes C0, so a called flow leaves out its completion line; null when C is an expression */
+	c0: boolean | null;
+}
+
 /** Problem found in a file; `key` is an i18n key below plugins.CHX350.flows.issue */
 export interface FlowIssue {
 	line: number;
@@ -76,6 +89,7 @@ export interface ParsedFlowFile {
 	meta: FlowMeta | null;
 	steps: Array<FlowStep>;
 	prompts: Array<FlowPrompt>;
+	calls: Array<FlowCall>;
 	/** The file has the completion line, so a run that does not reach it has failed */
 	completes: boolean;
 	issues: Array<FlowIssue>;
@@ -200,9 +214,9 @@ export function parseParameters(args: string): Map<string, GCodeParameter> {
 	return result;
 }
 
-/** Parameters of an M291 on this code, or null when the code is something else */
-function parseM291(code: string): Map<string, GCodeParameter> | null {
-	const match = /^M291(?![\d.])/i.exec(code);
+/** Parameters of the command on this code, or null when the code is another one */
+function parseCommand(code: string, command: "M98" | "M291"): Map<string, GCodeParameter> | null {
+	const match = new RegExp(`^${command}(?![\\d.])`, "i").exec(code);
 	return match ? parseParameters(code.slice(match[0].length)) : null;
 }
 
@@ -285,6 +299,7 @@ export function parseFlowFile(text: string): ParsedFlowFile {
 	const issues: Array<FlowIssue> = [];
 	const steps: Array<FlowStep> = [];
 	const prompts: Array<FlowPrompt> = [];
+	const calls: Array<FlowCall> = [];
 	let meta: FlowMeta | null = null;
 	let completes = false;
 
@@ -345,7 +360,7 @@ export function parseFlowFile(text: string): ParsedFlowFile {
 		if (COMPLETION_LINE.test(code)) {
 			completes = true;
 		}
-		const params = parseM291(code);
+		const params = parseCommand(code, "M291");
 		if (params !== null) {
 			const r = params.get("R"), p = params.get("P"), s = params.get("S");
 			prompts.push({
@@ -363,8 +378,17 @@ export function parseFlowFile(text: string): ParsedFlowFile {
 					steps.push({ title: r.value, markdown: doc.join("\n").trim(), line: lineNumber, docLine, mode });
 				}
 			}
-		} else if (doc.length > 0) {
-			issues.push({ line: docLine, key: "docWithoutPrompt" });
+		} else {
+			const call = parseCommand(code, "M98");
+			const p = call?.get("P"), c = call?.get("C");
+			if (p?.kind === "string") {
+				// A P{…} expression names its file at run time only
+				const c0 = (c === undefined) ? false : ((c.kind === "expression") ? null : (c.kind === "bare" && c.value !== "" && Number(c.value) === 0));
+				calls.push({ line: lineNumber, path: p.value, c0 });
+			}
+			if (doc.length > 0) {
+				issues.push({ line: docLine, key: "docWithoutPrompt" });
+			}
 		}
 		doc = [];
 	}
@@ -375,5 +399,5 @@ export function parseFlowFile(text: string): ParsedFlowFile {
 		issues.push({ line: 1, key: "noCompletion" });
 	}
 
-	return { meta, steps, prompts, completes, issues };
+	return { meta, steps, prompts, calls, completes, issues };
 }
