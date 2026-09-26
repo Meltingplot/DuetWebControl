@@ -1,7 +1,9 @@
-import type { MessageBox } from "@duet3d/objectmodel";
+import { CodeChannel, type MessageBox } from "@duet3d/objectmodel";
 import { defineStore } from "pinia";
+import { watch } from "vue";
 
-import { useMachineStore } from "@/stores/machine";
+import { lostCodeReply, useMachineStore } from "@/stores/machine";
+import { useUiStore } from "@/stores/ui";
 import { getErrorMessage } from "@/utils/errors";
 import Events from "@/utils/events";
 import Path from "@/utils/path";
@@ -43,7 +45,7 @@ export interface ActiveFlow {
 /** Largest file the index reads; macros are a few kB */
 const MAX_FILE_SIZE = 256 * 1024;
 const MAX_DEPTH = 4;
-/** How long the macro's last output may trail its reply (websocket patch vs. HTTP response) */
+/** How long the macro's last output may trail the end of the macro (separate model updates) */
 const MESSAGE_SETTLE_TIME = 1000;
 const SKIPPED_EXTENSIONS = /\.(png|jpe?g|webp|gif|svg|bmp|ico|bin|uf2|zip|csv|json|html?|css|js|map|txt|md)$/i;
 // Bump the version whenever the parse result changes shape (v2: `pages` list and `visible`, v3: `completes`)
@@ -113,6 +115,27 @@ function checkFile(parsed: ParsedFlowFile): Array<FlowIssue> {
 		}
 	}
 	return issues;
+}
+
+/** Whether the HTTP channel is in a macro */
+function httpInMacro(): boolean {
+	return (useMachineStore().model.inputs[CodeChannel.http]?.stackDepth ?? 0) > 0;
+}
+
+/** Resolves once the HTTP channel is out of every macro */
+function macroReturned(): Promise<void> {
+	return new Promise((resolve) => {
+		if (!httpInMacro()) {
+			resolve();
+			return;
+		}
+		const stop = watch(httpInMacro, (inMacro) => {
+			if (!inMacro) {
+				stop();
+				resolve();
+			}
+		});
+	});
 }
 
 function stampOf(size: bigint | number, lastModified: Date | null): string {
@@ -282,18 +305,24 @@ export const useFlowStore = defineStore("chx350Flows", {
 			}
 		},
 
-		/** Start a flow from its tile; resolves when the macro has returned */
+		/**
+		 * Start a flow from its tile; resolves when the macro has returned. The reply of M98 marks the
+		 * end, but a flow waits for the operator for as long as it takes and the request may not last
+		 * that long. sendCode waits out a proxy timeout itself; a reconnect rejects the request. DSF
+		 * runs the macro on when the request goes away, so a reply or a failed request only ends the
+		 * flow once the HTTP channel has left the macro. Until then the panel follows the channel in
+		 * the object model
+		 */
 		async start(path: string) {
 			if (this.active !== null && this.active.result === null) {
 				return;
 			}
 			this.active = { path, startedHere: true, cancelled: false, result: null };
 
-			// Standalone RRF puts the output of a macro into the reply of M98, DSF sends it line by line
-			// as messages (the toast) and replies with nothing, so both are read. Only the completion
-			// line decides; the last error line is the reason shown when it is missing, as a routine may
-			// report an error it resolves itself (homing). The machine does not say which channel a
-			// message came from
+			// DSF sends the macro's output as messages (the toast) and replies to M98 with nothing,
+			// standalone RRF puts it into the reply, so both are read. Only the completion line decides;
+			// the last error line is the reason shown when it is missing, as a routine may report an
+			// error it resolves itself (homing). The machine does not say which channel a message came from
 			const run = { completed: false, error: null as string | null, onCompleted: () => {} };
 			const read = (text: string) => {
 				for (const line of text.split("\n").map((l) => l.trim())) {
@@ -307,10 +336,24 @@ export const useFlowStore = defineStore("chx350Flows", {
 			};
 			const onMessage = ({ content }: { content: string }) => read(content);
 			Events.on("message", onMessage);
+			const code = `M98 P"${path.replace(/"/g, '""')}"`;
 			let requestError: string | null = null;
 			try {
-				// The reply arrives when the macro has returned, prompts included
-				read(await useMachineStore().sendCode(`M98 P"${path.replace(/"/g, '""')}"`, false, true) ?? "");
+				let reply: string | null = null;
+				try {
+					// Logged here: the panel shows how the flow ended, a lost reply is no news
+					reply = await useMachineStore().sendCode(code, false, false) ?? "";
+				} catch (e) {
+					requestError = getErrorMessage(e);
+				}
+				if (httpInMacro()) {
+					// The request ended before the macro did
+					requestError = null;
+					await macroReturned();
+				} else if (reply && reply !== lostCodeReply()) {
+					useUiStore().logCode(code, reply);
+					read(reply);
+				}
 				if (!run.completed) {
 					await new Promise<void>((resolve) => {
 						const timer = setTimeout(resolve, MESSAGE_SETTLE_TIME);
@@ -320,8 +363,6 @@ export const useFlowStore = defineStore("chx350Flows", {
 						};
 					});
 				}
-			} catch (e) {
-				requestError = getErrorMessage(e);
 			} finally {
 				Events.off("message", onMessage);
 			}
