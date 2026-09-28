@@ -26,6 +26,24 @@
 	flex: 1;
 	min-height: 120px;
 }
+/* Beside QA's top view or camera frame the strip stays as a slim layer picker */
+.strip-card__body--mini {
+	flex: none;
+	height: 48px;
+	min-height: 0;
+}
+.strip-card__view {
+	flex: 1;
+	min-height: 0;
+	position: relative;
+	border-radius: var(--mp-radius);
+	overflow: hidden;
+}
+/* QA's view fills the box the page gives it */
+.strip-card__view > * {
+	position: absolute;
+	inset: 0;
+}
 .axis {
 	display: flex;
 	justify-content: space-between;
@@ -115,6 +133,12 @@
 	<div class="chx-page">
 		<ChxPageHeader :subtitle="jobName" :back="ROUTES.history">
 			<template #actions>
+				<v-btn-toggle v-if="views.length > 1 && count > 0" v-model="view" mandatory divided variant="outlined" color="secondary">
+					<v-btn v-for="v in views" :key="v.value" :value="v.value" class="chx-btn">
+						<v-icon start>{{ v.icon }}</v-icon>
+						{{ $t(v.label) }}
+					</v-btn>
+				</v-btn-toggle>
 				<v-btn variant="outlined" class="chx-btn" :disabled="count === 0" @click="exportCsv">
 					<v-icon start>mdi-download</v-icon>
 					{{ $t("plugins.CHX350.analysis.export") }}
@@ -127,15 +151,18 @@
 				<div class="chx-card strip-card">
 					<div class="d-flex justify-space-between align-baseline">
 						<span class="chx-label">{{ channelLabel(activeChannel) }}</span>
-						<span class="chx-value" style="font-size: 15px">{{ $t("plugins.CHX350.analysis.layerHint") }}</span>
+						<span class="chx-value" style="font-size: 15px">{{ viewComponent ? $t("plugins.CHX350.job.layerN", { n: layerNumber }) : $t("plugins.CHX350.analysis.layerHint") }}</span>
 					</div>
-					<div class="strip-card__body">
+					<div v-if="viewComponent" class="strip-card__view">
+						<component :is="viewComponent" :job-id="qaJobId" :layer="layerNumber" />
+					</div>
+					<div class="strip-card__body" :class="{ 'strip-card__body--mini': viewComponent }">
 						<LayerStrip :values="activeChannel.values" :range="range" :marker="layer" interactive @pick="layer = $event" />
 					</div>
 					<div class="axis">
-						<span>{{ $t("plugins.CHX350.job.layerN", { n: 1 }) }}</span>
+						<span>{{ $t("plugins.CHX350.job.layerN", { n: layerNumbers[0] ?? 1 }) }}</span>
 						<span>{{ formatValue(range[0]) }} – {{ formatValue(range[1]) }}</span>
-						<span>{{ $t("plugins.CHX350.job.layerN", { n: count }) }}</span>
+						<span>{{ $t("plugins.CHX350.job.layerN", { n: lastLayerNumber }) }}</span>
 					</div>
 					<div class="nav-btns">
 						<v-btn variant="outlined" class="chx-btn" icon="mdi-chevron-left" :disabled="layer <= 0" @click="layer--" />
@@ -147,7 +174,7 @@
 				<div class="kpis">
 					<div class="kpi">
 						<div class="chx-label">{{ $t("plugins.CHX350.job.layer") }}</div>
-						<div class="chx-value">{{ layer + 1 }} / {{ count }}</div>
+						<div class="chx-value">{{ layerNumber }} / {{ lastLayerNumber }}</div>
 					</div>
 					<div class="kpi">
 						<div class="chx-label">{{ $t("plugins.CHX350.analysis.heightZ") }}</div>
@@ -201,10 +228,13 @@ import { useRoute } from "vue-router";
 
 import i18n from "@/i18n";
 import { useMachineStore } from "@/stores/machine";
+import { useUiStore } from "@/stores/ui";
 import { display, displayTime } from "@/utils/display";
 import { saveBlob } from "@/utils/download";
+import { isPrinting } from "@/utils/enums";
 import { extractFileName } from "@/utils/path";
 
+import { QA_PLUGIN_ID, qaPluginData } from "../api";
 import ChxPageHeader from "../components/ChxPageHeader.vue";
 import LayerStrip from "../components/LayerStrip.vue";
 import { channelRange, useJobAnalysis, type JobLayers, type LayerChannel } from "../composables/useJobAnalysis";
@@ -212,6 +242,7 @@ import { useRecordedJobAnalysis } from "../composables/useRecordedJobAnalysis";
 import { ROUTES } from "../routes";
 
 const machineStore = useMachineStore();
+const uiStore = useUiStore();
 const route = useRoute();
 
 /** QA job id from the history; without one the page shows the running/last job from the object model */
@@ -265,6 +296,47 @@ watch(count, (len, previous) => {
 		layer.value = Math.max(0, len - 1);
 	}
 });
+
+const layerNumbers = computed(() => analysis.value.layerNumbers.value);
+/** job.layer number of the selected layer, as QA and the firmware count */
+const layerNumber = computed(() => layerNumbers.value[layer.value] ?? layer.value + 1);
+const lastLayerNumber = computed(() => layerNumbers.value[count.value - 1] ?? count.value);
+
+/**
+ * QA job whose replay and camera frames the views show: the recorded one, or the one QA
+ * records while the machine prints. After a job the page follows the object model, whose job
+ * QA may not have recorded; History opens it with its id instead
+ */
+const qaJobId = computed(() => {
+	if (jobId.value !== null) {
+		return jobId.value;
+	}
+	return isPrinting(machineStore.model.state.status) ? String(qaPluginData("currentJobId") || "") : "";
+});
+
+/**
+ * Main views of the mock's analysis: the per-layer strip, and QA's top view (the layer's
+ * toolpath with measured flow and events) and camera frame. QA offers both to other plugins'
+ * pages when DWC loads it (registerEmbeddableComponent, QA docs/chx-integration.md §4)
+ */
+const VIEWS = [
+	{ value: "layers", icon: "mdi-chart-bar", label: "plugins.CHX350.analysis.viewLayers", embeddable: null },
+	{ value: "replay", icon: "mdi-layers-outline", label: "plugins.CHX350.analysis.viewReplay", embeddable: `${QA_PLUGIN_ID}.LayerReplay` },
+	{ value: "timelapse", icon: "mdi-filmstrip", label: "plugins.CHX350.analysis.viewTimelapse", embeddable: `${QA_PLUGIN_ID}.LayerTimelapse` }
+] as const;
+type View = typeof VIEWS[number]["value"];
+
+function embeddable(id: string | null) {
+	return id !== null ? (uiStore.embeddableComponents.find((c) => c.id === id)?.component ?? null) : null;
+}
+const views = computed(() => VIEWS.filter((v) => v.embeddable === null || (qaJobId.value !== "" && embeddable(v.embeddable) !== null)));
+const view = ref<View>("layers");
+watch(views, (list) => {
+	if (!list.some((v) => v.value === view.value)) {
+		view.value = "layers";
+	}
+});
+const viewComponent = computed(() => embeddable(VIEWS.find((v) => v.value === view.value)?.embeddable ?? null));
 
 function channelLabel(ch: LayerChannel): string {
 	return ch.translated ? ch.label : i18n.global.t(ch.label);

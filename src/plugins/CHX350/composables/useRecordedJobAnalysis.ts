@@ -93,6 +93,7 @@ export function useRecordedJobAnalysis(jobId: Ref<string | null>): RecordedJobAn
 
 	const layers = computed(() => answer.value?.layers ?? []);
 	const count = computed(() => layers.value.length);
+	const layerNumbers = computed(() => layers.value.map((l) => l.layer));
 
 	// QA's z is the cumulative height; a layer without one continues from the last by its thickness
 	const heights = computed(() => {
@@ -244,5 +245,5 @@ export function useRecordedJobAnalysis(jobId: Ref<string | null>): RecordedJobAn
 
 	const currentIndex = computed(() => Math.max(0, count.value - 1));
 
-	return { job, loading, error, count, heights, cumulativeFilament, channels, chamberChannel, currentIndex };
+	return { job, loading, error, count, layerNumbers, heights, cumulativeFilament, channels, chamberChannel, currentIndex };
 }

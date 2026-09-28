@@ -22,6 +22,8 @@ export interface LayerChannel {
 export interface JobLayers {
 	/** Number of layers with data */
 	count: ComputedRef<number>;
+	/** Layer number (job.layer numbering) of each entry; a job QA joined late starts above 1 */
+	layerNumbers: ComputedRef<Array<number>>;
 	/** Cumulative height (mm) after each layer */
 	heights: ComputedRef<Array<number>>;
 	/** Cumulative filament (mm) after each layer */
@@ -50,6 +52,8 @@ export function useJobAnalysis(): LayerAnalysis {
 
 	const layers = computed(() => machineStore.model.job.layers as Array<Layer>);
 	const count = computed(() => layers.value.length);
+	// job.layers[] starts with the first layer
+	const layerNumbers = computed(() => layers.value.map((_l, i) => i + 1));
 
 	const heights = computed(() => {
 		let sum = 0;
@@ -172,7 +176,7 @@ export function useJobAnalysis(): LayerAnalysis {
 		return Math.max(0, layers.value.length - 1);
 	});
 
-	return { layers, count, heights, cumulativeFilament, channels, temperatureChannel, chamberChannel, currentIndex };
+	return { layers, count, layerNumbers, heights, cumulativeFilament, channels, temperatureChannel, chamberChannel, currentIndex };
 }
 
 /** Meltingplot blue ramp used for per-layer colouring (dark = low, light = high) */

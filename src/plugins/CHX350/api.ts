@@ -80,6 +80,12 @@ export const QA_PLUGIN_ID = "QualityAssurance";
 /** Whether QA's daemon runs: its pid, for the same reason as backendAvailable */
 export const qaAvailable = computed(() => (useMachineStore().model.plugins.get(QA_PLUGIN_ID)?.pid ?? -1) > 0);
 
+/** A value QA's daemon publishes in the object model (its plugin.json `data`: currentJobId, lastJobId, …) */
+export function qaPluginData(key: string): unknown {
+	const data: unknown = useMachineStore().model.plugins.get(QA_PLUGIN_ID)?.data;
+	return data instanceof Map ? data.get(key) : undefined;
+}
+
 /** Entry of QA's job list: the HistoryEntry fields plus QA's own */
 export interface QaJobEntry extends HistoryEntry {
 	id: string;
