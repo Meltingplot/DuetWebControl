@@ -71,7 +71,7 @@
 
 		<div v-if="history.items.value.length > 0" class="list">
 			<div v-for="(item, i) in history.items.value" :key="i" class="row">
-				<span class="row__icon" :class="{ 'row__icon--warn': item.result === 'cancelled' || item.result === 'aborted', 'row__icon--run': item.result === 'running' }">
+				<span class="row__icon" :class="{ 'row__icon--warn': item.result === 'cancelled' || item.result === 'aborted' || item.result === 'unknown', 'row__icon--run': item.result === 'running' }">
 					<v-icon size="24">{{ icon(item.result) }}</v-icon>
 				</span>
 				<span style="min-width: 0">
@@ -86,7 +86,7 @@
 					{{ $t("plugins.CHX350.history.repeat") }}
 				</v-btn>
 				<span v-else />
-				<v-btn :variant="item.analysable ? 'flat' : 'text'" :color="item.analysable ? 'secondary' : undefined" class="chx-btn" :disabled="!item.analysable" @click="router.push(ROUTES.analysis)">
+				<v-btn :variant="item.analysable ? 'flat' : 'text'" :color="item.analysable ? 'secondary' : undefined" class="chx-btn" :disabled="!item.analysable" @click="openAnalysis(item)">
 					<v-icon start>mdi-chart-box-outline</v-icon>
 					{{ item.analysable ? $t("plugins.CHX350.history.openAnalysis") : $t("plugins.CHX350.history.noAnalysis") }}
 				</v-btn>
@@ -109,7 +109,7 @@ import { useSettingsStore } from "@/stores/settings";
 import { displayTime } from "@/utils/display";
 
 import ChxPageHeader from "../components/ChxPageHeader.vue";
-import { useJobHistory } from "../composables/useJobHistory";
+import { useJobHistory, type JobHistoryItem } from "../composables/useJobHistory";
 import { useMachineState } from "../composables/useMachineState";
 import { ROUTES } from "../routes";
 
@@ -120,6 +120,11 @@ const state = useMachineState();
 
 function repeat(file: string) {
 	router.push({ path: ROUTES.check, query: { file } });
+}
+
+/** The running job's analysis follows the object model live; every other job opens QA's record */
+function openAnalysis(item: JobHistoryItem) {
+	router.push(item.id !== null && item.result !== "running" ? { path: ROUTES.analysis, query: { id: item.id } } : ROUTES.analysis);
 }
 
 onMounted(() => history.load());

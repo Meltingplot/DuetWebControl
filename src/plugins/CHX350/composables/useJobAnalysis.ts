@@ -18,30 +18,38 @@ export interface LayerChannel {
 	precision: number;
 }
 
-export interface LayerAnalysis {
-	layers: ComputedRef<Array<Layer>>;
+/** Per-layer data of one job, from the object model (running/last job) or from QA (recorded jobs) */
+export interface JobLayers {
+	/** Number of layers with data */
+	count: ComputedRef<number>;
 	/** Cumulative height (mm) after each layer */
 	heights: ComputedRef<Array<number>>;
 	/** Cumulative filament (mm) after each layer */
 	cumulativeFilament: ComputedRef<Array<number>>;
+	/** The first three are always duration, filament and flow */
 	channels: ComputedRef<Array<LayerChannel>>;
-	/** Sensor-based temperature channels resolved by sensor name */
-	temperatureChannel: (predicate: (sensor: AnalogSensor, index: number) => boolean) => ComputedRef<LayerChannel | null>;
 	/** Chamber temperature per layer: the chamber heater's sensor if any, else the SZP coil sensor */
 	chamberChannel: ComputedRef<LayerChannel | null>;
 	/** Index of the layer currently printing (0-based) or the last one when idle */
 	currentIndex: ComputedRef<number>;
 }
 
+export interface LayerAnalysis extends JobLayers {
+	layers: ComputedRef<Array<Layer>>;
+	/** Sensor-based temperature channels resolved by sensor name */
+	temperatureChannel: (predicate: (sensor: AnalogSensor, index: number) => boolean) => ComputedRef<LayerChannel | null>;
+}
+
 /**
  * Per-layer analysis of the current (or last) job straight from the object model. RRF keeps
  * job.layers[] until the next job starts, so the last job stays analysable after it finished.
- * The QA plugin will later provide the same shape for historical jobs
+ * Recorded jobs come from QA in the same shape (useRecordedJobAnalysis)
  */
 export function useJobAnalysis(): LayerAnalysis {
 	const machineStore = useMachineStore();
 
 	const layers = computed(() => machineStore.model.job.layers as Array<Layer>);
+	const count = computed(() => layers.value.length);
 
 	const heights = computed(() => {
 		let sum = 0;
@@ -164,7 +172,7 @@ export function useJobAnalysis(): LayerAnalysis {
 		return Math.max(0, layers.value.length - 1);
 	});
 
-	return { layers, heights, cumulativeFilament, channels, temperatureChannel, chamberChannel, currentIndex };
+	return { layers, count, heights, cumulativeFilament, channels, temperatureChannel, chamberChannel, currentIndex };
 }
 
 /** Meltingplot blue ramp used for per-layer colouring (dark = low, light = high) */

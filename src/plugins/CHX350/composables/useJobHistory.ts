@@ -6,16 +6,18 @@ import { isPrinting } from "@/utils/enums";
 import { getErrorMessage } from "@/utils/errors";
 import { extractFileName } from "@/utils/path";
 
-import { api, backendAvailable, type HistoryEntry } from "../api";
+import { api, backendAvailable, qa, qaAvailable, type HistoryEntry } from "../api";
 
 export interface JobHistoryItem {
 	file: string;
 	name: string;
-	result: "running" | "finished" | "cancelled" | "aborted";
+	result: HistoryEntry["result"];
 	printTimeS: number | null;
 	timestamp: Date | null;
-	/** Whether the layer analysis (object model) is available for this entry */
+	/** Whether a layer analysis is available: the object model's for the running/last job, QA's for recorded ones */
 	analysable: boolean;
+	/** QA job id: the analysis page shows QA's record of this job instead of the object model */
+	id: string | null;
 }
 
 const HISTORY_LIMIT = 100;
@@ -52,10 +54,10 @@ export function parseEventLog(text: string, limit = HISTORY_LIMIT): Array<Histor
 const MAX_LOG_BYTES = 8 * 1024 * 1024;
 
 /**
- * Job history: the running/last job from the object model on top, the firmware event log below.
- * The SBC backend parses the log; without it the browser downloads and parses the log itself.
- * The quality-assurance plugin will replace the log source with its own records later - this
- * composable is the seam
+ * Job history: the running/last job from the object model on top, the recorded jobs below. The
+ * records come from the quality-assurance plugin when it runs (every job with its analysis),
+ * else from the firmware event log: parsed by the SBC backend, or without it downloaded and
+ * parsed by the browser
  */
 export function useJobHistory() {
 	const machineStore = useMachineStore();
@@ -70,6 +72,14 @@ export function useJobHistory() {
 		loading.value = true;
 		error.value = null;
 		try {
+			if (qaAvailable.value) {
+				try {
+					entries.value = (await qa.jobs(HISTORY_LIMIT)).jobs ?? [];
+					return;
+				} catch (e) {
+					console.warn("[CHX350] QA job list failed, reading the event log instead", e);
+				}
+			}
 			if (backendAvailable.value) {
 				try {
 					entries.value = (await api.history(HISTORY_LIMIT)).entries ?? [];
@@ -87,8 +97,8 @@ export function useJobHistory() {
 		}
 	}
 
-	/** Event log without the backend. Logging is off when the firmware has no log file (M929) */
-	const loggingOff = computed(() => !machineStore.model.state.logFile);
+	/** Event log without the backend. Logging is off when the firmware has no log file (M929); QA does not need it */
+	const loggingOff = computed(() => !qaAvailable.value && !machineStore.model.state.logFile);
 	async function readEventLog(): Promise<Array<HistoryEntry>> {
 		const logFile = machineStore.model.state.logFile;
 		if (!logFile) {
@@ -111,7 +121,7 @@ export function useJobHistory() {
 		const job = machineStore.model.job;
 		const status = machineStore.model.state.status;
 		if (isPrinting(status) && job.file?.fileName) {
-			return { file: job.file.fileName, name: extractFileName(job.file.fileName), result: "running", printTimeS: job.duration, timestamp: null, analysable: true };
+			return { file: job.file.fileName, name: extractFileName(job.file.fileName), result: "running", printTimeS: job.duration, timestamp: null, analysable: true, id: null };
 		}
 		if (job.lastFileName) {
 			return {
@@ -120,7 +130,8 @@ export function useJobHistory() {
 				result: job.lastFileAborted ? "aborted" : (job.lastFileCancelled ? "cancelled" : "finished"),
 				printTimeS: job.lastDuration,
 				timestamp: null,
-				analysable: machineStore.model.job.layers.length > 0
+				analysable: machineStore.model.job.layers.length > 0,
+				id: null
 			};
 		}
 		return null;
@@ -128,14 +139,20 @@ export function useJobHistory() {
 
 	const items = computed<Array<JobHistoryItem>>(() => {
 		const list: Array<JobHistoryItem> = [];
-		// A copy: the log line's timestamp is merged in below and must not change `current` itself
+		// A copy: the record's timestamp and id are merged in below and must not change `current` itself
 		if (current.value) {
 			list.push({ ...current.value });
 		}
 		for (const e of entries.value) {
-			// Skip the log line that describes the same job as the object model's last job
-			if (current.value && current.value.result !== "running" && list.length === 1 && e.file === current.value.file) {
-				list[0].timestamp = e.timestamp ? new Date(e.timestamp) : null;
+			// The first record describes the object model's job when the file matches: the log line
+			// of the last job, or QA's record of the running one (QA lists it as running, and still
+			// does for up to 10 s after the end while it waits for the outcome flags). A running job
+			// never matches a record that has ended: that is an earlier print of the same file
+			const ended = e.result !== "running";
+			if (current.value && list.length === 1 && e.file === current.value.file && !(current.value.result === "running" && ended)) {
+				list[0].timestamp = e.timestamp && current.value.result !== "running" ? new Date(e.timestamp) : null;
+				list[0].id = e.id ?? null;
+				list[0].analysable = list[0].analysable || e.analysable === true;
 				continue;
 			}
 			list.push({
@@ -143,12 +160,14 @@ export function useJobHistory() {
 				name: extractFileName(e.file),
 				result: e.result,
 				printTimeS: e.printTimeS,
-				timestamp: e.timestamp ? new Date(e.timestamp) : null,
-				analysable: false
+				// QA gives the start time while a job runs; the row reads "ended <date>"
+				timestamp: e.timestamp && ended ? new Date(e.timestamp) : null,
+				analysable: e.analysable === true,
+				id: e.id ?? null
 			});
 		}
 		return list;
 	});
 
-	return { items, current, loading, error, loggingOff, backendAvailable, load };
+	return { items, current, loading, error, loggingOff, backendAvailable, qaAvailable, load };
 }
