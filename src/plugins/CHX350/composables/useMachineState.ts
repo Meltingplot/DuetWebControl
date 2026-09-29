@@ -41,6 +41,8 @@ export function useMachineState() {
 
 	const printing = computed(() => isPrinting(status.value));
 	const paused = computed(() => isPaused(status.value));
+	/** The job is held: pause.g has finished and nothing resumes or cancels it yet */
+	const jobPaused = computed(() => status.value === MachineStatus.paused);
 	const halted = computed(() => status.value === MachineStatus.halted);
 	const busy = computed(() => status.value !== MachineStatus.idle);
 	// A heater is heating when it is below the setpoint that applies to its state: a tool parked
@@ -98,12 +100,14 @@ export function useMachineState() {
 	const uiFrozen = computed(() => uiStore.uiFrozen);
 
 	/**
-	 * Axis moves from the UI are permitted in automatic mode only and never while a job runs
-	 * (including paused). The mode covers the door interlock: the firmware drops to default mode
-	 * itself when a door opens. A plain "busy" status must not lock the controls because that is
-	 * exactly what a running axis move looks like
+	 * Axis moves from the UI are permitted in automatic mode only and never while a job runs. A
+	 * paused job is the exception (not while pausing, resuming or cancelling): the firmware moves
+	 * the head back to the pause point on resume, see Control.vue for the limits that still apply.
+	 * The mode covers the door interlock: the firmware drops to default mode itself when a door
+	 * opens. A plain "busy" status must not lock the controls because that is exactly what a
+	 * running axis move looks like
 	 */
-	const axesLocked = computed(() => uiFrozen.value || printing.value || !globals.isAutomatic.value);
+	const axesLocked = computed(() => uiFrozen.value || (printing.value && !jobPaused.value) || !globals.isAutomatic.value);
 
 	/**
 	 * W017 hot-surface warning: only relevant in default mode, i.e. when the operator can open the
@@ -121,7 +125,7 @@ export function useMachineState() {
 	return {
 		status, connected, uiFrozen,
 		doorOpen, doorCheckPending, heaterFaults, heaters, heatersOn,
-		printing, paused, halted, heating, busy,
+		printing, paused, jobPaused, halted, heating, busy,
 		plate, axesLocked, machineIsHot,
 		machineMode: globals.machineMode,
 		isAutomatic: globals.isAutomatic

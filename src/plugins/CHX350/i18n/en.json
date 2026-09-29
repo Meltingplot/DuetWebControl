@@ -309,7 +309,7 @@
 		"keepOut": "BLOCKED · T{tool} IS IN THE WAY",
 		"lockDoor": "Door open · axis movement locked",
 		"lockMode": "Default mode · axis movement only in automatic mode",
-		"lockPrinting": "Job running · axis movement locked",
+		"lockPrinting": "Job running · moving only while paused",
 		"lockBusy": "Machine busy · please wait",
 		"lockDoorCheck": "Door check pending · open and close both doors once",
 		"zStep": "Step {step} mm",
@@ -317,7 +317,11 @@
 		"notHomed": "not homed",
 		"homeAxis": "Home axis {axis}",
 		"selectedAxis": "T{tool} · axis {axis}",
-		"lockNotHomed": "{axes} not homed · home it in the positions row below"
+		"lockNotHomed": "{axes} not homed · home it in the positions row below",
+		"pauseZFloor": "Paused · Z not below {z} mm, clearance to the part",
+		"lockPauseZ": "Bed too close to the part · move Z to at least {z} mm first",
+		"lockPausePoint": "Pause position unknown · Z locked",
+		"lockPauseHome": "Paused · homing only after the job"
 	},
 	"calibrate": {
 		"title": "Calibrate",

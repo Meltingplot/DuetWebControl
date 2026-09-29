@@ -164,8 +164,9 @@
 					<BedMap class="jog__map" :size-x="bedMap.sizeX" :size-y="bedMap.sizeY" :heads="heads" :selected-tool="selectedTool"
 							:head-spacing="bedMap.headSpacing" :tool1-axis="bedMap.tool1YAxis" :locked="mapLocked" :busy="busy"
 							:lock-reason="mapLockReason" :moving="moving" :target="target" @move="moveTo" @select="selectTool" />
-					<ZTower v-if="zAxis" :current="zAxis.userPosition" :min="zAxis.min" :max="zAxis.max" :locked="locked || !zAxis.homed" :busy="busy"
-							:lock-hint="!locked && !zAxis.homed ? $t('plugins.CHX350.control.notHomed') : ''" @goto="gotoZ" />
+					<ZTower v-if="zAxis" :current="zAxis.userPosition" :min="zAxis.min" :max="zAxis.max" :floor="pauseZFloor"
+							:floor-hint="pauseZFloor !== null ? $t('plugins.CHX350.control.pauseZFloor', { z: pauseZFloor }) : ''"
+							:locked="zLocked" :busy="busy" :lock-hint="zLockHint" @goto="gotoZ" />
 				</div>
 			</template>
 			<template v-else>
@@ -198,10 +199,10 @@
 					<div v-if="axis.homed" class="pos__val">{{ axis.userPosition !== null ? axis.userPosition.toFixed(axis.letter === 'Z' ? 2 : 1) : "—" }}</div>
 					<!-- An unhomed axis shows an icon-only home button in place of its (meaningless) coordinate -->
 					<button v-else type="button" class="pos__home" :class="{ 'pos__home--busy': homingAxis === axis.letter }"
-							:disabled="locked || homingAxis !== null" :title="locked ? lockReason : $t('plugins.CHX350.control.homeAxis', { axis: axis.letter })"
+							:disabled="homeLocked || homingAxis !== null" :title="homeLocked ? homeLockReason : $t('plugins.CHX350.control.homeAxis', { axis: axis.letter })"
 							:aria-label="$t('plugins.CHX350.control.homeAxis', { axis: axis.letter })" @click="homeAxis(axis.letter)">
 						<v-progress-circular v-if="homingAxis === axis.letter" indeterminate size="16" width="2" />
-						<v-icon v-else size="20">{{ locked ? "mdi-lock-outline" : "mdi-home-import-outline" }}</v-icon>
+						<v-icon v-else size="20">{{ homeLocked ? "mdi-lock-outline" : "mdi-home-import-outline" }}</v-icon>
 					</button>
 				</div>
 				<div class="flex-grow-1" />
@@ -260,8 +261,8 @@ const heads = computed(() => tools.value.slice(0, 2).map((t) => {
 	return { tool: t.number, x: axis("X")?.userPosition ?? 0, y: axis(yLetter)?.userPosition ?? 0 };
 }));
 
-// Locked while a job runs or outside automatic mode (see useMachineState.axesLocked); a plain
-// busy status is what our own moves look like and does not lock
+// Locked while a job runs (unless it is paused) or outside automatic mode (see
+// useMachineState.axesLocked); a plain busy status is what our own moves look like and does not lock
 const locked = computed(() => !state.connected.value || state.axesLocked.value);
 
 // Leave jog mode as soon as the lock engages, e.g. when a print starts from another client
@@ -273,8 +274,53 @@ watch(locked, (isLocked) => {
 
 // Transient: while the firmware runs a macro (or one of our own moves) it accepts no new motion
 // commands, so inputs are dropped during that time. The view keeps its normal look on purpose:
-// busy toggles with every status poll and a visible lock would flicker
-const busy = computed(() => moving.value || state.busy.value);
+// busy toggles with every status poll and a visible lock would flicker. A paused job reports
+// "paused" throughout, moves included, so there only our own move counts
+const busy = computed(() => moving.value || (!state.jobPaused.value && state.busy.value));
+
+/**
+ * Clearance above the pause point that the bed must keep while a job is paused: resume.g moves
+ * X/Y back at the current height before it lowers the nozzle onto the part, and pause.g lifts by
+ * at least this much
+ */
+const PAUSE_Z_CLEARANCE = 5;
+
+/** Pause restore point (restorePoints[1] in RRF) of the main motion system, null unless paused */
+const pausePoint = computed(() => state.jobPaused.value
+	? machineStore.model.move.motionSystems[0]?.restorePoints[1]?.coords ?? null : null);
+
+/** Lowest Z the tower may drive to while paused, null when no pause limit applies or it is unknown */
+const pauseZFloor = computed(() => {
+	const index = axes.value.findIndex((a) => a.letter === "Z");
+	const pauseZ = pausePoint.value?.[index];
+	if (!state.jobPaused.value || zAxis.value === null || typeof pauseZ !== "number") {
+		return null;
+	}
+	return Math.min(zAxis.value.max, Math.ceil((pauseZ + PAUSE_Z_CLEARANCE) * 100) / 100);
+});
+
+// Without a known pause point Z stays locked: there is no safe floor to keep
+const pauseZUnknown = computed(() => state.jobPaused.value && pauseZFloor.value === null);
+const zLocked = computed(() => locked.value || zAxis.value?.homed === false || pauseZUnknown.value);
+const zLockHint = computed(() => {
+	if (locked.value) {
+		return "";
+	}
+	if (zAxis.value?.homed === false) {
+		return i18n.global.t("plugins.CHX350.control.notHomed");
+	}
+	return pauseZUnknown.value ? i18n.global.t("plugins.CHX350.control.lockPausePoint") : "";
+});
+
+/** The bed sits closer to the part than the pause clearance (e.g. moved by a macro), X/Y wait */
+const belowPauseZFloor = computed(() => {
+	const z = zAxis.value?.userPosition;
+	return pauseZFloor.value !== null && typeof z === "number" && z < pauseZFloor.value - 0.005;
+});
+
+// Homing is never part of a pause: G28 Z probes where the part stands, and all axes are homed anyway
+const homeLocked = computed(() => locked.value || state.jobPaused.value);
+const homeLockReason = computed(() => locked.value ? lockReason.value : i18n.global.t("plugins.CHX350.control.lockPauseHome"));
 
 const lockReason = computed(() => {
 	if (!state.connected.value) {
@@ -297,10 +343,16 @@ const lockReason = computed(() => {
  * rejects the move, so the map says so and points to the home buttons in the positions row
  */
 const unhomedXY = computed(() => ["X", selectedYAxis.value].filter((letter) => axis(letter)?.homed === false));
-const mapLocked = computed(() => locked.value || unhomedXY.value.length > 0);
-const mapLockReason = computed(() => locked.value
-	? lockReason.value
-	: i18n.global.t("plugins.CHX350.control.lockNotHomed", { axes: unhomedXY.value.join(", ") }));
+const mapLocked = computed(() => locked.value || unhomedXY.value.length > 0 || belowPauseZFloor.value);
+const mapLockReason = computed(() => {
+	if (locked.value) {
+		return lockReason.value;
+	}
+	if (unhomedXY.value.length > 0) {
+		return i18n.global.t("plugins.CHX350.control.lockNotHomed", { axes: unhomedXY.value.join(", ") });
+	}
+	return i18n.global.t("plugins.CHX350.control.lockPauseZ", { z: pauseZFloor.value });
+});
 
 // The header plate already names the cause (DRUCKT/PAUSIERT, OFFLINE, or the mode and door line
 // under LEERLAUF). Only HEIZT AUF and ARBEITET hide it, e.g. while heating in default mode
@@ -336,20 +388,21 @@ async function send(code: string) {
  * Select a tool on the machine. The CHX 350 tools sit on their own print heads for good (T0 and T1
  * on the IDEX heads), so there is nothing to change and the tool change macros are skipped (P0);
  * tpost would also wait for the nozzle temperature. A tool changer (Bondtech INDX) will need the
- * macros for tools parked beside the bed
+ * macros for tools parked beside the bed. While paused only the head to move changes: pause.g
+ * has put the tool on standby and resume.g selects it again (T R1), an active tool would reheat
  */
 async function selectTool(tool: number) {
 	if (tool === selectedTool.value) {
 		return;
 	}
 	selectedTool.value = tool;
-	if (!locked.value && !busy.value && machineStore.model.state.currentTool !== tool) {
+	if (!locked.value && !busy.value && !state.jobPaused.value && machineStore.model.state.currentTool !== tool) {
 		await send(`T${tool} P0`);
 	}
 }
 
 async function moveTo(point: { x: number; y: number }) {
-	if (locked.value || busy.value) {
+	if (mapLocked.value || busy.value) {
 		return;
 	}
 	target.value = point;
@@ -366,7 +419,7 @@ async function moveTo(point: { x: number; y: number }) {
 const homingAxis = ref<string | null>(null);
 
 async function homeAxis(letter: string) {
-	if (locked.value || busy.value || homingAxis.value !== null) {
+	if (homeLocked.value || busy.value || homingAxis.value !== null) {
 		return;
 	}
 	homingAxis.value = letter;
@@ -380,7 +433,7 @@ async function homeAxis(letter: string) {
 }
 
 async function gotoZ(z: number) {
-	if (locked.value || busy.value) {
+	if (zLocked.value || busy.value || (pauseZFloor.value !== null && z < pauseZFloor.value)) {
 		return;
 	}
 	moving.value = true;

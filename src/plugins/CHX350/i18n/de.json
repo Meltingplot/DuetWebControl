@@ -309,7 +309,7 @@
 		"keepOut": "GESPERRT · T{tool} STEHT IM WEG",
 		"lockDoor": "Tür offen · Achsbewegung gesperrt",
 		"lockMode": "Betriebsart Default · Achsbewegung nur in Automatik",
-		"lockPrinting": "Auftrag läuft · Achsbewegung gesperrt",
+		"lockPrinting": "Auftrag läuft · Verfahren nur in der Pause",
 		"lockBusy": "Maschine beschäftigt · bitte warten",
 		"lockDoorCheck": "Türkontrolle ausstehend · beide Türen einmal öffnen und schließen",
 		"zStep": "Schritt {step} mm",
@@ -317,7 +317,11 @@
 		"notHomed": "nicht referenziert",
 		"homeAxis": "Achse {axis} referenzieren",
 		"selectedAxis": "T{tool} · Achse {axis}",
-		"lockNotHomed": "{axes} nicht referenziert · unten in der Positionszeile referenzieren"
+		"lockNotHomed": "{axes} nicht referenziert · unten in der Positionszeile referenzieren",
+		"pauseZFloor": "Pausiert · Z nicht unter {z} mm, Abstand zum Teil",
+		"lockPauseZ": "Bett zu nah am Teil · zuerst Z auf mindestens {z} mm fahren",
+		"lockPausePoint": "Pausenposition unbekannt · Z gesperrt",
+		"lockPauseHome": "Pausiert · Referenzieren erst nach dem Auftrag"
 	},
 	"calibrate": {
 		"title": "Kalibrieren",
