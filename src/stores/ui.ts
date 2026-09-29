@@ -4,6 +4,7 @@ import { defineStore } from "pinia";
 
 import vuetify from "@/vue-plugins/vuetify";
 import type { EmbeddableComponent } from "@/plugins";
+import { filterReplyNotification } from "@/plugins/interception";
 import type { RegisteredLayout, RegisterLayoutOptions } from "@/plugins/layout";
 import { getErrorMessage } from "@/utils/errors";
 import { extractFileName } from "@/utils/path";
@@ -431,13 +432,15 @@ export const useUiStore = defineStore("ui", {
 				type = LogLevel.success;
 			}
 
-			// Log it
-			if (!this.hideCodeReplyNotifications) {
+			// Log it. A plugin may keep lines out of the notification, and when that leaves nothing,
+			// there is no notification at all
+			const toNotify = this.hideCodeReplyNotifications ? null : filterReplyNotification(toLog);
+			if (toNotify !== null) {
 				// Notifications only carry a compact preview; the Console keeps the full reply. The
 				// limit is tighter on small screens where the toast has far less room. When clipped,
 				// the component renders a distinct "see Console" line below the preview
 				const [maxLines, maxChars] = vuetify.display.smAndDown.value ? [2, 80] : [3, 160];
-				const { text: preview, truncated } = truncateNotificationText(toLog, maxLines, maxChars);
+				const { text: preview, truncated } = truncateNotificationText(toNotify, maxLines, maxChars);
 
 				let title: string, message: string;
 				if (code) {

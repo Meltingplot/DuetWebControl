@@ -409,8 +409,8 @@ async function ensurePluginExtras(): Promise<void> {
 
 // Object model patching and code interception live in their own module because the machine store
 // consumes them - re-exported here so they reach plugins on the same window.DWC surface
-export { registerModelPatch, unregisterModelPatch, patchModel, registerCodeInterceptor, unregisterCodeInterceptor, registerMessageBoxClaim, unregisterMessageBoxClaim } from "./interception";
-export type { ModelPatch, CodeInterceptor, CodeInterceptionResult } from "./interception";
+export { registerModelPatch, unregisterModelPatch, patchModel, registerCodeInterceptor, unregisterCodeInterceptor, registerMessageBoxClaim, unregisterMessageBoxClaim, registerReplyNotificationFilter, unregisterReplyNotificationFilter } from "./interception";
+export type { ModelPatch, CodeInterceptor, CodeInterceptionResult, ReplyNotificationFilter } from "./interception";
 
 /**
  * Register a new route and menu item.

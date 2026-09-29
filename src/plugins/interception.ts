@@ -186,3 +186,62 @@ export function isMessageBoxClaimed(box: MessageBox): boolean {
 }
 
 // #endregion
+
+// #region Reply notification filters
+
+/**
+ * Callback picking lines of a code reply or machine message that are not worth a notification
+ * @param line Line of the reply, trimmed
+ * @returns true to leave the line out of the notification
+ */
+export type ReplyNotificationFilter = (line: string) => boolean;
+
+const _replyNotificationFilters = new Map<string, ReplyNotificationFilter>();
+
+/**
+ * Register a callback that keeps lines of code replies and machine messages out of DWC's
+ * notifications, say a marker a plugin reads itself. The Console still logs the full reply
+ * @param id Unique identifier, conventionally the plugin id
+ * @param filter Callback to register
+ */
+export function registerReplyNotificationFilter(id: string, filter: ReplyNotificationFilter) {
+	_replyNotificationFilters.set(id, filter);
+}
+
+/**
+ * Remove a reply notification filter again
+ * @param id Identifier it was registered with
+ */
+export function unregisterReplyNotificationFilter(id: string) {
+	_replyNotificationFilters.delete(id);
+}
+
+/**
+ * Drop the lines a registered filter hides from a reply before it is shown as a notification.
+ * A throwing filter is reported and ignored, so the line stays
+ * @param reply Code reply or machine message
+ * @returns Remaining text, or null when there was text and every line of it was hidden
+ */
+export function filterReplyNotification(reply: string): string | null {
+	if (_replyNotificationFilters.size === 0 || reply === "") {
+		return reply;
+	}
+
+	const lines = reply.split("\n").filter((line) => {
+		const trimmed = line.trim();
+		for (const [id, filter] of _replyNotificationFilters) {
+			try {
+				if (filter(trimmed)) {
+					return false;
+				}
+			} catch (e) {
+				console.warn(`Reply notification filter "${id}" failed`, e);
+			}
+		}
+		return true;
+	});
+	const text = lines.join("\n");
+	return (text.trim() === "") ? null : text;
+}
+
+// #endregion
