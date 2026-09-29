@@ -380,7 +380,7 @@ import { computed, nextTick, onBeforeUnmount, onMounted, reactive, ref, watch } 
 
 import { isAxisAtLimit } from "@/composables/useMoveSteps";
 import i18n from "@/i18n";
-import { registerMessageBoxClaim, unregisterMessageBoxClaim } from "@/plugins/interception";
+import { registerMessageBoxClaim, registerReplyNotificationFilter, unregisterMessageBoxClaim, unregisterReplyNotificationFilter } from "@/plugins/interception";
 import { useMachineStore } from "@/stores/machine";
 import { display, displayZ } from "@/utils/display";
 import { axisGCodeLetter } from "@/utils/gcode";
@@ -391,7 +391,7 @@ import ChxCameraBox from "../components/ChxCameraBox.vue";
 import { maxFeedrate } from "../motion";
 import { PLUGIN_ID, useChxSettings } from "../settings";
 import { flowContext } from "./context";
-import type { FlowStep } from "./parse";
+import { COMPLETION_MARKER, type FlowStep } from "./parse";
 import { renderStepHtml, sanitizeHtml, type SanitizedHtml } from "./render";
 import { useFlowStore } from "./store";
 
@@ -402,6 +402,10 @@ const { bedMap } = useChxSettings();
 // The shell shows every box of a running flow, and boxes that a flow file documents
 onMounted(() => registerMessageBoxClaim(PLUGIN_ID, (box) => flowStore.claims(box)));
 onBeforeUnmount(() => unregisterMessageBoxClaim(PLUGIN_ID));
+
+// The completion line is for the flow store, the panel shows the result; no toast for it
+onMounted(() => registerReplyNotificationFilter(PLUGIN_ID, (line) => line === COMPLETION_MARKER));
+onBeforeUnmount(() => unregisterReplyNotificationFilter(PLUGIN_ID));
 
 const active = computed(() => flowStore.active);
 const file = computed(() => active.value ? flowStore.files[active.value.path] ?? null : null);
