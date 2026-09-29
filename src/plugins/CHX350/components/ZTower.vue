@@ -50,6 +50,16 @@
 	cursor: not-allowed;
 	opacity: 0.5;
 }
+.z__floor {
+	position: absolute;
+	top: 0;
+	left: 0;
+	right: 0;
+	border-radius: var(--mp-radius-sm) var(--mp-radius-sm) 0 0;
+	border-bottom: 2px solid #fff;
+	background: repeating-linear-gradient(135deg, rgba(0, 0, 0, 0.6) 0 6px, rgba(0, 0, 0, 0.3) 6px 12px);
+	pointer-events: none;
+}
 .z__line {
 	position: absolute;
 	left: 0;
@@ -106,6 +116,7 @@
 				 @pointercancel="onCancel" @contextmenu.prevent="enter">
 				<div v-if="logScale" class="z__line" style="top: 28%" />
 				<div v-if="logScale" class="z__line" style="top: 72%" />
+				<div v-if="floorZ > min" class="z__floor" :style="{ height: pct(floorZ) }" />
 				<div v-if="target !== null" class="z__knob z__knob--target" :style="{ top: pct(target) }" />
 				<div class="z__knob" :style="{ top: pct(current ?? min) }" />
 			</div>
@@ -113,7 +124,7 @@
 		<div class="z__foot">
 			<div class="z__num" :class="{ 'z__num--target': target !== null }" @click="enter">{{ shown.toFixed(2) }}</div>
 			<div class="z__step">{{ $t("plugins.CHX350.control.zStep", { step: stepLabel }) }}</div>
-			<div class="z__hint">{{ locked ? (lockHint || $t("plugins.CHX350.generic.lockedAxes")) : $t("plugins.CHX350.control.zHint") }}</div>
+			<div class="z__hint">{{ locked ? (lockHint || $t("plugins.CHX350.generic.lockedAxes")) : (floorHint || $t("plugins.CHX350.control.zHint")) }}</div>
 		</div>
 	</div>
 </template>
@@ -137,9 +148,17 @@ const props = withDefaults(defineProps<{
 	lockHint?: string;
 	/** Transient: pointer input is ignored without any visual change (see Control.vue) */
 	busy?: boolean;
+	/**
+	 * Lowest Z the tower accepts, e.g. to keep the bed clear of the part while a job is paused;
+	 * the scale still spans min..max and the range below is shaded
+	 */
+	floor?: number | null;
+	/** Shown instead of the usage hint while a floor applies */
+	floorHint?: string;
 }>(), {
 	locked: false,
-	busy: false
+	busy: false,
+	floor: null
 });
 
 const emit = defineEmits<{
@@ -151,6 +170,7 @@ const LOG_MM = 10;
 const LOG_MIN = 0.01;
 
 const span = computed(() => Math.max(0, props.max - props.min));
+const floorZ = computed(() => props.floor === null ? props.min : clamp(props.floor, props.min, props.max));
 const logScale = computed(() => span.value > 4 * LOG_MM);
 
 function clamp(value: number, lo: number, hi: number): number {
@@ -233,7 +253,7 @@ function pick(e: PointerEvent) {
 	trackPx.value = rect.height;
 	const u = clamp((e.clientY - rect.top) / rect.height, 0, 1);
 	const step = stepAt(u, rect.height);
-	target.value = clamp(Math.round(zFromU(u) / step) * step, props.min, props.max);
+	target.value = clamp(Math.round(zFromU(u) / step) * step, floorZ.value, props.max);
 }
 
 function onDown(e: PointerEvent) {
@@ -271,10 +291,10 @@ async function enter() {
 		return;
 	}
 	const value = await getNumericInput(i18n.global.t("plugins.CHX350.control.enterZTitle"),
-		i18n.global.t("plugins.CHX350.control.enterZPrompt", { min: props.min, max: props.max }),
-		props.current ?? props.min, props.min, props.max);
+		i18n.global.t("plugins.CHX350.control.enterZPrompt", { min: floorZ.value, max: props.max }),
+		clamp(props.current ?? floorZ.value, floorZ.value, props.max), floorZ.value, props.max);
 	if (value !== null && !props.locked && !props.busy) {
-		emit("goto", clamp(value, props.min, props.max));
+		emit("goto", clamp(value, floorZ.value, props.max));
 	}
 }
 
