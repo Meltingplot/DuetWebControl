@@ -608,6 +608,14 @@ const answering = computed(() => box.value !== null && answeredSeq.value === box
 const numberText = ref("");
 const stringInput = ref("");
 
+// RRF numbers boxes from 1 again after a reset: an answer holds until its box closes, else a box
+// after the reset with the answered seq would show as answered (OK disabled, progress not closed)
+watch(box, (b) => {
+	if (b === null) {
+		answeredSeq.value = null;
+	}
+});
+
 watch(() => box.value?.seq, () => {
 	const b = box.value;
 	numberText.value = (b && typeof b.default === "number") ? String(b.default) : "";
