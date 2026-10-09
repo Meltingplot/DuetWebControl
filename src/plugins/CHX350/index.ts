@@ -26,6 +26,7 @@ import Control from "./pages/Control.vue";
 import History from "./pages/History.vue";
 import Analysis from "./pages/Analysis.vue";
 import About from "./pages/About.vue";
+import Licenses from "./pages/Licenses.vue";
 import Support from "./pages/Support.vue";
 import SettingsTab from "./pages/SettingsTab.vue";
 
@@ -54,6 +55,7 @@ const pages: Array<{ name: string; path: string; component: any; icon: string }>
 	{ name: "History", path: ROUTES.history, component: History, icon: "mdi-history" },
 	{ name: "Analysis", path: ROUTES.analysis, component: Analysis, icon: "mdi-chart-box-outline" },
 	{ name: "About", path: ROUTES.about, component: About, icon: "mdi-information-outline" },
+	{ name: "Licenses", path: ROUTES.licenses, component: Licenses, icon: "mdi-license" },
 	{ name: "Support", path: ROUTES.support, component: Support, icon: "mdi-headset" },
 	{ name: "Service", path: ROUTES.service, component: Service, icon: "mdi-lock-outline" }
 ];

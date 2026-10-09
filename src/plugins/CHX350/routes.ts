@@ -13,6 +13,7 @@ export const ROUTES = {
 	history: "/CHX/History",
 	analysis: "/CHX/Analysis",
 	about: "/CHX/About",
+	licenses: "/CHX/Licenses",
 	support: "/CHX/Support",
 	service: "/CHX/Service"
 } as const;
@@ -35,7 +36,7 @@ export const NAV_ITEMS: ReadonlyArray<NavItem> = [
 	{ path: ROUTES.control, icon: "mdi-axis-arrow", caption: "plugins.CHX350.nav.control", matches: [ROUTES.control] },
 	{ path: ROUTES.history, icon: "mdi-history", caption: "plugins.CHX350.nav.history", matches: [ROUTES.history, ROUTES.analysis] },
 	{ path: ROUTES.support, icon: "mdi-headset", caption: "plugins.CHX350.nav.support", matches: [ROUTES.support] },
-	{ path: ROUTES.about, icon: "mdi-information-outline", caption: "plugins.CHX350.nav.about", matches: [ROUTES.about] }
+	{ path: ROUTES.about, icon: "mdi-information-outline", caption: "plugins.CHX350.nav.about", matches: [ROUTES.about, ROUTES.licenses] }
 ];
 
 /** Bottom sidebar entry */

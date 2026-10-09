@@ -6,6 +6,7 @@
 		"history": "History",
 		"support": "Support",
 		"about": "About",
+		"licenses": "Licenses",
 		"service": "Service",
 		"jobs": "Jobs",
 		"check": "Check job",
@@ -403,11 +404,7 @@
 		"componentsHint": "Firmware and DSF versions are read from the object model at runtime.",
 		"license": "License",
 		"licenseText": "Duet Web Control © Christian Hammacher, Duet3D Ltd. Fork maintained by Meltingplot GmbH, licensed under GPL-3.0. This machine runs free software. Sources of the GPL components are available on request.",
-		"showLicenses": "Show license texts",
-		"hideLicenses": "Hide license texts",
-		"machineLicenses": "Licenses of the machine software",
-		"dwcLicense": "Duet Web Control (GPL-3.0)",
-		"fonts": "Jost · JetBrains Mono (SIL OFL 1.1)",
+		"showLicenses": "Show license notices",
 		"note": {
 			"dwc": "User interface · Meltingplot fork",
 			"plugin": "CHX350 plugin",
@@ -419,6 +416,21 @@
 			"charts": "Charts",
 			"fonts": "Fonts"
 		}
+	},
+	"licenses": {
+		"panel": "Operator panel",
+		"printer": "Printer computer",
+		"ui": "User interface",
+		"notice": "License notice",
+		"packages": "Packages ({count})",
+		"packagesHint": "Debian packages of the operator panel. Tap a package to show its copyright file.",
+		"source": "Source package: {source}",
+		"dwc": "Duet Web Control (GPL-3.0)",
+		"fonts": "Jost · JetBrains Mono (SIL OFL 1.1)",
+		"loading": "Loading …",
+		"missing": "Not available.",
+		"failed": "Could not be loaded ({error}).",
+		"panelMissing": "The operator panel's license notices are not available through this connection, e.g. when the printer computer is accessed directly or the panel runs older software."
 	},
 	"heaterPhase": {
 		"off": "off",

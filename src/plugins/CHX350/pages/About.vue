@@ -58,16 +58,6 @@
 	width: 100%;
 	height: auto;
 }
-.license {
-	font: 400 11px/1.4 var(--mp-font-mono, monospace);
-	white-space: pre-wrap;
-	max-height: 260px;
-	overflow: auto;
-	padding: 10px;
-	border-radius: var(--mp-radius);
-	background: var(--surface-page);
-	color: var(--text-body);
-}
 </style>
 
 <template>
@@ -93,34 +83,25 @@
 				<div class="wordmark" role="img" aria-label="Meltingplot" v-html="wordmarkSvg" />
 				<p class="hint">{{ support.company }}</p>
 				<p class="hint">{{ $t("plugins.CHX350.about.licenseText") }}</p>
-				<v-btn variant="outlined" class="chx-btn" @click="toggleLicenses">
+				<v-btn variant="outlined" class="chx-btn" :to="ROUTES.licenses">
 					<v-icon start>mdi-license</v-icon>
-					{{ showLicenses ? $t("plugins.CHX350.about.hideLicenses") : $t("plugins.CHX350.about.showLicenses") }}
+					{{ $t("plugins.CHX350.about.showLicenses") }}
 				</v-btn>
-				<template v-if="showLicenses">
-					<div class="chx-label">{{ $t("plugins.CHX350.about.dwcLicense") }}</div>
-					<div class="license">{{ dwcLicense }}</div>
-					<div class="chx-label">{{ $t("plugins.CHX350.about.fonts") }}</div>
-					<div class="license">{{ fontLicense }}</div>
-					<div class="chx-label">{{ $t("plugins.CHX350.about.machineLicenses") }}</div>
-					<div class="license">{{ machineLicenses ?? "…" }}</div>
-				</template>
 			</div>
 		</div>
 	</div>
 </template>
 
 <script setup lang="ts">
-import { computed, ref } from "vue";
+import { computed } from "vue";
 
 import i18n from "@/i18n";
 import { getBuiltInPlugins } from "@/plugins";
 import { useMachineStore } from "@/stores/machine";
 
-import dwcLicense from "../../../../LICENSE?raw";
 import packageInfo from "../../../../package.json";
-import fontLicense from "../assets/fonts/OFL.txt?raw";
 import wordmarkSvg from "../assets/meltingplot-wordmark.svg?raw";
+import { ROUTES } from "../routes";
 import { PLUGIN_ID, useChxSettings } from "../settings";
 
 const machineStore = useMachineStore();
@@ -143,17 +124,4 @@ const components = computed(() => [
 	{ name: "Chart.js", version: deps["chart.js"], license: "MIT", note: note("charts") },
 	{ name: "Jost · JetBrains Mono", version: "Google Fonts", license: "SIL OFL 1.1", note: note("fonts") }
 ]);
-
-const showLicenses = ref(false);
-const machineLicenses = ref<string | null>(null);
-async function toggleLicenses() {
-	showLicenses.value = !showLicenses.value;
-	if (showLicenses.value && machineLicenses.value === null) {
-		try {
-			machineLicenses.value = String(await machineStore.download({ filename: "0:/sys/LICENSES.txt", type: "text" }, false, false, false));
-		} catch {
-			machineLicenses.value = "—";
-		}
-	}
-}
 </script>

@@ -6,6 +6,7 @@
 		"history": "Verlauf",
 		"support": "Support",
 		"about": "Über",
+		"licenses": "Lizenzen",
 		"service": "Service",
 		"jobs": "Aufträge",
 		"check": "Auftrag prüfen",
@@ -403,11 +404,7 @@
 		"componentsHint": "Firmware- und DSF-Version liest die Maschine zur Laufzeit aus dem Objektmodell.",
 		"license": "Lizenz",
 		"licenseText": "Duet Web Control © Christian Hammacher, Duet3D Ltd. Fork gepflegt von Meltingplot GmbH, lizenziert unter GPL-3.0. Diese Maschine läuft mit freier Software. Die Quelltexte der GPL-Komponenten stellen wir auf Anfrage bereit.",
-		"showLicenses": "Lizenztexte anzeigen",
-		"hideLicenses": "Lizenztexte ausblenden",
-		"machineLicenses": "Lizenzen der Maschinensoftware",
-		"dwcLicense": "Duet Web Control (GPL-3.0)",
-		"fonts": "Jost · JetBrains Mono (SIL OFL 1.1)",
+		"showLicenses": "Lizenzhinweise anzeigen",
 		"note": {
 			"dwc": "Bedienoberfläche · Meltingplot-Fork",
 			"plugin": "Plugin CHX350",
@@ -419,6 +416,21 @@
 			"charts": "Diagramme",
 			"fonts": "Schriften"
 		}
+	},
+	"licenses": {
+		"panel": "Bedien-Panel",
+		"printer": "Drucker-Computer",
+		"ui": "Bedienoberfläche",
+		"notice": "Lizenzhinweis",
+		"packages": "Pakete ({count})",
+		"packagesHint": "Debian-Pakete des Bedien-Panels. Ein Paket antippen, um seine Copyright-Datei anzuzeigen.",
+		"source": "Quellpaket: {source}",
+		"dwc": "Duet Web Control (GPL-3.0)",
+		"fonts": "Jost · JetBrains Mono (SIL OFL 1.1)",
+		"loading": "Wird geladen …",
+		"missing": "Nicht vorhanden.",
+		"failed": "Konnte nicht geladen werden ({error}).",
+		"panelMissing": "Die Lizenzhinweise des Bedien-Panels sind über diese Verbindung nicht abrufbar, etwa beim direkten Zugriff auf den Drucker-Computer oder mit älterer Panel-Software."
 	},
 	"heaterPhase": {
 		"off": "aus",
