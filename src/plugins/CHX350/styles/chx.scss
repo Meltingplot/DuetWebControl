@@ -114,6 +114,12 @@
 	gap: 14px;
 }
 
+/* The active button of an outlined toggle takes the secondary navy as ink, which the dark theme
+   keeps: use the brand ink, the same navy in the light theme */
+.chx-shell .v-btn-toggle .v-btn.text-secondary {
+	color: var(--text-brand) !important;
+}
+
 /* Small uppercase labels used above numbers and in tiles */
 .chx-shell .chx-label {
 	font-size: 11px;
