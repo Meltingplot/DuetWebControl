@@ -319,13 +319,14 @@ export const useUiStore = defineStore("ui", {
 		},
 
 		/**
-		 * Indicates if the UI is supposed to be frozen
+		 * Indicates if the UI is supposed to be frozen. This includes the start-up of the machine,
+		 * which ConnectionProgressDialog covers as well
 		 * @param state Store state
 		 * @returns True if the UI is supposed to be frozen
 		 */
 		uiFrozen: () => {
 			const machineStore = useMachineStore()
-			return machineStore.isConnecting || machineStore.isDisconnecting || !machineStore.isConnected;
+			return machineStore.isConnecting || machineStore.isDisconnecting || !machineStore.isConnected || machineStore.isStarting;
 		},
 
 		/**

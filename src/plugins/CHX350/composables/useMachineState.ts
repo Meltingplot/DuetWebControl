@@ -9,7 +9,7 @@ import { useChxGlobals } from "./useChxGlobals";
 
 /** Operator-facing machine state shown on the header plate */
 export type PlateState = "estop" | "pausing" | "paused" | "resuming" | "cancelling" | "simulating" | "printing"
-	| "busy" | "heating" | "automatic" | "idle" | "offline";
+	| "busy" | "heating" | "automatic" | "idle" | "starting" | "offline";
 
 /** Door switch inputs (sensors.gpIn indices) on the CHX 350; 1 = closed, 0 = open */
 const DOOR_INPUTS = [2, 3];
@@ -65,6 +65,10 @@ export function useMachineState() {
 		}
 		if (halted.value) {
 			return "estop";
+		}
+		// config.g is running; the UI stays locked until it is done (see uiStore.uiFrozen)
+		if (status.value === MachineStatus.starting) {
+			return "starting";
 		}
 		// The transitions take a while (pause.g parks the heads, cancel.g cools down), so they get
 		// their own label instead of reading as PAUSIERT

@@ -52,7 +52,7 @@ const machineStore = useMachineStore();
 
 const shouldBeShown = computed(() => {
 	return (machineStore.isConnecting || machineStore.connectingProgress >= 0 || machineStore.isReconnecting || machineStore.isDisconnecting ||
-		machineStore.model.state.status === MachineStatus.halted || machineStore.model.state.status === MachineStatus.updating);
+		machineStore.isStarting || machineStore.model.state.status === MachineStatus.halted || machineStore.model.state.status === MachineStatus.updating);
 });
 
 // Vuetify's dialog transition drives its open/close animations from requestAnimationFrame, which
@@ -96,6 +96,9 @@ const currentMessage = computed(() => {
 	}
 	if (machineStore.isDisconnecting) {
 		return i18n.global.t("dialog.connectionProgress.disconnecting");
+	}
+	if (machineStore.isStarting) {
+		return i18n.global.t("dialog.connectionProgress.starting");
 	}
 	return i18n.global.t("dialog.connectionProgress.standBy");
 });

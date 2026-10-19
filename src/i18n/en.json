@@ -160,6 +160,7 @@
 			"disconnecting": "Disconnecting...",
 			"updating": "Please wait while updates are being installed...",
 			"reconnecting": "Connection lost, attempting to reconnect...",
+			"starting": "Machine is starting, please wait...",
 			"standBy": "Please stand by...",
 			"boardUpdateMessage": "The following board is being updated:|The following boards are being updated:",
 			"board": "Board #{0}",
