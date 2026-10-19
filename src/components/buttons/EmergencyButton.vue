@@ -12,7 +12,7 @@
 </style>
 
 <template>
-	<CodeButton :code="emergencyCode" :log="false" :color="color || 'error'" variant="flat"
+	<CodeButton :code="emergencyCode" :log="false" emergency :color="color || 'error'" variant="flat"
 				:size="large ? 'large' : undefined"
 				:disabled="disabled" :title="$t('button.emergencyStop.title')"
 				class="estop-button">

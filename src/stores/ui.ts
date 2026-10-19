@@ -319,14 +319,22 @@ export const useUiStore = defineStore("ui", {
 		},
 
 		/**
+		 * Indicates if no emergency stop can be sent. Unlike {@link uiFrozen} this does not include
+		 * the start-up of the machine: an emergency stop works while config.g is running
+		 * @returns True if the emergency stop buttons are supposed to be frozen
+		 */
+		emergencyStopFrozen: () => {
+			const machineStore = useMachineStore()
+			return machineStore.isConnecting || machineStore.isDisconnecting || !machineStore.isConnected;
+		},
+
+		/**
 		 * Indicates if the UI is supposed to be frozen. This includes the start-up of the machine,
 		 * which ConnectionProgressDialog covers as well
-		 * @param state Store state
 		 * @returns True if the UI is supposed to be frozen
 		 */
-		uiFrozen: () => {
-			const machineStore = useMachineStore()
-			return machineStore.isConnecting || machineStore.isDisconnecting || !machineStore.isConnected || machineStore.isStarting;
+		uiFrozen(): boolean {
+			return this.emergencyStopFrozen || useMachineStore().isStarting;
 		},
 
 		/**
