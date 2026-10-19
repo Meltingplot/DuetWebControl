@@ -160,6 +160,7 @@
 			"disconnecting": "Verbinding verbreken...",
 			"updating": "Even wachten, de updates worden geinstalleerd...",
 			"reconnecting": "Verbinding verloren, opnieuw verbinden...",
+			"starting": "Machine start op, een ogenblik geduld...",
 			"standBy": "Een ogenblik geduld...",
 			"boardUpdateMessage": "Het volgende bord wordt bijgewerkt:|De volgende borden worden bijgewerkt:",
 			"board": "Bord #{0}",
@@ -401,6 +402,7 @@
 		}
 	},
 	"error": {
+		"codeReplyLost": "De verbinding werd verbroken voordat de machine antwoordde. De code liep door en is voltooid, het antwoord is verloren gegaan.",
 		"editorLoadFailed": "Kon de code-editor niet laden: {0}",
 		"enterValidNumber": "Voer een geldig getal in",
 		"filamentsLoadFailed": "Kon de filamenten niet laden",
