@@ -196,6 +196,16 @@ export const useMachineStore = defineStore("machine", {
 		isConnected: state => state.connector !== null,
 
 		/**
+		 * Whether the connected machine is still starting up: the firmware is running config.g, and
+		 * DSF reports the same status until the firmware has come up. G-codes from other channels
+		 * would already run in that phase. The default model of a disconnected session says
+		 * "starting" as well, so this only applies while connected
+		 * @param state Store state
+		 * @returns Whether the machine is starting up
+		 */
+		isStarting: state => state.connector !== null && state.model.state.status === MachineStatus.starting,
+
+		/**
 		 * Whether DWC is served from the local machine (loopback host)
 		 * @returns Whether DWC runs on localhost
 		 */

@@ -24,7 +24,7 @@
 	cursor: pointer;
 }
 .plate--automatic, .plate--printing, .plate--resuming, .plate--simulating { background: var(--mp-primary-dark); color: #fff; }
-.plate--heating, .plate--busy { background: var(--mp-primary); color: #fff; }
+.plate--heating, .plate--busy, .plate--starting { background: var(--mp-primary); color: #fff; }
 .plate--idle, .plate--paused, .plate--pausing, .plate--cancelling { background: var(--mp-accent); color: var(--mp-neutral-900); }
 .plate--estop { background: var(--mp-error); color: #fff; }
 .plate--offline { background: var(--mp-neutral-400); color: var(--mp-neutral-900); }
@@ -83,6 +83,7 @@ const icon = computed(() => {
 		case "idle": return "mdi-lock-outline";
 		case "heating": return "mdi-thermometer";
 		case "busy": return "mdi-timer-sand";
+		case "starting": return "mdi-power";
 		case "printing": return "mdi-play";
 		case "resuming": return "mdi-play-circle-outline";
 		case "simulating": return "mdi-flask-outline";

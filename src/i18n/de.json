@@ -160,6 +160,7 @@
 			"disconnecting": "Trenne...",
 			"updating": "Bitte warten Sie während Updates installiert werden...",
 			"reconnecting": "Verbindung verloren, versuche erneut zu verbinden...",
+			"starting": "Maschine startet, bitte warten...",
 			"standBy": "Bitte warten...",
 			"boardUpdateMessage": "Das folgende Board wird aktualisiert:|Die folgenden Boards werden aktualisiert:",
 			"board": "Board #{0}",

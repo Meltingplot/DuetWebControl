@@ -244,7 +244,7 @@
 		<Teleport to="body" :disabled="!fullscreen">
 		<div :class="{ 'full-screen': fullscreen }" class="viewer-box">
 			<div v-if="fullscreen && settingsStore.showEmergencyStop" :class="emergencyButtonClass">
-				<CodeButton :code="'M112\nM999'" :log="false" :title="$t('button.emergencyStop.title')"
+				<CodeButton :code="'M112\nM999'" :log="false" emergency :title="$t('button.emergencyStop.title')"
 							class="gcv-icon-btn" color="error" size="small">
 					<span class="gcv-btn-label gcv-btn-label-left">{{ $t("button.emergencyStop.caption") }}</span>
 					<v-icon>mdi-flash</v-icon>

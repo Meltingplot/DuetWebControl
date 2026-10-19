@@ -1,3 +1,11 @@
+<!-- NOT scoped: the app bar belongs to the layout. Dialogs start at z-index 2000 (+10 per stacked
+     overlay); a layout's own full-screen alarm like the CHX 350 NOT-AUS overlay (3000) stays on top -->
+<style>
+html.dwc-app-bar-above-dialogs .v-app-bar {
+	z-index: 2900 !important;
+}
+</style>
+
 <template>
 	<v-dialog :model-value="shown" :persistent="isPersistent" width="480">
 		<v-card color="primary" theme="dark">
@@ -52,7 +60,7 @@ const machineStore = useMachineStore();
 
 const shouldBeShown = computed(() => {
 	return (machineStore.isConnecting || machineStore.connectingProgress >= 0 || machineStore.isReconnecting || machineStore.isDisconnecting ||
-		machineStore.model.state.status === MachineStatus.halted || machineStore.model.state.status === MachineStatus.updating);
+		machineStore.isStarting || machineStore.model.state.status === MachineStatus.halted || machineStore.model.state.status === MachineStatus.updating);
 });
 
 // Vuetify's dialog transition drives its open/close animations from requestAnimationFrame, which
@@ -76,6 +84,11 @@ function onVisibilityChange() {
 onMounted(() => document.addEventListener("visibilitychange", onVisibilityChange));
 onBeforeUnmount(() => document.removeEventListener("visibilitychange", onVisibilityChange));
 
+// While the machine is starting, the app bar of the active layout stays above this dialog, so its
+// emergency stop remains usable in its usual place. Everything else in it honours uiFrozen
+watchEffect(() => document.documentElement.classList.toggle("dwc-app-bar-above-dialogs", shown.value && machineStore.isStarting));
+onBeforeUnmount(() => document.documentElement.classList.remove("dwc-app-bar-above-dialogs"));
+
 const isPersistent = computed(() => {
 	if (!(displayReset.value && machineStore.isConnected)) {
 		// If the connection is gone, allow this dialog only to be dismissed if running as PWA
@@ -96,6 +109,9 @@ const currentMessage = computed(() => {
 	}
 	if (machineStore.isDisconnecting) {
 		return i18n.global.t("dialog.connectionProgress.disconnecting");
+	}
+	if (machineStore.isStarting) {
+		return i18n.global.t("dialog.connectionProgress.starting");
 	}
 	return i18n.global.t("dialog.connectionProgress.standBy");
 });

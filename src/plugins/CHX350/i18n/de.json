@@ -22,6 +22,7 @@
 		"printing": "DRUCKT",
 		"paused": "PAUSIERT",
 		"estop": "NOT-AUS",
+		"starting": "STARTET",
 		"offline": "OFFLINE",
 		"hintMode": "Betriebsart Default",
 		"hintDoorOpen": "Tür offen · keine Achsbewegung",

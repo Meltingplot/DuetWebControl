@@ -22,6 +22,7 @@
 		"printing": "PRINTING",
 		"paused": "PAUSED",
 		"estop": "E-STOP",
+		"starting": "STARTING",
 		"offline": "OFFLINE",
 		"hintMode": "Default mode",
 		"hintDoorOpen": "Door open · no axis movement",

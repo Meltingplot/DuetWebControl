@@ -1,5 +1,6 @@
 <template>
-	<v-btn :color="color" :variant="variant" :size="size" :disabled="$props.disabled || uiStore.uiFrozen"
+	<v-btn :color="color" :variant="variant" :size="size"
+		   :disabled="$props.disabled || (emergency ? uiStore.emergencyStopFrozen : uiStore.uiFrozen)"
 		   :elevation="1" :loading="waitingForCode" @click="click">
 		<slot></slot>
 	</v-btn>
@@ -14,6 +15,8 @@ import { useUiStore } from "@/stores/ui";
 // variant is "elevated" which renders white with a subtle shadow even when colored
 //
 // Vue casts an absent Boolean prop to false, which would turn off sendCode's reply and error logging
+//
+// An emergency stop button stays usable while the UI is frozen for the start-up of the machine
 const props = withDefaults(defineProps<{
     code: string;
     color?: string;
@@ -22,6 +25,7 @@ const props = withDefaults(defineProps<{
     disabled?: boolean;
     log?: boolean;
     noWait?: boolean;
+    emergency?: boolean;
 }>(), { log: true });
 
 const machineStore = useMachineStore(), uiStore = useUiStore();
