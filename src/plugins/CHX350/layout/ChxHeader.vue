@@ -109,33 +109,17 @@
 				</svg>
 			</div>
 
-			<!-- The SZP coil is only a sensor; a chamber heater opens the dialog like the others -->
-			<button v-if="temps.chamberSource.value === 'heater'" type="button" class="temp temp--heater" :disabled="uiStore.uiFrozen"
-					:aria-label="heaterAria(chamberLabel, temps.chamberCurrent.value)" @click="heaterTarget = { kind: 'chamber' }">
-				<div class="chx-label">{{ chamberLabel }}</div>
-				<div class="chx-value">{{ formatTemp(temps.chamberCurrent.value) }}</div>
-			</button>
-			<div v-else-if="temps.chamberSource.value === 'szp'" class="temp">
-				<div class="chx-label">{{ chamberLabel }}</div>
-				<div class="chx-value">{{ formatTemp(temps.chamberCurrent.value) }}</div>
-			</div>
-			<div v-if="temps.chamberSource.value !== 'none'" class="divider" />
-			<button v-if="temps.bedHeater.value" type="button" class="temp temp--heater" :disabled="uiStore.uiFrozen"
-					:aria-label="heaterAria($t('plugins.CHX350.header.bed'), temps.bedCurrent.value)" @click="heaterTarget = { kind: 'bed' }">
-				<div class="chx-label">{{ $t("plugins.CHX350.header.bed") }}</div>
-				<div class="chx-value">{{ formatTemp(temps.bedCurrent.value) }}</div>
-			</button>
-			<div v-else class="temp">
-				<div class="chx-label">{{ $t("plugins.CHX350.header.bed") }}</div>
-				<div class="chx-value">{{ formatTemp(temps.bedCurrent.value) }}</div>
-			</div>
-			<template v-for="n in headerNozzles" :key="n.heater">
-				<div class="divider" />
-				<button type="button" class="temp temp--heater" :disabled="uiStore.uiFrozen"
-						:aria-label="heaterAria(nozzleLabel(n.tool), n.current)" @click="heaterTarget = { kind: 'nozzle', heater: n.heater, tool: n.tool }">
-					<div class="chx-label">{{ nozzleLabel(n.tool) }}</div>
-					<div class="chx-value">{{ formatTemp(n.current) }}</div>
+			<template v-for="(r, i) in readings" :key="r.key">
+				<div v-if="i > 0" class="divider" />
+				<button v-if="r.target" type="button" class="temp temp--heater" :disabled="uiStore.uiFrozen"
+						:aria-label="heaterAria(r.label, r.current)" @click="heaterTarget = r.target">
+					<div class="chx-label">{{ r.label }}</div>
+					<div class="chx-value">{{ formatTemp(r.current) }}</div>
 				</button>
+				<div v-else class="temp">
+					<div class="chx-label">{{ r.label }}</div>
+					<div class="chx-value">{{ formatTemp(r.current) }}</div>
+				</div>
 			</template>
 
 			<HoldButton :label="$t('plugins.CHX350.header.estop')" :hint="$t('plugins.CHX350.header.estopHold')"
@@ -196,6 +180,44 @@ function nozzleLabel(tool: number): string {
 		? i18n.global.t("plugins.CHX350.header.nozzleTool", { n: tool })
 		: i18n.global.t("plugins.CHX350.header.nozzle");
 }
+
+/**
+ * A reading opens the temperature dialog only when it comes from the sensor of a configured
+ * heater. A plain sensor (the SZP coil standing in for the chamber) has nothing to set
+ */
+function isHeaterReading(index: number | undefined): boolean {
+	const heater = (index !== undefined && index >= 0) ? machineStore.model.heat.heaters[index] : null;
+	return !!heater && heater.sensor >= 0 && !!machineStore.model.sensors.analog[heater.sensor];
+}
+
+interface Reading {
+	key: string;
+	label: string;
+	current: number | null;
+	target: HeaterTarget | null;
+}
+const readings = computed<Array<Reading>>(() => {
+	const list: Array<Reading> = [];
+	if (temps.chamberSource.value !== "none") {
+		const isHeater = temps.chamberSource.value === "heater" && isHeaterReading(machineStore.chamberHeaterMapping[0]?.[0]);
+		list.push({ key: "chamber", label: chamberLabel.value, current: temps.chamberCurrent.value, target: isHeater ? { kind: "chamber" } : null });
+	}
+	list.push({
+		key: "bed",
+		label: i18n.global.t("plugins.CHX350.header.bed"),
+		current: temps.bedCurrent.value,
+		target: isHeaterReading(machineStore.bedHeaterMapping[0]?.[0]) ? { kind: "bed" } : null
+	});
+	for (const n of headerNozzles.value) {
+		list.push({
+			key: `nozzle${n.heater}`,
+			label: nozzleLabel(n.tool),
+			current: n.current,
+			target: isHeaterReading(n.heater) ? { kind: "nozzle", heater: n.heater, tool: n.tool } : null
+		});
+	}
+	return list;
+});
 
 const heaterTarget = ref<HeaterTarget | null>(null);
 function heaterAria(label: string, current: number | null): string {
