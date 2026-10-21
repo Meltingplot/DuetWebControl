@@ -42,6 +42,28 @@
 	text-align: right;
 	white-space: nowrap;
 }
+/* Heater readings open the temperature dialog; the padding is the touch target, the negative
+   margin keeps the readings where they were */
+.temp--heater {
+	margin: -6px -10px;
+	padding: 6px 10px;
+	border: 0;
+	border-radius: var(--mp-radius);
+	background: none;
+	color: inherit;
+	font: inherit;
+	cursor: pointer;
+}
+.temp--heater:hover:not(:disabled) {
+	background: var(--surface-sunken);
+}
+.temp--heater:focus-visible {
+	outline: 3px solid var(--focus-ring);
+	outline-offset: 0;
+}
+.temp--heater:disabled {
+	cursor: default;
+}
 .divider {
 	width: 1px;
 	height: 38px;
@@ -87,38 +109,53 @@
 				</svg>
 			</div>
 
-			<div v-if="temps.chamberSource.value !== 'none'" class="temp">
+			<!-- The SZP coil is only a sensor; a chamber heater opens the dialog like the others -->
+			<button v-if="temps.chamberSource.value === 'heater'" type="button" class="temp temp--heater" :disabled="uiStore.uiFrozen"
+					:aria-label="heaterAria(chamberLabel, temps.chamberCurrent.value)" @click="heaterTarget = { kind: 'chamber' }">
+				<div class="chx-label">{{ chamberLabel }}</div>
+				<div class="chx-value">{{ formatTemp(temps.chamberCurrent.value) }}</div>
+			</button>
+			<div v-else-if="temps.chamberSource.value === 'szp'" class="temp">
 				<div class="chx-label">{{ chamberLabel }}</div>
 				<div class="chx-value">{{ formatTemp(temps.chamberCurrent.value) }}</div>
 			</div>
 			<div v-if="temps.chamberSource.value !== 'none'" class="divider" />
-			<div class="temp">
+			<button v-if="temps.bedHeater.value" type="button" class="temp temp--heater" :disabled="uiStore.uiFrozen"
+					:aria-label="heaterAria($t('plugins.CHX350.header.bed'), temps.bedCurrent.value)" @click="heaterTarget = { kind: 'bed' }">
+				<div class="chx-label">{{ $t("plugins.CHX350.header.bed") }}</div>
+				<div class="chx-value">{{ formatTemp(temps.bedCurrent.value) }}</div>
+			</button>
+			<div v-else class="temp">
 				<div class="chx-label">{{ $t("plugins.CHX350.header.bed") }}</div>
 				<div class="chx-value">{{ formatTemp(temps.bedCurrent.value) }}</div>
 			</div>
 			<template v-for="n in headerNozzles" :key="n.heater">
 				<div class="divider" />
-				<div class="temp">
+				<button type="button" class="temp temp--heater" :disabled="uiStore.uiFrozen"
+						:aria-label="heaterAria(nozzleLabel(n.tool), n.current)" @click="heaterTarget = { kind: 'nozzle', heater: n.heater, tool: n.tool }">
 					<div class="chx-label">{{ nozzleLabel(n.tool) }}</div>
 					<div class="chx-value">{{ formatTemp(n.current) }}</div>
-				</div>
+				</button>
 			</template>
 
 			<HoldButton :label="$t('plugins.CHX350.header.estop')" :hint="$t('plugins.CHX350.header.estopHold')"
 						:hold-ms="estopHoldMs" :disabled="uiStore.emergencyStopFrozen" @held="emergencyStop" />
 		</div>
+
+		<HeaterDialog :target="heaterTarget" @close="heaterTarget = null" />
 	</header>
 </template>
 
 <script setup lang="ts">
-import { computed } from "vue";
+import { computed, ref } from "vue";
 
 import i18n from "@/i18n";
 import { useMachineStore } from "@/stores/machine";
 import { LogLevel, useUiStore } from "@/stores/ui";
 
+import HeaterDialog from "../components/HeaterDialog.vue";
 import { useMachineState } from "../composables/useMachineState";
-import { formatTemp, useTemps } from "../composables/useTemps";
+import { formatTemp, type HeaterTarget, useTemps } from "../composables/useTemps";
 import { useChxSettings } from "../settings";
 import HoldButton from "./HoldButton.vue";
 import StatusPlate from "./StatusPlate.vue";
@@ -158,6 +195,11 @@ function nozzleLabel(tool: number): string {
 	return temps.nozzles.value.length > 1
 		? i18n.global.t("plugins.CHX350.header.nozzleTool", { n: tool })
 		: i18n.global.t("plugins.CHX350.header.nozzle");
+}
+
+const heaterTarget = ref<HeaterTarget | null>(null);
+function heaterAria(label: string, current: number | null): string {
+	return i18n.global.t("plugins.CHX350.header.setTemp", { heater: label, temp: formatTemp(current) });
 }
 
 async function emergencyStop() {
