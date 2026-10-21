@@ -42,7 +42,8 @@
 		"nozzleTool": "Nozzle T{n}",
 		"estop": "E-STOP",
 		"estopHold": "HOLD TO STOP",
-		"hot": "Warning: hot surface"
+		"hot": "Warning: hot surface",
+		"setTemp": "{heater}: {temp} · set temperature"
 	},
 	"estop": {
 		"title": "E-STOP",
@@ -438,6 +439,24 @@
 		"heating": "heating",
 		"cooling": "cooling",
 		"reached": "reached"
+	},
+	"heater": {
+		"current": "Current temperature",
+		"setpoint": "Target {temp}",
+		"standby": "Standby {temp}",
+		"isOff": "Heater off",
+		"faulted": "Heater fault",
+		"power": "Heater power {power}",
+		"presets": "Presets",
+		"target": "New target temperature",
+		"range": "Heater limit {max}",
+		"minus": "{step} °C less",
+		"plus": "{step} °C more",
+		"backspace": "Delete last digit",
+		"apply": "Heat",
+		"off": "Switch off",
+		"offLocked": "This heater stays on while the job runs. Pause or cancel the job to switch it off.",
+		"missing": "This heater is no longer configured."
 	},
 	"tune": {
 		"open": "Adjust",

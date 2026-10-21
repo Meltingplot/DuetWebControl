@@ -42,6 +42,9 @@ export interface NozzleTemp {
 	inUse: boolean;
 }
 
+/** Heater a header reading stands for; a nozzle is named after its tool, see NozzleTemp */
+export type HeaterTarget = { kind: "nozzle", heater: number, tool: number } | { kind: "bed" } | { kind: "chamber" };
+
 export function useTemps() {
 	const machineStore = useMachineStore();
 	const globals = useChxGlobals();

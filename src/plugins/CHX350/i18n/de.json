@@ -42,7 +42,8 @@
 		"nozzleTool": "Düse T{n}",
 		"estop": "NOT-AUS",
 		"estopHold": "GEDRÜCKT HALTEN",
-		"hot": "Warnung vor heißer Oberfläche"
+		"hot": "Warnung vor heißer Oberfläche",
+		"setTemp": "{heater}: {temp} · Temperatur einstellen"
 	},
 	"estop": {
 		"title": "NOT-AUS",
@@ -438,6 +439,24 @@
 		"heating": "heizt auf",
 		"cooling": "kühlt ab",
 		"reached": "erreicht"
+	},
+	"heater": {
+		"current": "Ist-Temperatur",
+		"setpoint": "Soll {temp}",
+		"standby": "Standby {temp}",
+		"isOff": "Heizung aus",
+		"faulted": "Heizungsfehler",
+		"power": "Heizleistung {power}",
+		"presets": "Vorgaben",
+		"target": "Neue Soll-Temperatur",
+		"range": "Grenze der Heizung {max}",
+		"minus": "{step} °C weniger",
+		"plus": "{step} °C mehr",
+		"backspace": "Letzte Ziffer löschen",
+		"apply": "Heizen",
+		"off": "Ausschalten",
+		"offLocked": "Während der Auftrag läuft, bleibt diese Heizung an. Pausieren oder abbrechen, um sie auszuschalten.",
+		"missing": "Diese Heizung ist nicht mehr konfiguriert."
 	},
 	"tune": {
 		"open": "Anpassen",
