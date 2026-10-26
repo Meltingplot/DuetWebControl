@@ -81,12 +81,16 @@ export function useFans() {
 		thermostatic: fan.thermostatic.sensors.length > 0
 	}]));
 
+	/** Fans configured with the name "aux" (M106 C"aux") */
+	const auxFans = computed(() => machineStore.model.fans.flatMap((fan, index) =>
+		(fan !== null && FAN_NAMES[fan.name.trim().toLowerCase()] === "aux") ? [index] : []));
+
 	/**
 	 * Without the global (an older machine configuration) only the part cooling fans of the tools
-	 * are offered: the exhaust must never be switched from here
+	 * and the auxiliary fan are offered: the exhaust must never be switched from here
 	 */
 	const adjustableIndices = computed(() => numberList(globals.get(GLOBAL_ADJUSTABLE_FANS))
-		?? tools.value.flatMap((tool) => tool.fans));
+		?? [...tools.value.flatMap((tool) => tool.fans), ...auxFans.value]);
 
 	/** A thermostatic fan is left out even when listed: it would ignore the value */
 	const adjustable = computed(() => all.value.filter((f) => !f.thermostatic && adjustableIndices.value.includes(f.index)));
