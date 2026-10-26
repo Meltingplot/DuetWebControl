@@ -134,17 +134,8 @@
 					</div>
 				</div>
 
-				<div v-for="t in toolsWithFan" :key="`fan${t.number}`" class="item">
-					<div class="item__head">
-						<span class="chx-label">{{ $t("plugins.CHX350.tune.fan", { tool: `T${t.number}` }) }}</span>
-						<span class="item__value">{{ t.fanPct }} %</span>
-					</div>
-					<div class="item__buttons">
-						<v-btn variant="outlined" :disabled="!canTune || t.fanPct <= 0" @click="setFan(t.fan, t.fanPct - 10)">−10</v-btn>
-						<v-btn variant="outlined" :disabled="!canTune || t.fanPct >= 100" @click="setFan(t.fan, t.fanPct + 10)">+10</v-btn>
-						<v-btn variant="outlined" :disabled="!canTune || t.fanPct === 0" @click="setFan(t.fan, 0)">{{ $t("plugins.CHX350.generic.off") }}</v-btn>
-					</div>
-				</div>
+				<!-- Every fan the machine configuration lets the operator set, not only the tool's -->
+				<FanControls :disabled="!canTune" @error="error = $event" />
 
 				<!-- Manual extrusion only while paused: purging after a filament problem. resume.g
 					 re-primes the melt zone by what was retracted here -->
@@ -197,6 +188,7 @@ import { useMachineState } from "../composables/useMachineState";
 import { sendChecked } from "../composables/useMacroRunner";
 import { formatTemp, useTemps } from "../composables/useTemps";
 import { formatLoad, heaterLoad, LOAD_HIGH, useHeaterLoadStore } from "../stores/heaterLoad";
+import FanControls from "./FanControls.vue";
 
 const BABYSTEPS = [-0.05, -0.01, 0.01, 0.05];
 const SPEED_MIN = 20;
@@ -243,14 +235,11 @@ const toolsInUse = computed(() => {
 	}
 	return list.map((tool) => {
 		const extruder = tool.extruders[0] ?? -1;
-		const fan = tool.fans[0] ?? -1;
 		return {
 			number: tool.number,
 			current: temps.tools.value.find((t) => t.number === tool.number)?.current ?? null,
 			extruder,
-			flowPct: Math.round((machineStore.model.move.extruders[extruder]?.factor ?? 1) * 100),
-			fan,
-			fanPct: Math.round((machineStore.model.fans[fan]?.requestedValue ?? 0) * 100)
+			flowPct: Math.round((machineStore.model.move.extruders[extruder]?.factor ?? 1) * 100)
 		};
 	});
 });
@@ -264,7 +253,6 @@ const loads = computed(() => toolsInUse.value.map((t) => {
 		level: heaterLoadStore.nozzles.find((n) => n.heater === index)?.level ?? null
 	};
 }).filter((l) => l.load !== null));
-const toolsWithFan = computed(() => toolsInUse.value.filter((t) => t.fan >= 0 && machineStore.model.fans[t.fan]));
 
 const coldExtrude = computed(() => machineStore.model.heat.coldExtrudeTemperature);
 const pausedTool = computed(() => temps.tools.value.find((t) => t.number === machineStore.model.state.currentTool) ?? null);
@@ -290,7 +278,6 @@ function clamp(value: number, min: number, max: number): number {
 }
 const setSpeed = (pct: number) => send(`M220 S${clamp(pct, SPEED_MIN, SPEED_MAX)}`);
 const setFlow = (extruder: number, pct: number) => send(`M221 D${extruder} S${clamp(pct, FLOW_MIN, FLOW_MAX)}`);
-const setFan = (fan: number, pct: number) => send(`M106 P${fan} S${(clamp(pct, 0, 100) / 100).toFixed(2)}`);
 // M120/M121 keep the channel's extrusion mode, as DWC's ExtrudePanel does
 const extrude = (mm: number) => send(`M120\nM83\nG1 E${mm} F300\nM121`);
 </script>

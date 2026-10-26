@@ -78,6 +78,19 @@
 	color: var(--text-body);
 	cursor: not-allowed;
 }
+.jogbtn--warn .v-icon {
+	color: var(--text-warning);
+}
+/* Number of operator fans that run; the machine switches them off itself when idle */
+.fanbadge {
+	min-width: 26px;
+	padding: 4px 8px;
+	border-radius: 999px;
+	background: var(--mp-primary-dark);
+	color: #fff;
+	font: 700 14px/1 var(--mp-font-mono, monospace);
+	text-align: center;
+}
 .tools {
 	display: flex;
 	gap: 8px;
@@ -186,6 +199,14 @@
 				<span>{{ jogMode ? $t("plugins.CHX350.control.stopJog") : (locked ? $t("plugins.CHX350.control.jogLocked") : $t("plugins.CHX350.control.startJog")) }}</span>
 			</button>
 
+			<!-- Fans are no motion: open in every state, including a running job and default mode -->
+			<button type="button" class="jogbtn" :class="{ 'jogbtn--warn': fans.stalled.value.length > 0 }" @click="fansOpen = true">
+				<v-icon size="24">{{ fans.stalled.value.length > 0 ? "mdi-fan-alert" : "mdi-fan" }}</v-icon>
+				<span>{{ $t("plugins.CHX350.fans.open") }}</span>
+				<span v-if="fans.running.value > 0" class="fanbadge" :title="$t('plugins.CHX350.fans.running', { count: fans.running.value })">{{ fans.running.value }}</span>
+			</button>
+			<FanDialog v-model="fansOpen" />
+
 			<div v-if="heads.length > 1" class="tools">
 				<v-btn v-for="h in heads" :key="h.tool" :color="h.tool === selectedTool ? 'secondary' : undefined"
 					   :variant="h.tool === selectedTool ? 'flat' : 'outlined'" class="chx-btn" :disabled="locked" @click="selectTool(h.tool)">
@@ -228,7 +249,9 @@ import { axisGCodeLetter } from "@/utils/gcode";
 import BedMap from "../components/BedMap.vue";
 import ChxCamera from "../components/ChxCamera.vue";
 import ChxCameraBox from "../components/ChxCameraBox.vue";
+import FanDialog from "../components/FanDialog.vue";
 import ZTower from "../components/ZTower.vue";
+import { useFans } from "../composables/useFans";
 import { useMachineState } from "../composables/useMachineState";
 import { sendChecked } from "../composables/useMacroRunner";
 import { maxFeedrate } from "../motion";
@@ -241,6 +264,9 @@ const uiStore = useUiStore();
 const state = useMachineState();
 const { bedMap: bedMapSetting } = useChxSettings();
 const bedMap = computed(() => bedMapSetting.value);
+
+const fans = useFans();
+const fansOpen = ref(false);
 
 const jogMode = ref(false);
 const moving = ref(false);
