@@ -33,15 +33,6 @@
 			{{ $t("plugins.CHX350.job.acknowledge") }}
 		</CodeButton>
 	</div>
-	<!-- Reported by the machine configuration (global.fan_stalled), which also decides the reaction;
-		 the entry clears by itself once the fan turns again -->
-	<div v-if="stalledFans" class="banner">
-		<v-icon size="26">mdi-fan-alert</v-icon>
-		<div class="flex-grow-1">
-			<div class="banner__title">{{ $t("plugins.CHX350.fans.stalledTitle", { fans: stalledFans }) }}</div>
-			<div class="banner__body">{{ $t("plugins.CHX350.fans.stalledBody") }}</div>
-		</div>
-	</div>
 	<div v-if="state.doorOpen.value && state.printing.value" class="banner banner--warn">
 		<v-icon size="26">mdi-door-open</v-icon>
 		<div class="flex-grow-1">
@@ -74,16 +65,12 @@ import CodeButton from "@/components/buttons/CodeButton.vue";
 import i18n from "@/i18n";
 import { useMachineStore } from "@/stores/machine";
 
-import { useFans } from "../composables/useFans";
 import { useMachineState } from "../composables/useMachineState";
 import { formatLoad, useHeaterLoadStore } from "../stores/heaterLoad";
 
 const machineStore = useMachineStore();
 const state = useMachineState();
 const heaterLoadStore = useHeaterLoadStore();
-const fans = useFans();
-
-const stalledFans = computed(() => fans.stalled.value.map((f) => f.label).join(", "));
 
 const faults = computed(() => state.heaterFaults.value.map((index) => {
 	const bed = machineStore.bedHeaterMapping.some((slot) => slot.includes(index));

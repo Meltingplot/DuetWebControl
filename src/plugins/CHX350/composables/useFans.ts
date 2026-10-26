@@ -110,6 +110,8 @@ export function useFans() {
 		const indices = numberList(globals.get(GLOBAL_STALLED_FANS)) ?? [];
 		return all.value.filter((f) => indices.includes(f.index));
 	});
+	/** Names of the stalled fans for banners and hints, empty when none stands */
+	const stalledLabels = computed(() => stalled.value.map((f) => f.label).join(", "));
 
 	/**
 	 * While a job is paused, resume.g's M106 R1 sets the part cooling fans of the paused tool back
@@ -130,5 +132,5 @@ export function useFans() {
 		await sendChecked(`M106 P${index} S${value.toFixed(2)}`, false);
 	}
 
-	return { all, adjustable, automatic, running, exhaustRunOn, stalled, resumeValue, setFan };
+	return { all, adjustable, automatic, running, exhaustRunOn, stalled, stalledLabels, resumeValue, setFan };
 }
