@@ -105,7 +105,7 @@
 
 /* Page frame: fills the area below the header without scrolling the document */
 .chx-shell .chx-page {
-	height: calc(100dvh - var(--v-layout-top, var(--chx-header-height)));
+	height: calc(100dvh - var(--v-layout-top, var(--chx-header-height)) - var(--chx-banner-height, 0px));
 	box-sizing: border-box;
 	overflow: hidden;
 	padding: var(--chx-page-padding);

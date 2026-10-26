@@ -240,6 +240,7 @@ import { getErrorMessage } from "@/utils/errors";
 import { escapeFilename } from "@/utils/path";
 
 import ChxPageHeader from "../components/ChxPageHeader.vue";
+import { useFans } from "../composables/useFans";
 import { useJobMeta, type CheckState } from "../composables/useJobMeta";
 import { sendChecked } from "../composables/useMacroRunner";
 import { ROUTES } from "../routes";
@@ -267,8 +268,11 @@ const allHomed = computed(() => {
 	return axes.length > 0 && axes.every((a) => a.homed);
 });
 
+// While a fan stands, start.g refuses every new job; no override here, the machine decides
+const fans = useFans();
+
 const canStart = computed(() => !!filePath.value && machineStore.isConnected && !job.state.printing.value
-	&& !job.loading.value && job.infoError.value === null
+	&& !job.loading.value && job.infoError.value === null && !fans.stalledLabels.value
 	&& !job.blocked.value && bedClear.value && job.state.isAutomatic.value && !job.state.doorOpen.value);
 
 const startHint = computed(() => {
@@ -278,6 +282,9 @@ const startHint = computed(() => {
 	}
 	if (job.infoError.value !== null) {
 		return i18n.global.t("plugins.CHX350.check.hintFile");
+	}
+	if (fans.stalledLabels.value) {
+		return i18n.global.t("plugins.CHX350.check.hintFanStalled", { fans: fans.stalledLabels.value });
 	}
 	if (!job.state.isAutomatic.value || job.state.doorOpen.value) {
 		return i18n.global.t("plugins.CHX350.check.hintMode");

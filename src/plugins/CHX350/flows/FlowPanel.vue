@@ -1,8 +1,8 @@
 <style scoped>
-/* Covers the page area below the header and beside the sidebar; header (NOT-AUS) stays reachable */
+/* Covers the page area below the header and its banners, beside the sidebar; header (NOT-AUS) stays reachable */
 .flow {
 	position: fixed;
-	top: var(--v-layout-top, 72px);
+	top: calc(var(--v-layout-top, 72px) + var(--chx-banner-height, 0px));
 	left: var(--v-layout-left, 104px);
 	right: 0;
 	bottom: 0;
