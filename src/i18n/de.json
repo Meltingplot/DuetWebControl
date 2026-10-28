@@ -327,6 +327,10 @@
 				"title": "Erstelle ZIP von {0}, {2}% abgeschlossen",
 				"message": "Bitte warten Sie, während das Archiv erstellt wird...",
 				"errorTitle": "Konnte ZIP-Archiv nicht erstellen"
+			},
+			"cleanup": {
+				"title": "Entferne {0}, {2}% abgeschlossen",
+				"message": "Bitte warten Sie, während Dateien der vorherigen Version entfernt werden..."
 			}
 		},
 		"compress": {
@@ -457,6 +461,8 @@
 			"sensor": "Sensor {0}",
 			"download": "CSV herunterladen",
 			"settings": {
+				"showWebcam": "Webcam anzeigen",
+				"showWebcamHint": "Die eingerichtete Webcam als zweiten Reiter dieses Panels anzeigen",
 				"heaters": "Heizer",
 				"extraSensors": "Zusätzliche Sensoren"
 			},
