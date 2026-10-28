@@ -57,7 +57,8 @@ export enum FileTransferType {
 	download = "download",
 	systemPackageInstall = "systemPackageInstall",
 	index = "index",
-	compress = "compress"
+	compress = "compress",
+	cleanup = "cleanup"
 }
 
 /**
