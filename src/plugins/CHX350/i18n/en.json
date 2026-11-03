@@ -169,7 +169,8 @@
 		"toJobs": "Back to the jobs",
 		"readError": "The USB stick could not be read.",
 		"replaceTitle": "Replace job?",
-		"replacePrompt": "There is already a job \"{name}\" on the machine. Replace it with the one from the USB stick?"
+		"replacePrompt": "There is already a job \"{name}\" on the machine. Replace it with the one from the USB stick?",
+		"badName": "The file name \"{name}\" cannot go to the machine as it is. Please put the file on the stick without /, \\, : or %2F in its name."
 	},
 	"check": {
 		"title": "Check job",

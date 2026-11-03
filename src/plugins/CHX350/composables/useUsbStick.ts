@@ -98,6 +98,16 @@ export async function listUsbFolder(path: string): Promise<Array<UsbEntry> | nul
 }
 
 /**
+ * A name that lands in the job folder as one file. Not a matter of course for a name from a stick:
+ * Path.combine takes a digit and a colon anywhere in it for a volume, and DWS turns "%2F" in a file
+ * name into a path separator (EndpointHelper.RestorePathSeparators), so "x%2F..%2Fsys%2Fdaemon.g"
+ * would be written to 0:/sys
+ */
+export function isPlainJobName(name: string) {
+	return /^[^./\\:\x00-\x1f\x7f][^/\\:\x00-\x1f\x7f]*\.(g|gcode|gc|gco|nc|ngc|tap)$/i.test(name) && !/%2f/i.test(name);
+}
+
+/**
  * Copy a G-code file from a stick to the job folder of the machine. When a job of that name exists
  * already, the operator is asked first
  * @param path Path of the file on the stick
@@ -108,7 +118,10 @@ export async function copyUsbJob(path: string, showSuccess: boolean): Promise<st
 	const machineStore = useMachineStore();
 	const gcodesDir = machineStore.model.directories.gCodes || Path.gCodes;
 	const name = path.substring(path.lastIndexOf("/") + 1);
-	const target = Path.combine(gcodesDir, name);
+	if (!isPlainJobName(name)) {
+		throw new Error(i18n.global.t("plugins.CHX350.usb.badName", { name }));
+	}
+	const target = `${gcodesDir.replace(/\/+$/, "")}/${name}`;
 
 	let exists = false;
 	try {

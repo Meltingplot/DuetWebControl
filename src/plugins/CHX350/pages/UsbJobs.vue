@@ -1,4 +1,7 @@
 <style scoped>
+.alert {
+	flex: 0 0 auto;
+}
 .list {
 	flex: 1;
 	min-height: 0;
@@ -83,7 +86,7 @@ button.row:active {
 	<div class="chx-page">
 		<ChxPageHeader :subtitle="subtitle" :back="backTarget" />
 
-		<v-alert v-if="error" type="error" variant="tonal" density="compact" closable :text="error" @click:close="error = null" />
+		<v-alert v-if="error" class="alert" type="error" variant="tonal" density="compact" closable :text="error" @click:close="error = null" />
 
 		<div class="list">
 			<div v-if="gone" class="empty">

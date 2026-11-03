@@ -169,7 +169,8 @@
 		"toJobs": "Zu den Aufträgen",
 		"readError": "Der USB-Stick konnte nicht gelesen werden.",
 		"replaceTitle": "Auftrag ersetzen?",
-		"replacePrompt": "Auf der Maschine gibt es schon einen Auftrag „{name}“. Durch den vom USB-Stick ersetzen?"
+		"replacePrompt": "Auf der Maschine gibt es schon einen Auftrag „{name}“. Durch den vom USB-Stick ersetzen?",
+		"badName": "Der Dateiname „{name}“ geht so nicht auf die Maschine. Bitte die Datei ohne /, \\, : und %2F im Namen auf den Stick legen."
 	},
 	"check": {
 		"title": "Auftrag prüfen",
