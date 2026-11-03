@@ -9,6 +9,7 @@
 		"licenses": "Lizenzen",
 		"service": "Service",
 		"jobs": "Aufträge",
+		"usb": "USB-Stick",
 		"check": "Auftrag prüfen",
 		"job": "Laufender Auftrag",
 		"calibrate": "Kalibrieren",
@@ -157,6 +158,19 @@
 		"page": "Seite {n} von {total}",
 		"missing": "Der Auftragsordner fehlt auf der Maschine.",
 		"error": "Die Auftragsliste konnte nicht geladen werden."
+	},
+	"usb": {
+		"stick": "USB-Stick",
+		"folderHint": "Aufträge vom Stick kopieren oder starten",
+		"copy": "Kopieren",
+		"start": "Starten",
+		"empty": "Keine Aufträge in diesem Ordner.",
+		"gone": "Der USB-Stick ist nicht mehr da.",
+		"toJobs": "Zu den Aufträgen",
+		"readError": "Der USB-Stick konnte nicht gelesen werden.",
+		"replaceTitle": "Auftrag ersetzen?",
+		"replacePrompt": "Auf der Maschine gibt es schon einen Auftrag „{name}“. Durch den vom USB-Stick ersetzen?",
+		"badName": "Der Dateiname „{name}“ geht so nicht auf die Maschine. Bitte die Datei ohne /, \\, : und %2F im Namen auf den Stick legen."
 	},
 	"check": {
 		"title": "Auftrag prüfen",

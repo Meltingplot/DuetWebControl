@@ -19,6 +19,7 @@ import { normalizeWebcamUrls } from "./webcam";
 import Start from "./pages/Start.vue";
 import Service from "./pages/Service.vue";
 import Jobs from "./pages/Jobs.vue";
+import UsbJobs from "./pages/UsbJobs.vue";
 import CheckJob from "./pages/CheckJob.vue";
 import RunningJob from "./pages/RunningJob.vue";
 import Calibrate from "./pages/Calibrate.vue";
@@ -49,6 +50,7 @@ Events.on("settingsLoaded", normalizeWebcamUrls);
 //    reachable by URL under the built-in shell as well
 const pages: Array<{ name: string; path: string; component: any; icon: string }> = [
 	{ name: "Jobs", path: ROUTES.jobs, component: Jobs, icon: "mdi-file-document-multiple-outline" },
+	{ name: "Usb", path: ROUTES.usb, component: UsbJobs, icon: "mdi-usb-flash-drive-outline" },
 	{ name: "Check", path: ROUTES.check, component: CheckJob, icon: "mdi-clipboard-check-outline" },
 	{ name: "Calibrate", path: ROUTES.calibrate, component: Calibrate, icon: "mdi-target" },
 	{ name: "Control", path: ROUTES.control, component: Control, icon: "mdi-axis-arrow" },
