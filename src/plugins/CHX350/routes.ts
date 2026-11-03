@@ -6,6 +6,7 @@
 export const ROUTES = {
 	start: "/",
 	jobs: "/CHX/Jobs",
+	usb: "/CHX/Usb",
 	check: "/CHX/Check",
 	job: "/Job/Status",
 	calibrate: "/CHX/Calibrate",
@@ -31,7 +32,7 @@ export interface NavItem {
 export const NAV_ITEMS: ReadonlyArray<NavItem> = [
 	{
 		path: ROUTES.start, icon: "mdi-view-grid-outline", caption: "plugins.CHX350.nav.start",
-		matches: ["/", ROUTES.jobs, ROUTES.check, ROUTES.job, ROUTES.calibrate]
+		matches: ["/", ROUTES.jobs, ROUTES.usb, ROUTES.check, ROUTES.job, ROUTES.calibrate]
 	},
 	{ path: ROUTES.control, icon: "mdi-axis-arrow", caption: "plugins.CHX350.nav.control", matches: [ROUTES.control] },
 	{ path: ROUTES.history, icon: "mdi-history", caption: "plugins.CHX350.nav.history", matches: [ROUTES.history, ROUTES.analysis] },

@@ -9,6 +9,7 @@
 		"licenses": "Licenses",
 		"service": "Service",
 		"jobs": "Jobs",
+		"usb": "USB stick",
 		"check": "Check job",
 		"job": "Running job",
 		"calibrate": "Calibrate",
@@ -157,6 +158,18 @@
 		"page": "Page {n} of {total}",
 		"missing": "The job folder is missing on the machine.",
 		"error": "The job list could not be loaded."
+	},
+	"usb": {
+		"stick": "USB stick",
+		"folderHint": "Copy or start jobs from the stick",
+		"copy": "Copy",
+		"start": "Start",
+		"empty": "No jobs in this folder.",
+		"gone": "The USB stick has been removed.",
+		"toJobs": "Back to the jobs",
+		"readError": "The USB stick could not be read.",
+		"replaceTitle": "Replace job?",
+		"replacePrompt": "There is already a job \"{name}\" on the machine. Replace it with the one from the USB stick?"
 	},
 	"check": {
 		"title": "Check job",

@@ -98,6 +98,18 @@
 		</ChxPageHeader>
 
 		<div class="list">
+			<!-- A USB stick at the panel, on every page of the list -->
+			<button v-for="stick in sticks" :key="`usb-${stick.name}`" type="button" class="row" @click="openStick(stick)">
+				<span class="row__thumb">
+					<v-icon size="30" color="primary">mdi-usb-flash-drive-outline</v-icon>
+				</span>
+				<span style="min-width: 0">
+					<div class="row__name">{{ $t("plugins.CHX350.usb.stick") }}</div>
+					<div class="row__meta">{{ stickMeta(stick) }}</div>
+				</span>
+				<v-icon class="chx-icon-muted">mdi-chevron-right</v-icon>
+			</button>
+
 			<template v-if="pageItems.length > 0">
 				<button v-for="item in pageItems" :key="item.name" type="button" class="row" @click="open(item)">
 					<span class="row__thumb">
@@ -129,7 +141,7 @@
 		</div>
 
 		<div v-if="pages > 1" class="pager">
-			<span>{{ $t("plugins.CHX350.jobs.range", { from: page * PAGE_SIZE + 1, to: Math.min(files.length, (page + 1) * PAGE_SIZE), total: files.length }) }}</span>
+			<span>{{ $t("plugins.CHX350.jobs.range", { from: page * pageSize + 1, to: Math.min(files.length, (page + 1) * pageSize), total: files.length }) }}</span>
 			<span class="d-flex align-center ga-2">
 				<v-btn class="pager__btn" variant="outlined" icon="mdi-chevron-left" :disabled="page === 0" @click="page--" />
 				<span>{{ $t("plugins.CHX350.jobs.page", { n: page + 1, total: pages }) }}</span>
@@ -154,6 +166,7 @@ import { displaySize, displayTime, display } from "@/utils/display";
 import Path from "@/utils/path";
 
 import ChxPageHeader from "../components/ChxPageHeader.vue";
+import { useUsbSticks, type UsbStick } from "../composables/useUsbStick";
 import { ROUTES } from "../routes";
 
 const PAGE_SIZE = 7;
@@ -175,10 +188,14 @@ const files = computed(() => (browser.filelist.value as Array<GcodeThumbnailItem
 	.slice()
 	.sort((a, b) => (b.lastModified?.getTime() ?? 0) - (a.lastModified?.getTime() ?? 0)));
 
+const { sticks } = useUsbSticks();
+
+// The sticks stand above the jobs and take their rows
+const pageSize = computed(() => Math.max(1, PAGE_SIZE - sticks.value.length));
 const page = ref(0);
-const pages = computed(() => Math.max(1, Math.ceil(files.value.length / PAGE_SIZE)));
+const pages = computed(() => Math.max(1, Math.ceil(files.value.length / pageSize.value)));
 watch(pages, (p) => { if (page.value > p - 1) page.value = Math.max(0, p - 1); });
-const pageItems = computed(() => files.value.slice(page.value * PAGE_SIZE, (page.value + 1) * PAGE_SIZE));
+const pageItems = computed(() => files.value.slice(page.value * pageSize.value, (page.value + 1) * pageSize.value));
 
 const subtitle = computed(() => thumbnails.fileinfoProgress.value >= 0 && thumbnails.fileinfoTotal.value > 0
 	? i18n.global.t("plugins.CHX350.jobs.loadingInfo", { done: thumbnails.fileinfoProgress.value, total: thumbnails.fileinfoTotal.value })
@@ -216,6 +233,15 @@ function metaLine(item: GcodeThumbnailItem): string {
 
 function formatDate(date: Date): string {
 	return date.toLocaleString(settingsStore.locale, { day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit" });
+}
+
+function stickMeta(stick: UsbStick): string {
+	const hint = i18n.global.t("plugins.CHX350.usb.folderHint");
+	return stick.label ? `${stick.label} · ${hint}` : hint;
+}
+
+function openStick(stick: UsbStick) {
+	router.push({ path: ROUTES.usb, query: { path: stick.name } });
 }
 
 function open(item: GcodeThumbnailItem) {
