@@ -487,15 +487,6 @@
 		"heaterLoad": "Heater load",
 		"heaterLoadHint": "constantly above {limit} the process becomes unstable"
 	},
-	"selfTest": {
-		"failedTitle": "Self-test failed",
-		"failedBody": "{findings}. No new print until the self-test passes again.",
-		"reportedBody": "{findings}. New prints remain possible.",
-		"estopTitle": "The emergency stop did not fire in the monthly check.",
-		"estopBody": "No new print until the check has passed.",
-		"monthlyTitle": "Defects from the monthly check",
-		"monthlyBody": "{findings}. New prints remain possible, the check stays due."
-	},
 	"fans": {
 		"open": "Fans",
 		"title": "Fans",

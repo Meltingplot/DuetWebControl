@@ -487,15 +487,6 @@
 		"heaterLoad": "Heizleistung",
 		"heaterLoadHint": "dauerhaft über {limit} wird der Prozess instabil"
 	},
-	"selfTest": {
-		"failedTitle": "Selbsttest nicht bestanden",
-		"failedBody": "{findings}. Kein neuer Druck, bis der Selbsttest wieder besteht.",
-		"reportedBody": "{findings}. Neue Drucke bleiben möglich.",
-		"estopTitle": "Der NOT-HALT hat bei der Monatsprüfung nicht ausgelöst.",
-		"estopBody": "Kein neuer Druck, bis die Prüfung bestanden ist.",
-		"monthlyTitle": "Mängel aus der Monatsprüfung",
-		"monthlyBody": "{findings}. Neue Drucke bleiben möglich, die Prüfung bleibt fällig."
-	},
 	"fans": {
 		"open": "Lüfter",
 		"title": "Lüfter",
