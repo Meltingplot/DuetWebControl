@@ -554,6 +554,8 @@
 			"frontMatterUnclosed": "Front-Matter wird nicht mit „; ---“ abgeschlossen.",
 			"titleNotLiteral": "Schritt ohne festen R-Titel – ein R{'{'}…{'}'}-Ausdruck lässt sich nicht zuordnen.",
 			"duplicateTitle": "R-Titel „{title}“ kommt in dieser Datei mehrfach vor.",
+			"titleInOtherFile": "Der dokumentierte R-Titel „{title}“ steht auch in {others}. Bei gleichem S-Modus kann der Dialog die Erklärung der anderen Datei zeigen.",
+			"plainPromptTitle": "M291 ohne ;;-Block mit dem Titel des dokumentierten Schritts „{title}“ ({steps}). Bei gleichem S-Modus zeigt die UI dessen Erklärung statt des P-Textes.",
 			"docWithoutPrompt": ";;-Block ohne folgendes M291.",
 			"noCompletion": "Flow ohne die Zeile echo \";; Completed\" – die UI meldet ihn nie als abgeschlossen.",
 			"callWithoutC0": "Ruft den Flow {flow} ohne C0 auf – dessen Zeile echo \";; Completed\" meldet sonst den aufrufenden Flow als abgeschlossen.",

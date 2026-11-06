@@ -391,7 +391,7 @@ import ChxCameraBox from "../components/ChxCameraBox.vue";
 import { maxFeedrate } from "../motion";
 import { PLUGIN_ID, useChxSettings } from "../settings";
 import { flowContext } from "./context";
-import { COMPLETION_MARKER, type FlowStep } from "./parse";
+import { COMPLETION_MARKER, stepMatches, type FlowStep } from "./parse";
 import { renderStepHtml, sanitizeHtml, type SanitizedHtml } from "./render";
 import { useFlowStore } from "./store";
 
@@ -417,7 +417,7 @@ const box = computed<MessageBox | null>(() => {
 	return (b !== null && b.mode !== null) ? b : null;
 });
 /** Where the index documents the open box (the active flow first) */
-const match = computed(() => box.value ? flowStore.findStep(box.value.title) : null);
+const match = computed(() => box.value ? flowStore.findStep(box.value) : null);
 
 /**
  * A documented box of a flow nobody started here (console, other panel, reload): follow it. The
@@ -483,11 +483,11 @@ const lastIndex = ref(-1);
  * the flow and in a file it calls: the first one from the last step shown on wins
  */
 const currentIndex = computed(() => {
-	const title = box.value?.title;
+	const open = box.value;
 	let first = -1;
-	if (title) {
+	if (open?.title) {
 		for (let i = 0; i < stepList.value.length; i++) {
-			if (stepList.value[i].step.title === title) {
+			if (stepMatches(stepList.value[i].step, open)) {
 				if (i >= lastIndex.value) {
 					return i;
 				}

@@ -554,6 +554,8 @@
 			"frontMatterUnclosed": "Front matter is not closed with “; ---”.",
 			"titleNotLiteral": "Step without a fixed R title – an R{'{'}…{'}'} expression cannot be matched.",
 			"duplicateTitle": "R title “{title}” occurs more than once in this file.",
+			"titleInOtherFile": "The documented R title “{title}” is also in {others}. With the same S mode the box can show the explanation of the other file.",
+			"plainPromptTitle": "M291 without a ;; block has the title of the documented step “{title}” ({steps}). With the same S mode the UI shows that explanation instead of the P text.",
 			"docWithoutPrompt": ";; block without a following M291.",
 			"noCompletion": "Flow without the line echo \";; Completed\" – the UI never reports it as completed.",
 			"callWithoutC0": "Calls the flow {flow} without C0 – its line echo \";; Completed\" would report the calling flow as completed.",

@@ -7,8 +7,9 @@ import { load as loadYaml } from "js-yaml";
  * - A YAML front matter at the very top, written as comment lines between two `; ---` lines
  *   (Jekyll style), turns the macro into a flow with a tile: title, icon, page(s), order, ...
  * - `;;` lines directly above an M291 are that prompt's Markdown, like `///` doc comments in Rust.
- *   Blank lines and plain `;` comments may sit in between. The prompt's literal R title is the key
- *   the UI matches `state.messageBox.title` against, so it has to be unique within the file
+ *   Blank lines and plain `;` comments may sit in between. The prompt's literal R title and its S
+ *   mode are what the UI matches `state.messageBox` against, so the title has to be unique within
+ *   the file. The Service page warns about the same title in other files or on a plain M291
  * - `{{ }}` / `{% %}` in the Markdown and in the front matter fields description, hint, enabled and
  *   visible are Jinja (Nunjucks), evaluated by the UI against the live object model
  * - `echo ";; Completed"` is the line a flow reaches when it went through. Only that output makes
@@ -56,15 +57,22 @@ export interface FlowStep {
 	line: number;
 	/** 1-based line where the doc block starts */
 	docLine: number;
-	/** Literal S parameter (message box mode), null when absent or an expression */
+	/** Message box mode: literal S parameter, 1 when absent (as in RRF), null when an expression */
 	mode: number | null;
 }
 
-/** Literal texts of an M291, checked for markup the UI would remove */
+/** Whether a message box is this step: the same title and, when the file tells, the same mode */
+export function stepMatches(step: FlowStep, box: { title: string; mode: number | null }): boolean {
+	return step.title === box.title && (step.mode === null || step.mode === box.mode);
+}
+
+/** Literal texts of an M291, checked for markup the UI would remove and for title collisions */
 export interface FlowPrompt {
 	line: number;
 	title: string | null;
 	message: string | null;
+	/** A doc block stands above it */
+	documented: boolean;
 }
 
 /** An M98 with a literal P path */
@@ -366,7 +374,8 @@ export function parseFlowFile(text: string): ParsedFlowFile {
 			prompts.push({
 				line: lineNumber,
 				title: r?.kind === "string" ? r.value : null,
-				message: p?.kind === "string" ? p.value : null
+				message: p?.kind === "string" ? p.value : null,
+				documented: doc.length > 0
 			});
 			if (doc.length > 0) {
 				if (r?.kind !== "string" || r.value.trim() === "") {
@@ -374,7 +383,7 @@ export function parseFlowFile(text: string): ParsedFlowFile {
 				} else if (steps.some((step) => step.title === r.value)) {
 					issues.push({ line: lineNumber, key: "duplicateTitle", params: { title: r.value } });
 				} else {
-					const mode = (s?.kind === "bare" && /^\d+$/.test(s.value)) ? parseInt(s.value, 10) : null;
+					const mode = (s === undefined) ? 1 : ((s.kind === "bare" && /^\d+$/.test(s.value)) ? parseInt(s.value, 10) : null);
 					steps.push({ title: r.value, markdown: doc.join("\n").trim(), line: lineNumber, docLine, mode });
 				}
 			}

@@ -8,10 +8,10 @@ import { getErrorMessage } from "@/utils/errors";
 import Events from "@/utils/events";
 import Path from "@/utils/path";
 
-import { COMPLETION_MARKER, parseFlowFile, type FlowIssue, type FlowPage, type FlowStep, type ParsedFlowFile } from "./parse";
+import { COMPLETION_MARKER, parseFlowFile, stepMatches, type FlowIssue, type FlowPage, type FlowStep, type ParsedFlowFile } from "./parse";
 import { checkTemplate, renderMarkdown, sanitizeHtml } from "./render";
 
-/** An indexed macro (a flow, documents prompts or calls other files): parse result plus where it came from */
+/** An indexed macro (a flow, has prompts or calls other files): parse result plus where it came from */
 export interface FlowFile extends ParsedFlowFile {
 	path: string;
 	/** Size and modification time the parse result belongs to */
@@ -61,10 +61,11 @@ const MAX_DEPTH = 4;
 const MAX_CALL_DEPTH = 10;
 /** How long the macro's last output may trail the end of the macro (separate model updates) */
 const MESSAGE_SETTLE_TIME = 1000;
-const SKIPPED_EXTENSIONS = /\.(png|jpe?g|webp|gif|svg|bmp|ico|bin|uf2|zip|csv|json|html?|css|js|map|txt|md)$/i;
-// Bump the version whenever the parse result changes shape (v2: `pages` list and `visible`, v3: `completes`, v4: `calls`)
-const CACHE_KEY = "chx350.flowIndex.v4";
-const OLD_CACHE_KEYS = ["chx350.flowIndex.v1", "chx350.flowIndex.v2", "chx350.flowIndex.v3"];
+const SKIPPED_EXTENSIONS = /\.(png|jpe?g|webp|gif|svg|bmp|ico|bin|uf2|zip|csv|json|html?|css|js|map|txt|md|log)$/i;
+// Bump the version whenever the parse result changes shape (v2: `pages` list and `visible`, v3: `completes`, v4: `calls`,
+// v5: files with a plain M291 are kept, `documented`, step mode 1 when S is absent)
+const CACHE_KEY = "chx350.flowIndex.v5";
+const OLD_CACHE_KEYS = ["chx350.flowIndex.v1", "chx350.flowIndex.v2", "chx350.flowIndex.v3", "chx350.flowIndex.v4"];
 
 interface CacheEntry {
 	stamp: string;
@@ -72,9 +73,9 @@ interface CacheEntry {
 	parsed?: ParsedFlowFile;
 }
 
-/** Whether the index keeps a file: a flow, a file that documents prompts or calls other files, or one with issues */
+/** Whether the index keeps a file: a flow, a file that has prompts or calls other files, or one with issues */
 function isRelevant(parsed: ParsedFlowFile): boolean {
-	return parsed.meta !== null || parsed.steps.length > 0 || parsed.calls.length > 0 || parsed.issues.length > 0;
+	return parsed.meta !== null || parsed.prompts.length > 0 || parsed.calls.length > 0 || parsed.issues.length > 0;
 }
 
 /** The indexed file an M98 runs; a relative path starts in the system directory, as with M98 */
@@ -147,6 +148,39 @@ function checkFile(parsed: ParsedFlowFile): Array<FlowIssue> {
 	return issues;
 }
 
+/**
+ * A message box finds its step by title and mode over all files, so a title used elsewhere can show
+ * the wrong text: the same documented title in another file, or a plain M291 with the title of a
+ * documented step. Whether the modes tell them apart is left to whoever reads the warning
+ */
+function titleCollisions(files: Record<string, FlowFile>): Array<FileIssue> {
+	const documented = new Map<string, Array<{ path: string; line: number }>>();
+	for (const file of Object.values(files)) {
+		for (const step of file.steps) {
+			documented.set(step.title, [...(documented.get(step.title) ?? []), { path: file.path, line: step.line }]);
+		}
+	}
+	const where = (place: { path: string; line: number }) => `${place.path}:${place.line}`;
+	const issues: Array<FileIssue> = [];
+	for (const [title, places] of documented) {
+		for (const place of places) {
+			const others = places.filter((other) => other.path !== place.path);
+			if (others.length > 0) {
+				issues.push({ ...place, key: "titleInOtherFile", params: { title, others: others.map(where).join(", ") } });
+			}
+		}
+	}
+	for (const file of Object.values(files)) {
+		for (const prompt of file.prompts) {
+			const places = (prompt.title !== null && !prompt.documented) ? documented.get(prompt.title) : undefined;
+			if (places !== undefined) {
+				issues.push({ path: file.path, line: prompt.line, key: "plainPromptTitle", params: { title: prompt.title!, steps: places.map(where).join(", ") } });
+			}
+		}
+	}
+	return issues;
+}
+
 /** Whether the HTTP channel is in a macro */
 function httpInMacro(): boolean {
 	return (useMachineStore().model.inputs[CodeChannel.http]?.stackDepth ?? 0) > 0;
@@ -197,7 +231,7 @@ export const useFlowStore = defineStore("chx350Flows", {
 				const target = (call.c0 === false) ? callTarget(state.files, call.path) : null;
 				return (target?.completes) ? [{ path: file.path, line: call.line, key: "callWithoutC0", params: { flow: target.path } }] : [];
 			}));
-			return [...fromFiles, ...fromCalls, ...state.runtimeIssues].sort((a, b) => a.path.localeCompare(b.path) || a.line - b.line);
+			return [...fromFiles, ...fromCalls, ...titleCollisions(state.files), ...state.runtimeIssues].sort((a, b) => a.path.localeCompare(b.path) || a.line - b.line);
 		}
 	},
 	actions: {
@@ -211,15 +245,16 @@ export const useFlowStore = defineStore("chx350Flows", {
 
 		/**
 		 * Find the step a message box belongs to: in the active flow first, then in the flows, then
-		 * in files that only document prompts (e.g. the door check in the sys helpers)
+		 * in files that only document prompts (e.g. the door check in the sys helpers). The title alone
+		 * is not enough: a plain S1 notice of start.g would show the Markdown of an S4 step of that name
 		 */
-		findStep(title: string): { file: FlowFile; step: FlowStep } | null {
+		findStep(box: { title: string; mode: number | null }): { file: FlowFile; step: FlowStep } | null {
 			const candidates = Object.values(this.files).sort((a, b) => {
 				const rank = (file: FlowFile) => (file.path === this.active?.path) ? 0 : (file.meta !== null ? 1 : 2);
 				return rank(a) - rank(b);
 			});
 			for (const file of candidates) {
-				const step = file.steps.find((s) => s.title === title);
+				const step = file.steps.find((s) => stepMatches(s, box));
 				if (step) {
 					return { file, step };
 				}
@@ -274,7 +309,7 @@ export const useFlowStore = defineStore("chx350Flows", {
 
 		/** Whether the CHX 350 shell shows this message box instead of DWC's dialog */
 		claims(box: MessageBox): boolean {
-			return this.active !== null || this.findStep(box.title) !== null;
+			return this.active !== null || this.findStep(box) !== null;
 		},
 
 		/** Index a file from its text; used by the scan and by tests */
@@ -356,6 +391,9 @@ export const useFlowStore = defineStore("chx350Flows", {
 				for (const root of roots) {
 					await visit(root, 0);
 				}
+				// The system macros (start.g, trigger*.g) raise prompts too; their subdirectories are not
+				// all macros, so only the files directly in there
+				await visit(system, MAX_DEPTH);
 				for (const path of Object.keys(this.files)) {
 					if (!seen.has(path)) {
 						delete this.files[path];
