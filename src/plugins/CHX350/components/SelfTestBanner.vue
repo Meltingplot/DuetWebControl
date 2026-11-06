@@ -16,11 +16,6 @@
 	background: var(--mp-accent);
 	color: var(--mp-neutral-900);
 }
-.banner--info {
-	background: var(--surface-card);
-	border: 1px solid var(--border-subtle);
-	color: var(--text-strong);
-}
 .banner__title {
 	font: 700 15px/1.2 var(--mp-font-body, sans-serif);
 }
@@ -31,13 +26,11 @@
 }
 </style>
 
-<!-- Shown above every page. The machine configuration runs the self-test and start.g refuses the job;
-	 the UI only reports it. A check that runs is no fault and no flow step on purpose: the operator
-	 keeps working, and starting a job is what ends the check -->
+<!-- Shown above every page: what the last self-test found. The machine configuration runs the test
+	 and start.g refuses the job; the UI only reports it -->
 <template>
 	<div v-for="banner in banners" :key="banner.key" class="banner" :class="`banner--${banner.kind}`" :role="banner.kind === 'error' ? 'alert' : 'status'">
-		<v-progress-circular v-if="banner.kind === 'info'" class="flex-shrink-0" indeterminate size="26" width="3" color="primary" />
-		<v-icon v-else size="26">{{ banner.icon }}</v-icon>
+		<v-icon size="26">{{ banner.icon }}</v-icon>
 		<div class="flex-grow-1">
 			<div class="banner__title">{{ banner.title }}</div>
 			<div class="banner__body">{{ banner.body }}</div>
@@ -57,7 +50,7 @@ const selfTest = useSelfTest();
 const banners = computed(() => {
 	const t = i18n.global.t;
 	const failedIcon = "mdi-clipboard-alert-outline";
-	const list: Array<{ key: string; kind: "error" | "warn" | "info"; icon: string; title: string; body: string }> = [];
+	const list: Array<{ key: string; kind: "error" | "warn"; icon: string; title: string; body: string }> = [];
 	if (selfTest.estopDefect.value) {
 		list.push({ key: "estop", kind: "error", icon: "mdi-alert-octagon-outline", title: t("plugins.CHX350.selfTest.estopTitle"), body: t("plugins.CHX350.selfTest.estopBody") });
 	}
@@ -69,9 +62,6 @@ const banners = computed(() => {
 	}
 	if (selfTest.monthlyFindings.value) {
 		list.push({ key: "monthly", kind: "warn", icon: failedIcon, title: t("plugins.CHX350.selfTest.monthlyTitle"), body: t("plugins.CHX350.selfTest.monthlyBody", { findings: selfTest.monthlyFindings.value }) });
-	}
-	if (selfTest.activity.value) {
-		list.push({ key: "activity", kind: "info", icon: "", title: selfTest.activity.value, body: t("plugins.CHX350.selfTest.activityBody") });
 	}
 	return list;
 });

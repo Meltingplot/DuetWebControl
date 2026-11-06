@@ -488,7 +488,6 @@
 		"heaterLoadHint": "dauerhaft über {limit} wird der Prozess instabil"
 	},
 	"selfTest": {
-		"activityBody": "Sie können normal weiterarbeiten. Ein neuer Druck beendet den Test.",
 		"failedTitle": "Selbsttest nicht bestanden",
 		"failedBody": "{findings}. Kein neuer Druck, bis der Selbsttest wieder besteht.",
 		"reportedBody": "{findings}. Neue Drucke bleiben möglich.",

@@ -488,7 +488,6 @@
 		"heaterLoadHint": "constantly above {limit} the process becomes unstable"
 	},
 	"selfTest": {
-		"activityBody": "You can keep working as usual. Starting a print ends the test.",
 		"failedTitle": "Self-test failed",
 		"failedBody": "{findings}. No new print until the self-test passes again.",
 		"reportedBody": "{findings}. New prints remain possible.",

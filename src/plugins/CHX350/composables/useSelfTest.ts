@@ -10,8 +10,6 @@ import { truthy, useChxGlobals } from "./useChxGlobals";
  * shows that beforehand. Every global is missing on an older configuration, which reads as "nothing
  * to report". None of them is bit-flip hardened
  */
-/** What the machine is doing as German text, "" = no check runs. Rewritten while a check runs */
-const GLOBAL_ACTIVITY = "self_test_activity";
 /** Findings per tier as text (0 quick, 1 weekly, 2 monthly), "" = none. Carries changing readings */
 const GLOBAL_FAILED = "self_test_failed";
 /** false in global-override.g: findings of the quick and weekly tier are only reported */
@@ -29,11 +27,6 @@ export function useSelfTest() {
 		const text = Array.isArray(failed) ? failed[tier] : undefined;
 		return (typeof text === "string") ? text.trim().replace(/;$/, "") : "";
 	}
-
-	const activity = computed(() => {
-		const text = globals.get(GLOBAL_ACTIVITY);
-		return (typeof text === "string") ? text.trim() : "";
-	});
 
 	/** Findings of the quick and weekly tier, empty when there are none */
 	const findings = computed(() => [tierFindings(0), tierFindings(1)].filter((text) => text !== "").join("; "));
@@ -56,5 +49,5 @@ export function useSelfTest() {
 		return "";
 	});
 
-	return { activity, findings, monthlyFindings, blocksJobs, estopDefect, refusal };
+	return { findings, monthlyFindings, blocksJobs, estopDefect, refusal };
 }
