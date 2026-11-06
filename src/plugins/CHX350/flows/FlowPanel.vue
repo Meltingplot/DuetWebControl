@@ -264,10 +264,10 @@
 			<div class="steps__title">{{ flowTitle }}</div>
 			<ol ref="stepListEl">
 				<li v-for="(s, i) in stepList" :key="`${s.path}:${s.step.line}`" :style="{ '--nest': s.via.length }"
-					:class="{ nested: s.via.length > 0, current: i === currentIndex, done: i < progress && i !== currentIndex, stopped: i === stoppedIndex, failed: i === stoppedIndex && result?.outcome === 'failed' }">
+					:class="{ nested: s.via.length > 0, current: i === currentIndex, done: isDone(i), stopped: i === stoppedIndex, failed: i === stoppedIndex && result?.outcome === 'failed' }">
 					<span class="steps__dot">
 						<v-icon v-if="i === stoppedIndex" size="16">mdi-close</v-icon>
-						<v-icon v-else-if="i < progress && i !== currentIndex" size="16">mdi-check</v-icon>
+						<v-icon v-else-if="isDone(i)" size="16">mdi-check</v-icon>
 						<template v-else>{{ i + 1 }}</template>
 					</span>
 					<span>{{ s.step.title }}</span>
@@ -367,6 +367,9 @@
 					<v-btn v-if="needsOk" color="secondary" size="x-large" class="chx-btn" :disabled="answering || !canConfirm" @click="ok">
 						<v-icon start>mdi-arrow-right</v-icon>
 						{{ $t("plugins.CHX350.flows.next") }}
+					</v-btn>
+					<v-btn v-if="canCloseBox" color="secondary" size="x-large" class="chx-btn" :disabled="answering" @click="closeBox">
+						{{ $t("plugins.CHX350.flows.close") }}
 					</v-btn>
 				</template>
 			</div>
@@ -500,9 +503,12 @@ const currentIndex = computed(() => {
 	return first;
 });
 const stepListEl = ref<HTMLElement | null>(null);
+/** Steps the panel has shown. Only these get a tick: a flow can skip steps that depend on the machine or on an answer */
+const shownSteps = reactive(new Set<number>());
 watch(currentIndex, async (to) => {
 	if (to >= 0) {
 		lastIndex.value = to;
+		shownSteps.add(to);
 		// Long flows (z-height has 18 steps) scroll the list to the current one
 		await nextTick();
 		stepListEl.value?.children[to]?.scrollIntoView({ block: "nearest", behavior: "smooth" });
@@ -510,20 +516,17 @@ watch(currentIndex, async (to) => {
 });
 watch(() => active.value?.path, () => {
 	lastIndex.value = -1;
+	shownSteps.clear();
 	lastIndex.value = currentIndex.value;
-});
-/** Steps below this index are done */
-const progress = computed(() => {
-	if (result.value?.outcome === "done") {
-		return stepList.value.length;
+	if (currentIndex.value >= 0) {
+		shownSteps.add(currentIndex.value);
 	}
-	if (stoppedIndex.value >= 0) {
-		return stoppedIndex.value;
-	}
-	return currentIndex.value >= 0 ? currentIndex.value : lastIndex.value + 1;
 });
 /** Step a cancelled or failed flow ended on, -1 when none */
 const stoppedIndex = computed(() => (result.value?.outcome === "cancelled" || result.value?.outcome === "failed") ? lastIndex.value : -1);
+function isDone(index: number): boolean {
+	return shownSteps.has(index) && index !== currentIndex.value && index !== stoppedIndex.value;
+}
 
 /** The open box's step: from the step list, else wherever the index documents it */
 const current = computed<{ path: string; step: FlowStep; via: Array<string> } | null>(() => {
@@ -694,6 +697,20 @@ function ok() {
 		answer(`M292 R{"${stringInput.value.replace(/"/g, '""').replace(/'/g, "''")}"} S${b.seq}`);
 	} else {
 		answer(`M292 S${b.seq}`);
+	}
+}
+
+/**
+ * A box with only a Close button blocks no macro, so the panel must not trap the operator behind it:
+ * without a timeout it stays open for good (notices of daemon.g or filament-error.g, a followed macro
+ * that died). Only the progress step of a flow started here goes without the button: its macro closes
+ * it, and the end of the macro brings the result with a button of its own
+ */
+const canCloseBox = computed(() => box.value?.mode === MessageBoxMode.closeOnly && (!active.value?.startedHere || current.value === null));
+
+function closeBox() {
+	if (box.value && !answering.value) {
+		answer(`M292 S${box.value.seq}`);
 	}
 }
 
