@@ -35,6 +35,7 @@
 			<!-- Machine-wide banners above every page; the page frame and the flow panel give up their height -->
 			<div ref="banners" class="chx-banners">
 				<FanStallBanner />
+				<SelfTestBanner />
 			</div>
 
 			<!-- Stock DWC pages get the same container padding the built-in shell gives them -->
@@ -61,6 +62,7 @@ import DwcRouterView from "@/components/misc/DwcRouterView.vue";
 import { useMachineStore } from "@/stores/machine";
 
 import FanStallBanner from "../components/FanStallBanner.vue";
+import SelfTestBanner from "../components/SelfTestBanner.vue";
 import FlowPanel from "../flows/FlowPanel.vue";
 import { ROUTES } from "../routes";
 import { adoptChxThemeOnce } from "../theme";
