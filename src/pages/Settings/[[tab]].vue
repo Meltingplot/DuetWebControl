@@ -653,6 +653,10 @@
 										{{ board.canAddress }}
 									</v-btn>
 									<template v-else>{{ board.canAddress ?? $t("generic.noValue") }}</template>
+									<v-chip v-if="showCanInterfaces && board instanceof ExpansionBoard && board.interface !== null"
+											size="x-small" variant="tonal" class="ml-1">
+										CAN{{ board.interface }}
+									</v-chip>
 								</td>
 								<td v-if="hasAnyVin" class="text-center d-none d-lg-table-cell">
 									<v-tooltip v-if="board.vIn" location="bottom"
@@ -930,7 +934,7 @@
 
 <script setup lang="ts">
 import { DisconnectedError } from "@duet3d/connectors";
-import { NetworkInterfaceState, NetworkInterfaceType } from "@duet3d/objectmodel";
+import { ExpansionBoard, NetworkInterfaceState, NetworkInterfaceType } from "@duet3d/objectmodel";
 
 import { useDisplay } from "vuetify";
 
@@ -1039,6 +1043,7 @@ const hasAnyVin = computed(() => boards.value.some(board => board.vIn != null));
 const hasAnyV12 = computed(() => boards.value.some(board => board.v12 != null));
 const hasAnyMcuTemp = computed(() => boards.value.some(board => board.mcuTemp != null));
 const hasAnyFreeRam = computed(() => boards.value.some(board => board.freeRam != null));
+const showCanInterfaces = computed(() => new Set(boards.value.map(board => (board instanceof ExpansionBoard) ? board.interface : null).filter(canInterface => canInterface !== null)).size > 1);
 
 // Tabs run with comfortable density at xs/sm so the touch target is large enough on phones;
 // md+ stays compact since the cursor doesn't need the bigger hit area
