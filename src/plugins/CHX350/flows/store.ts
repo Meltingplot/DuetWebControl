@@ -63,9 +63,9 @@ const MAX_CALL_DEPTH = 10;
 const MESSAGE_SETTLE_TIME = 1000;
 const SKIPPED_EXTENSIONS = /\.(png|jpe?g|webp|gif|svg|bmp|ico|bin|uf2|zip|csv|json|html?|css|js|map|txt|md|log)$/i;
 // Bump the version whenever the parse result changes shape (v2: `pages` list and `visible`, v3: `completes`, v4: `calls`,
-// v5: files with a plain M291 are kept, `documented`, step mode 1 when S is absent)
-const CACHE_KEY = "chx350.flowIndex.v5";
-const OLD_CACHE_KEYS = ["chx350.flowIndex.v1", "chx350.flowIndex.v2", "chx350.flowIndex.v3", "chx350.flowIndex.v4"];
+// v5: files with a plain M291 are kept, `documented`, step mode 1 when S is absent, v6: `camera`)
+const CACHE_KEY = "chx350.flowIndex.v6";
+const OLD_CACHE_KEYS = ["chx350.flowIndex.v1", "chx350.flowIndex.v2", "chx350.flowIndex.v3", "chx350.flowIndex.v4", "chx350.flowIndex.v5"];
 
 interface CacheEntry {
 	stamp: string;
@@ -87,6 +87,34 @@ function callTarget(files: Record<string, FlowFile>, path: string): FlowFile | n
 		absolute = Path.combine(useMachineStore().model.directories.system || Path.system, absolute);
 	}
 	return files[absolute] ?? null;
+}
+
+/** See the store action stepsOf */
+function stepsOf(files: Record<string, FlowFile>, path: string): Array<FlowStepEntry> {
+	const entries: Array<FlowStepEntry> = [];
+	const visited = new Set<string>();
+	const visit = (file: FlowFile, via: Array<string>, depth: number) => {
+		visited.add(file.path);
+		const items = [
+			...file.steps.map((step) => ({ line: step.line, step, call: null })),
+			...file.calls.map((call) => ({ line: call.line, step: null, call }))
+		].sort((a, b) => a.line - b.line);
+		for (const { step, call } of items) {
+			if (step !== null) {
+				entries.push({ path: file.path, step, via });
+				continue;
+			}
+			const target = callTarget(files, call!.path);
+			if (target !== null && !visited.has(target.path) && depth < MAX_CALL_DEPTH) {
+				visit(target, target.meta ? [...via, target.path] : via, depth + 1);
+			}
+		}
+	};
+	const root = files[path];
+	if (root) {
+		visit(root, [], 1);
+	}
+	return entries;
 }
 
 function readCache(): Record<string, CacheEntry> {
@@ -231,7 +259,16 @@ export const useFlowStore = defineStore("chx350Flows", {
 				const target = (call.c0 === false) ? callTarget(state.files, call.path) : null;
 				return (target?.completes) ? [{ path: file.path, line: call.line, key: "callWithoutC0", params: { flow: target.path } }] : [];
 			}));
-			return [...fromFiles, ...fromCalls, ...titleCollisions(state.files), ...state.runtimeIssues].sort((a, b) => a.path.localeCompare(b.path) || a.line - b.line);
+			// `camera` names steps by title, also those of the files the flow calls
+			const fromCamera = Object.values(state.files).flatMap((file) => {
+				const camera = file.meta?.camera;
+				if (!Array.isArray(camera)) {
+					return [];
+				}
+				const titles = new Set(stepsOf(state.files, file.path).map((entry) => entry.step.title));
+				return camera.filter((title) => !titles.has(title)).map((title) => ({ path: file.path, line: 1, key: "cameraUnknownStep", params: { title } }));
+			});
+			return [...fromFiles, ...fromCalls, ...fromCamera, ...titleCollisions(state.files), ...state.runtimeIssues].sort((a, b) => a.path.localeCompare(b.path) || a.line - b.line);
 		}
 	},
 	actions: {
@@ -268,30 +305,7 @@ export const useFlowStore = defineStore("chx350Flows", {
 		 * first call only, so a helper called in several places does not repeat its steps
 		 */
 		stepsOf(path: string): Array<FlowStepEntry> {
-			const entries: Array<FlowStepEntry> = [];
-			const visited = new Set<string>();
-			const visit = (file: FlowFile, via: Array<string>, depth: number) => {
-				visited.add(file.path);
-				const items = [
-					...file.steps.map((step) => ({ line: step.line, step, call: null })),
-					...file.calls.map((call) => ({ line: call.line, step: null, call }))
-				].sort((a, b) => a.line - b.line);
-				for (const { step, call } of items) {
-					if (step !== null) {
-						entries.push({ path: file.path, step, via });
-						continue;
-					}
-					const target = callTarget(this.files, call!.path);
-					if (target !== null && !visited.has(target.path) && depth < MAX_CALL_DEPTH) {
-						visit(target, target.meta ? [...via, target.path] : via, depth + 1);
-					}
-				}
-			};
-			const root = this.files[path];
-			if (root) {
-				visit(root, [], 1);
-			}
-			return entries;
+			return stepsOf(this.files, path);
 		},
 
 		/** Whether a file runs another one through its calls (M98 with a literal path), directly or further down */

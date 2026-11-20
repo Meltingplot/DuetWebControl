@@ -541,6 +541,8 @@
 			"missingTitle": "Front matter without title – the flow gets no tile.",
 			"invalidPage": "There is no page “{page}” (possible: {pages}).",
 			"invalidOrder": "order must be a number.",
+			"invalidCamera": "camera must be true, false, a step title or a list of step titles.",
+			"cameraUnknownStep": "camera names “{title}”, but the flow has no step with this R title.",
 			"frontMatterUnclosed": "Front matter is not closed with “; ---”.",
 			"titleNotLiteral": "Step without a fixed R title – an R{'{'}…{'}'} expression cannot be matched.",
 			"duplicateTitle": "R title “{title}” occurs more than once in this file.",
