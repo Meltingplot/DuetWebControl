@@ -12,6 +12,9 @@ import { load as loadYaml } from "js-yaml";
  *   the file. The Service page warns about the same title in other files or on a plain M291
  * - `{{ }}` / `{% %}` in the Markdown and in the front matter fields description, hint, enabled and
  *   visible are Jinja (Nunjucks), evaluated by the UI against the live object model
+ * - The UI shows the camera beside a step while the axes move, so the operator sees a malfunction.
+ *   The front matter key `camera` turns it on before they move: for the whole flow (`true`) or for
+ *   the steps it names by R title (`camera: [Bett ausrichten, …]`); `false` keeps it off
  * - `echo ";; Completed"` is the line a flow reaches when it went through. Only that output makes
  *   the UI report it as completed; error lines on the way do not decide (homing resolves some itself)
  * - An `M98` with a literal P path is a call. The UI lists the documented prompts of the called file
@@ -45,7 +48,16 @@ export interface FlowMeta {
 	visible: string | null;
 	/** Shown instead of the description while the tile is disabled (Jinja) */
 	hint: string | null;
+	/**
+	 * Camera beside the step (`camera: true` / `false` / a step title / a YAML list of them): true for
+	 * the whole flow, the titles of the steps whose axis moves it should be on from the start, false
+	 * to keep it off while the axes move. null = not set: it comes on when the axes move
+	 */
+	camera: FlowCamera;
 }
+
+/** Front matter `camera`, see FlowMeta */
+export type FlowCamera = boolean | Array<string> | null;
 
 /** An M291 with a doc block */
 export interface FlowStep {
@@ -116,7 +128,7 @@ export interface GCodeParameter {
 const FRONT_MATTER_FENCE = /^\s*;\s?---\s*$/;
 const DOC_LINE = /^\s*;;/;
 const COMPLETION_LINE = /^echo\s+";; Completed"$/;
-const KNOWN_META_KEYS = ["title", "description", "icon", "page", "order", "enabled", "visible", "hint"];
+const KNOWN_META_KEYS = ["title", "description", "icon", "page", "order", "enabled", "visible", "hint", "camera"];
 
 /**
  * Split a line into its code and comment part. A `;` inside a double-quoted string (also inside
@@ -285,6 +297,21 @@ function parseFrontMatter(lines: Array<string>, firstLine: number, issues: Array
 		}
 	}
 
+	// true/false, one step title or a list of them
+	let camera: FlowCamera = null;
+	if (record.camera !== undefined && record.camera !== null) {
+		if (typeof record.camera === "boolean") {
+			camera = record.camera;
+		} else {
+			const titles = (Array.isArray(record.camera) ? record.camera : [record.camera]).map(asText);
+			if (titles.length > 0 && titles.every((t) => t !== null && t.trim() !== "")) {
+				camera = titles as Array<string>;
+			} else {
+				issues.push({ line: firstLine, key: "invalidCamera" });
+			}
+		}
+	}
+
 	return {
 		title: title.trim(),
 		description: asText(record.description),
@@ -294,7 +321,8 @@ function parseFrontMatter(lines: Array<string>, firstLine: number, issues: Array
 		// YAML reads an unquoted true/false as a boolean
 		enabled: asText(record.enabled),
 		visible: asText(record.visible),
-		hint: asText(record.hint)
+		hint: asText(record.hint),
+		camera
 	};
 }
 

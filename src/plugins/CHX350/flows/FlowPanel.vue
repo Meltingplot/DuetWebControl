@@ -109,8 +109,12 @@
 	grid-template-columns: minmax(0, 1fr);
 	gap: 20px;
 }
-.main__body--jog {
+.main__body--side {
 	grid-template-columns: minmax(0, 1fr) minmax(0, 1.1fr);
+}
+/* Text on top (scrolls when long), the camera takes the rest */
+.main__body--below {
+	grid-template-rows: minmax(0, auto) minmax(220px, 1fr);
 }
 .main__text {
 	min-height: 0;
@@ -181,11 +185,15 @@
 	font: 600 16px/1.3 var(--mp-font-body, sans-serif);
 	color: var(--text-strong);
 }
-.jog {
+.side {
 	min-height: 0;
 	display: flex;
 	flex-direction: column;
 	gap: 12px;
+}
+.side__camera--fill {
+	flex: 1;
+	min-height: 0;
 }
 .jog__row {
 	display: flex;
@@ -279,7 +287,7 @@
 			<div v-if="showTrail" class="chx-label main__flow">{{ trail.join(" › ") }}</div>
 			<h2 class="main__title">{{ heading }}</h2>
 
-			<div class="main__body" :class="{ 'main__body--jog': jogAxes.length > 0 }">
+			<div class="main__body" :class="{ 'main__body--side': cameraOn && jogging, 'main__body--below': cameraOn && !jogging }">
 				<div class="main__text">
 					<!-- Sanitized: DOMPurify has run on it, see flows/render.ts -->
 					<div v-if="content.html" class="md" v-html="content.html" />
@@ -328,9 +336,12 @@
 					</div>
 				</div>
 
-				<!-- Jog step (M291 Z…): the camera shows what the axis is doing -->
-				<div v-if="jogAxes.length > 0" class="jog">
-					<ChxCameraBox>
+				<!-- The camera shows what the axes are doing: on a jog step (M291 Z…) beside the text with
+					 the jog buttons below it, while they move and where the flow asks for it below the
+					 text, as large as the space left allows. Once on it stays connected until the flow
+					 closes, so a later step does not wait for the stream again -->
+				<div v-if="cameraOn || cameraMounted" v-show="cameraOn" class="side">
+					<ChxCameraBox :fill="!jogging" :class="{ 'side__camera--fill': !jogging }">
 						<ChxCamera />
 					</ChxCameraBox>
 					<div v-for="axis in jogAxes" :key="axis.letter" class="jog__row">
@@ -756,6 +767,7 @@ const jogAxes = computed(() => {
 	const mask = box.value?.axisControls ?? 0;
 	return machineStore.model.move.axes.filter((axis, index) => axis.visible && (mask & (1 << index)) !== 0);
 });
+const jogging = computed(() => jogAxes.value.length > 0);
 
 /** Step sizes: Z from the plugin settings, the other axes in mm */
 function jogSteps(axis: Axis): Array<number> {
@@ -777,6 +789,82 @@ function jog(axis: Axis, distance: number) {
 	const code = `M120\nG91\nG1 ${axisGCodeLetter(axis.letter)}${distance} F${maxFeedrate(axis.letter)}\nM121`;
 	machineStore.sendCode(code, false, false, true).catch((e) => console.warn(e));
 }
+
+// #endregion
+
+// #region Camera
+
+/**
+ * Index of the step the flow is in: the open box's, else the one shown last, as the macro runs on
+ * after a prompt with no box open (or with a box nobody documented). -1 before the first step and
+ * in a flow without steps
+ */
+const phase = computed(() => (currentIndex.value >= 0) ? currentIndex.value : lastIndex.value);
+/** The step of the phase; also one not in the list (inserted flow, helper) while its box is open */
+const phaseStep = computed(() => current.value ?? stepList.value[lastIndex.value] ?? null);
+
+/** Front matter `camera` of the flow, or of a called flow the step sits in: on for the whole flow or the steps it names */
+const cameraFlagged = computed(() => {
+	const step = phaseStep.value;
+	return [active.value?.path, ...(step?.via ?? [])].some((path) => {
+		const camera = path ? flowStore.files[path]?.meta?.camera : null;
+		return camera === true || (step !== null && Array.isArray(camera) && camera.includes(step.step.title));
+	});
+});
+
+/** `camera: false` keeps the camera off while the axes move */
+const cameraOff = computed(() => file.value?.meta?.camera === false);
+/** A move is running. The model reports the requested speed of the current move a few times a second */
+const axesMoving = computed(() => machineStore.model.move.currentMove.requestedSpeed > 0);
+
+/**
+ * Steps in which the axes moved: the camera stays on for the rest of the step instead of flickering
+ * between the moves. Moves still running from the previous step do not count for a new one at first
+ */
+const movedPhases = reactive(new Set<number>());
+const PHASE_GRACE_TIME = 1000;
+let graceTimer: ReturnType<typeof setTimeout> | null = null;
+function noteMotion() {
+	if (axesMoving.value && active.value !== null && active.value.result === null && graceTimer === null) {
+		movedPhases.add(phase.value);
+	}
+}
+watch(phase, () => {
+	if (graceTimer !== null) {
+		clearTimeout(graceTimer);
+	}
+	graceTimer = setTimeout(() => {
+		graceTimer = null;
+		noteMotion();
+	}, PHASE_GRACE_TIME);
+});
+watch(axesMoving, noteMotion);
+onBeforeUnmount(() => {
+	if (graceTimer !== null) {
+		clearTimeout(graceTimer);
+	}
+});
+
+const cameraOn = computed(() => {
+	if (active.value === null) {
+		return false;
+	}
+	if (jogging.value || cameraFlagged.value) {
+		return true;
+	}
+	// A step in which the axes moved keeps it, also for the result of a flow that ended there (failed probe)
+	return !cameraOff.value && (movedPhases.has(phase.value) || (active.value.result === null && axesMoving.value));
+});
+const cameraMounted = ref(false);
+watch(cameraOn, (on) => {
+	if (on) {
+		cameraMounted.value = true;
+	}
+}, { immediate: true });
+watch(() => active.value?.path, () => {
+	movedPhases.clear();
+	cameraMounted.value = cameraOn.value;
+});
 
 // #endregion
 </script>

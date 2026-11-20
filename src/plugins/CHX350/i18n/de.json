@@ -541,6 +541,8 @@
 			"missingTitle": "Front-Matter ohne title – der Flow bekommt keine Kachel.",
 			"invalidPage": "page „{page}“ gibt es nicht (möglich: {pages}).",
 			"invalidOrder": "order muss eine Zahl sein.",
+			"invalidCamera": "camera muss true, false, ein Schritt-Titel oder eine Liste von Schritt-Titeln sein.",
+			"cameraUnknownStep": "camera nennt „{title}“, doch der Flow hat keinen Schritt mit diesem R-Titel.",
 			"frontMatterUnclosed": "Front-Matter wird nicht mit „; ---“ abgeschlossen.",
 			"titleNotLiteral": "Schritt ohne festen R-Titel – ein R{'{'}…{'}'}-Ausdruck lässt sich nicht zuordnen.",
 			"duplicateTitle": "R-Titel „{title}“ kommt in dieser Datei mehrfach vor.",

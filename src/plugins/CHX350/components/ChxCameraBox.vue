@@ -34,7 +34,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onBeforeUnmount, onMounted, ref, watch } from "vue";
+import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from "vue";
 
 import { cameraRatio } from "../webcam";
 
@@ -74,18 +74,23 @@ function fit() {
 }
 
 let observer: ResizeObserver | null = null;
-onMounted(() => {
+function unobserve() {
+	if (observer) {
+		observer.disconnect();
+		observer = null;
+	}
+}
+function observe() {
+	unobserve();
 	if (props.fill && typeof ResizeObserver !== "undefined" && box.value) {
 		observer = new ResizeObserver(fit);
 		observer.observe(box.value);
 	}
 	fit();
-});
+}
+onMounted(observe);
+// The flow panel switches a box between the modes without remounting the camera in it
+watch(() => props.fill, () => nextTick(observe));
 watch(ratio, fit);
-onBeforeUnmount(() => {
-	if (observer) {
-		observer.disconnect();
-		observer = null;
-	}
-});
+onBeforeUnmount(unobserve);
 </script>
