@@ -10,7 +10,7 @@
 
 <template>
 	<PanelCard v-model:active-title="activeTab" :titles="titles"
-			   :class="['d-flex', 'flex-column', shouldFill ? 'flex-grow-1' : '']">
+			   :class="['d-flex', 'flex-column', shouldFill ? 'flex-grow-1' : 'w-100 align-self-start']">
 		<v-card-text v-show="activeTab === 0 && hasTemperaturesToDisplay" class="content flex-grow-1 px-2 py-0">
 			<canvas ref="canvasRef" />
 		</v-card-text>
@@ -195,9 +195,9 @@ const hasExtraSensors = computed(() =>
 	machineStore.model.sensors.analog.some((sensor, index) =>
 		sensor !== null && !machineStore.model.heat.heaters.some(heater => heater !== null && heater.sensor === index)));
 
-// The card stretches to match its tallest sibling when it has a chart to draw or a webcam to
-// show; otherwise it collapses to the title so a disconnected dashboard stays compact
-const shouldFill = computed(() => hasTemperaturesToDisplay.value || webcamVisible.value);
+// The card stretches to match its tallest sibling when the active tab has a chart to draw or a
+// webcam to show; otherwise it collapses to its content so a disconnected dashboard stays compact
+const shouldFill = computed(() => hasTemperaturesToDisplay.value || activeTab.value === 1);
 
 const minConfiguredTemperature = computed(() => {
 	let min = 0;

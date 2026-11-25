@@ -10,6 +10,10 @@
 	min-width: 0;
 }
 
+.panel-title-append {
+	min-width: 0;
+}
+
 .panel-titles {
 	min-width: 0;
 	overflow: hidden;
@@ -31,7 +35,7 @@
 <template>
 	<v-card>
 		<v-card-title class="py-2 d-flex align-center">
-			<div ref="titleArea" class="panel-title-area d-flex align-center flex-grow-1">
+			<div ref="titleArea" class="panel-title-area d-flex align-center flex-shrink-1">
 				<div ref="expandedEl" class="panel-titles d-flex align-center" :class="{ 'panel-titles--measuring': collapsed }">
 					<template v-for="(entry, index) in resolvedTitles" :key="index">
 						<v-hover>
@@ -59,25 +63,42 @@
 					</template>
 				</div>
 
-				<v-menu v-if="collapsed" location="bottom start">
-					<template #activator="{ props: menuProps }">
-						<a v-bind="menuProps" href="javascript:void(0)" class="panel-title d-flex align-center">
-							<v-icon size="small" class="mr-1">{{ resolvedTitles[activeTitle]?.icon }}</v-icon>
-							{{ resolvedTitles[activeTitle]?.title }}
-							<v-icon size="small" class="ms-1">mdi-menu-down</v-icon>
-						</a>
+				<v-hover v-if="collapsed">
+					<template #default="{ isHovering, props: hoverProps }">
+						<span v-bind="hoverProps" class="panel-title d-flex align-center">
+							<v-menu location="bottom start">
+								<template #activator="{ props: menuProps }">
+									<a v-bind="menuProps" href="javascript:void(0)" class="d-flex align-center">
+										<v-icon size="small" class="mr-1">{{ resolvedTitles[activeTitle]?.icon }}</v-icon>
+										{{ resolvedTitles[activeTitle]?.title }}
+										<v-icon size="small" class="ms-1">mdi-menu-down</v-icon>
+									</a>
+								</template>
+								<v-list>
+									<v-list-item v-for="(entry, index) in resolvedTitles" :key="index"
+												 :active="index === activeTitle" @click="activeTitle = index">
+										<v-icon size="small" class="mr-1">{{ entry.icon }}</v-icon>
+										{{ entry.title }}
+									</v-list-item>
+								</v-list>
+							</v-menu>
+							<v-btn v-if="showsEditPencil(activeTitle)"
+								   icon="mdi-pencil" variant="text" size="small" density="comfortable" class="ms-1"
+								   :style="{ visibility: isHovering ? 'visible' : 'hidden' }"
+								   :title="$t('dialog.componentSettings.edit')" @click="openDialog(activeTitle)" />
+							<span v-if="slots['title-action-' + activeTitle]" class="d-flex align-center"
+								  :style="{ visibility: (isTouch || isHovering) ? 'visible' : 'hidden' }">
+								<slot :name="'title-action-' + activeTitle" />
+							</span>
+						</span>
 					</template>
-					<v-list>
-						<v-list-item v-for="(entry, index) in resolvedTitles" :key="index"
-									 :active="index === activeTitle" @click="activeTitle = index">
-							<v-icon size="small" class="mr-1">{{ entry.icon }}</v-icon>
-							{{ entry.title }}
-						</v-list-item>
-					</v-list>
-				</v-menu>
+				</v-hover>
 			</div>
 
-			<slot name="title-append" />
+			<!-- The title keeps its natural width and the slot takes the rest, so v-spacers inside it centre or right-align its content -->
+			<div v-if="slots['title-append']" class="panel-title-append d-flex align-center flex-grow-1">
+				<slot name="title-append" />
+			</div>
 		</v-card-title>
 
 		<slot />
