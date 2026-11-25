@@ -123,7 +123,7 @@
 			</template>
 
 			<HoldButton :label="$t('plugins.CHX350.header.estop')" :hint="$t('plugins.CHX350.header.estopHold')"
-						:hold-ms="estopHoldMs" :disabled="uiStore.emergencyStopFrozen" @held="emergencyStop" />
+						:hold-ms="estopHoldMs" :disabled="uiStore.uiDisconnected" @held="emergencyStop" />
 		</div>
 
 		<HeaterDialog :target="heaterTarget" @close="heaterTarget = null" />

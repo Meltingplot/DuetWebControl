@@ -20,6 +20,7 @@ import type { Volume } from "@duet3d/objectmodel";
 import Piecon from "piecon";
 
 import i18n from "@/i18n";
+import { useLargeButtons } from "@/composables/useLargeButtons";
 import { _markAppMounted } from "@/plugins/layout";
 import { useMachineStore } from "@/stores/machine";
 import { useSettingsStore } from "@/stores/settings";
@@ -47,6 +48,10 @@ if (!import.meta.env.DEV) {
 // installs a router guard that cuts off URL escape and is gated to pre-mount registration only
 onMounted(() => _markAppMounted());
 
+// On <html> rather than v-app so teleported menus and dialogs are enlarged too
+const { large: largeButtons } = useLargeButtons();
+watchEffect(() => document.documentElement.classList.toggle("dwc-large-buttons", largeButtons.value));
+
 // #region Document title and favicon job progress (Piecon)
 
 const machineName = computed(() => machineStore.model.network.name || "Duet Web Control");
@@ -56,15 +61,17 @@ const jobProgress = computed(() => machineStore.jobProgress);
 // Title and favicon wedge share one watcher so the title write is always the last writer:
 // Piecon.reset() restores the document.title it captured on its first setProgress call, which
 // would otherwise clobber the title back to a stale "(x%) name" when a print stops.
+// A feed hold reports as a printing state even when only a jog or a macro was moving, so a job file must be loaded as well.
 // Every Piecon.setProgress call swaps in a new data-URL favicon that the browser loads as a
 // request of its own, and jobProgress changes with every status update while printing. A 16/32 px
 // wedge cannot show more than whole percents, so the favicon is only redrawn when those change
-let wasPrinting = false, faviconPercent: number | null = null;
-watch([machineName, status, jobProgress], () => {
-	const printing = isPrinting(status.value);
-	const showProgress = printing && jobProgress.value > 0;
+const jobFileName = computed(() => machineStore.model.job.file.fileName);
+const jobRunning = computed(() => isPrinting(status.value) && !!jobFileName.value);
 
-	if (showProgress) {
+let wasPrinting = false, faviconPercent: number | null = null;
+watch([machineName, status, jobProgress, jobFileName], () => {
+	const printing = jobRunning.value;
+	if (printing) {
 		const percent = Math.round(Math.min(100, Math.max(0, jobProgress.value * 100)));
 		if (percent !== faviconPercent) {
 			Piecon.setProgress(percent);
@@ -76,7 +83,7 @@ watch([machineName, status, jobProgress], () => {
 	}
 	wasPrinting = printing;
 
-	const title = showProgress ? `(${(jobProgress.value * 100).toFixed(1)}%) ${machineName.value}` : machineName.value;
+	const title = printing ?`(${(jobProgress.value * 100).toFixed(1)}%) ${machineName.value}` : machineName.value;
 	if (document.title !== title) {
 		document.title = title;
 	}
@@ -90,9 +97,8 @@ watch([machineName, status, jobProgress], () => {
 // (Settings > General > Behaviour > Switch to Job page on print start). Only navigates when
 // the user is on a page that doesn't already show full job controls - if they're already on
 // /Job/Status or on /Job/Webcam (watching the print live) we leave them alone
-let wasPrintingForNav = isPrinting(status.value);
-watch(status, (current) => {
-	const nowPrinting = isPrinting(current);
+let wasPrintingForNav = jobRunning.value;
+watch(jobRunning, (nowPrinting) => {
 	if (!wasPrintingForNav && nowPrinting && settingsStore.behaviour.switchToJobOnPrintStart
 		&& router.currentRoute.value.path !== "/Job/Status") {
 		router.push("/Job/Status").catch(() => { /* navigation guard rejections are fine */ });

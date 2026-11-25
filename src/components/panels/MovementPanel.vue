@@ -20,6 +20,24 @@
 		<template #title-append>
 			<v-spacer />
 
+			<!-- Feed hold controls, only while something moves or while held -->
+			<template v-if="settings.showFeedHoldControls && isHeld">
+				<CodeButton color="warning" size="small" code="M24" urgent :title="$t('button.feedHold.releaseTitle')" class="me-2">
+					<v-icon start>mdi-play</v-icon>
+					{{ $t("button.feedHold.release") }}
+				</CodeButton>
+				<CodeButton color="error" size="small" code="M25.1 S1" urgent :title="$t('button.feedHoldStop.title')">
+					<v-icon start>mdi-stop</v-icon>
+					{{ $t("panel.jobControl.abortMotion") }}
+				</CodeButton>
+			</template>
+			<CodeButton v-else-if="settings.showFeedHoldControls && motionActive" color="warning" size="small" code="M25.1" urgent :title="$t('button.feedHold.title')">
+				<v-icon start>mdi-hand-back-left</v-icon>
+				{{ $t("panel.jobControl.feedHold") }}
+			</CodeButton>
+
+			<v-spacer />
+
 			<!-- CNC: workplace coordinate selector -->
 			<v-select v-if="cnc" v-model="currentWorkplace" :items="workCoordinates" hide-details
 					  variant="outlined" density="compact" :label="$t('panel.movement.wcs')"
@@ -37,7 +55,7 @@
 				<v-menu location="bottom end">
 					<template #activator="{ props: activatorProps }">
 						<v-btn v-show="visibleAxes.length > 0 && compensationMenuVisible" v-bind="activatorProps"
-							   color="primary" :size="largeBtnSize ?? 'small'" class="mx-0" :elevation="1">
+							   color="primary" size="small" class="mx-0" :elevation="1">
 							{{ isXs ? $t("panel.movement.compensationShort") : $t("panel.movement.compensation") }}
 							<v-icon end>mdi-menu-down</v-icon>
 						</v-btn>
@@ -265,8 +283,7 @@
 				<v-row v-if="settings.showHomeAllButton || (settings.showAxisHomeButtons && !isDelta)"
 					   class="d-flex d-md-none py-2" no-gutters>
 					<v-col v-if="settings.showHomeAllButton">
-						<CodeButton color="primary" code="G28" :disabled="!canHome" :title="$t('button.home.titleAll')"
-									:size="largeBtnSize" block tile>
+						<CodeButton color="primary" code="G28" :disabled="!canHome" :title="$t('button.home.titleAll')" block tile>
 							{{ $t("button.home.captionAll") }}
 						</CodeButton>
 					</v-col>
@@ -274,8 +291,7 @@
 						<v-col v-for="(axis, axisIndex) in visibleAxes" :key="axisIndex">
 							<CodeButton :color="axis.homed ? 'primary' : 'warning'" :disabled="!canHome"
 										:title="$t('button.home.title', [axisGCodeLetter(axis.letter)])"
-										:code="`G28 ${axisGCodeLetter(axis.letter)}`"
-										:size="largeBtnSize" block tile>
+										:code="`G28 ${axisGCodeLetter(axis.letter)}`" block tile>
 								{{ $t("button.home.caption", [axis.letter]) }}
 							</CodeButton>
 						</v-col>
@@ -297,7 +313,7 @@
 						<v-row no-gutters>
 							<v-col v-for="index in numMoveSteps" :key="index" :class="getMoveCellClass(index - 1, cnc)">
 								<CodeButton :code="getMoveCode(axis, index - 1, true)" :disabled="!canMove(axis, true)" no-wait
-											:size="largeBtnSize" block tile class="move-btn"
+											block tile class="move-btn"
 											@contextmenu.prevent="showMoveStepDialog(axis.letter, index - 1)">
 									<v-icon>mdi-chevron-left</v-icon>
 									{{ axis.letter + showSign(-moveSteps(axis.letter)[index - 1]) }}
@@ -311,7 +327,7 @@
 						<v-row no-gutters>
 							<v-col v-for="index in numMoveSteps" :key="index" :class="getMoveCellClass(numMoveSteps - index, cnc)">
 								<CodeButton :code="getMoveCode(axis, numMoveSteps - index, false)" :disabled="!canMove(axis, false)"
-											no-wait :size="largeBtnSize" block tile class="move-btn"
+											no-wait block tile class="move-btn"
 											@contextmenu.prevent="showMoveStepDialog(axis.letter, numMoveSteps - index)">
 									{{ axis.letter + showSign(moveSteps(axis.letter)[numMoveSteps - index]) }}
 									<v-icon>mdi-chevron-right</v-icon>
@@ -348,6 +364,10 @@
 					  :label="$t('panel.movement.settings.showAxisHomeButtons')"
 					  v-hint="$t('panel.movement.settings.showAxisHomeButtonsHint')"
 					  density="comfortable" hide-details />
+			<v-switch v-model="settings.showFeedHoldControls" color="primary"
+					  :label="$t('panel.movement.settings.showFeedHoldControls')"
+					  v-hint="$t('panel.movement.settings.showFeedHoldControlsHint')"
+					  density="comfortable" hide-details />
 
 			<v-divider class="my-3" />
 
@@ -373,7 +393,6 @@ import { useDisplay } from "vuetify";
 import CodeButton from "@/components/buttons/CodeButton.vue";
 import MeshEditDialog from "@/components/dialogs/MeshEditDialog.vue";
 import { useComponentSettings } from "@/composables/useComponentSettings";
-import { useLargeButtons } from "@/composables/useLargeButtons";
 import { defaultMoveSteps, getMoveCellClass, isAxisAtLimit, type MoveStepMap, useMoveSteps } from "@/composables/useMoveSteps";
 import i18n from "@/i18n";
 import { useMachineStore } from "@/stores/machine";
@@ -388,9 +407,9 @@ const props = defineProps<{
 const machineStore = useMachineStore();
 const uiStore = useUiStore();
 const { xs: isXs } = useDisplay();
-// Large-buttons mode lifts every jog / home / compensation button to v-btn size="large"
-// at sm so the FFF jog grid is reachable with a finger
-const { btnSize: largeBtnSize } = useLargeButtons();
+
+const isHeld = computed(() => machineStore.model.state.status === MachineStatus.held);
+const motionActive = computed(() => machineStore.model.move.currentMove.requestedSpeed > 0);
 
 // Compensation drop-down entries the user can show or hide from the panel settings
 type CompensationMenuItem = "runBed" | "disableBedCompensation" | "runMesh" | "editMesh"
@@ -401,6 +420,8 @@ interface MovementPanelSettings {
 	displayedAxes: Array<number> | null;
 	showHomeAllButton: boolean;
 	showAxisHomeButtons: boolean;
+	// Show feed hold, resume and abort in the title while motion is in progress or held
+	showFeedHoldControls: boolean;
 	compensationItems: Array<CompensationMenuItem>;
 	// Feedrate sent with the manual move buttons (G1 F[value]), in mm/min
 	moveFeedrate: number;
@@ -413,6 +434,7 @@ const settings = useComponentSettings<MovementPanelSettings>({
 	displayedAxes: null,
 	showHomeAllButton: true,
 	showAxisHomeButtons: true,
+	showFeedHoldControls: true,
 	moveFeedrate: 6000,
 	moveSteps: defaultMoveSteps(),
 	compensationItems: props.cnc

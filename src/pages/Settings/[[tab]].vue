@@ -287,6 +287,16 @@
 												  :label="$t('settings.display.showEmergencyStop')"
 												  v-hint="$t('settings.display.showEmergencyStopHint')"
 												  density="comfortable" hide-details />
+										<v-select v-model="settingsStore.showFeedHold" :items="showFeedHoldOptions"
+												  item-title="label" item-value="value"
+												  :label="$t('settings.display.showFeedHold')"
+												  v-hint="$t('settings.display.showFeedHoldHint')"
+												  variant="outlined" density="comfortable" hide-details class="my-4" />
+										<v-select v-model="settingsStore.showFeedHoldStop" :items="showFeedHoldOptions"
+												  item-title="label" item-value="value"
+												  :label="$t('settings.display.showFeedHoldStop')"
+												  v-hint="$t('settings.display.showFeedHoldStopHint')"
+												  variant="outlined" density="comfortable" hide-details class="mb-4" />
 										<v-switch v-model="settingsStore.disableAutoComplete" color="primary"
 												  :label="$t('settings.display.disableAutoComplete')"
 												  v-hint="$t('settings.display.disableAutoCompleteHint')"
@@ -643,6 +653,10 @@
 										{{ board.canAddress }}
 									</v-btn>
 									<template v-else>{{ board.canAddress ?? $t("generic.noValue") }}</template>
+									<v-chip v-if="showCanInterfaces && board instanceof ExpansionBoard && board.interface !== null"
+											size="x-small" variant="tonal" class="ml-1">
+										CAN{{ board.interface }}
+									</v-chip>
 								</td>
 								<td v-if="hasAnyVin" class="text-center d-none d-lg-table-cell">
 									<v-tooltip v-if="board.vIn" location="bottom"
@@ -920,7 +934,7 @@
 
 <script setup lang="ts">
 import { DisconnectedError } from "@duet3d/connectors";
-import { NetworkInterfaceState, NetworkInterfaceType } from "@duet3d/objectmodel";
+import { ExpansionBoard, NetworkInterfaceState, NetworkInterfaceType } from "@duet3d/objectmodel";
 
 import { useDisplay } from "vuetify";
 
@@ -936,7 +950,7 @@ import { localStorageSupported, removeLocalSetting } from "@/utils/localStorage"
 import { useCacheStore } from "@/stores/cache";
 import { useMachineStore } from "@/stores/machine";
 import { useMenuStore } from "@/stores/menu";
-import { AutoScrollMode, DashboardMode, LockableSliders, UnitOfMeasure, useSettingsStore, WebcamFlip } from "@/stores/settings";
+import { AutoScrollMode, DashboardMode, FeedHoldButton, LockableSliders, UnitOfMeasure, useSettingsStore, WebcamFlip } from "@/stores/settings";
 import { LogLevel, useUiStore } from "@/stores/ui";
 import { display, displaySize } from "@/utils/display";
 import { isPrinting } from "@/utils/enums";
@@ -1029,6 +1043,7 @@ const hasAnyVin = computed(() => boards.value.some(board => board.vIn != null));
 const hasAnyV12 = computed(() => boards.value.some(board => board.v12 != null));
 const hasAnyMcuTemp = computed(() => boards.value.some(board => board.mcuTemp != null));
 const hasAnyFreeRam = computed(() => boards.value.some(board => board.freeRam != null));
+const showCanInterfaces = computed(() => new Set(boards.value.map(board => (board instanceof ExpansionBoard) ? board.interface : null).filter(canInterface => canInterface !== null)).size > 1);
 
 // Tabs run with comfortable density at xs/sm so the touch target is large enough on phones;
 // md+ stays compact since the cursor doesn't need the bigger hit area
@@ -1083,6 +1098,12 @@ const lockableSlidersOptions = computed(() => [
 	{ label: i18n.global.t("settings.behaviour.lockableSlidersOptions.always"), value: LockableSliders.always },
 	{ label: i18n.global.t("settings.behaviour.lockableSlidersOptions.mobile"), value: LockableSliders.mobile },
 	{ label: i18n.global.t("settings.behaviour.lockableSlidersOptions.disabled"), value: LockableSliders.disabled },
+]);
+
+const showFeedHoldOptions = computed(() => [
+	{ label: i18n.global.t("settings.display.showFeedHoldOptions.cncOnly"), value: FeedHoldButton.cncOnly },
+	{ label: i18n.global.t("settings.display.showFeedHoldOptions.always"), value: FeedHoldButton.always },
+	{ label: i18n.global.t("settings.display.showFeedHoldOptions.never"), value: FeedHoldButton.never }
 ]);
 
 const flipOptions = computed(() => [
