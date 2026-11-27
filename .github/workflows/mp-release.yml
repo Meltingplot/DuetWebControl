@@ -65,11 +65,15 @@ jobs:
           node-version: 24
           cache: npm
 
-      # Type check and build; the prerelease version ships its sourcemaps inside the zips
+      # Unit tests, type check and build; the prerelease version ships its sourcemaps inside the zips.
+      # check-build looks for regressions that only the tree-shaken bundle shows (scripts/mp-check-build.mjs).
+      # Both come from the tag's package.json; --if-present keeps a manual run for an older tag without them working
       - name: Build DuetWebControl
         run: |
           npm ci
+          npm test --if-present
           npm run build
+          npm run check-build --if-present
           npm run build-chx350-sbc
           cp "src/plugins/CHX350/CHX350-$VERSION.zip" dist/CHX350-SBC.zip
           cd dist

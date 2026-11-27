@@ -1,4 +1,6 @@
 import * as d3 from 'd3'
+// d3 is declared side-effect free, so its re-export of d3-transition does not install selection.transition() and selection.interrupt()
+import 'd3-transition'
 import './gauge.css'
 
 import i18n from '@/i18n'
