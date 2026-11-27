@@ -951,7 +951,7 @@
 				"showAxisHomeButtons": "Show per-axis home buttons",
 				"showAxisHomeButtonsHint": "Show the individual home button for each axis",
 				"showFeedHoldControls": "Show feed hold controls",
-				"showFeedHoldControlsHint": "Show a feed hold button in the panel title while motion is in progress, and resume and abort buttons while the machine is held",
+				"showFeedHoldControlsHint": "Show a feed hold button in the panel title, enabled while the machine is busy or moving, and resume and abort buttons while the machine is held",
 				"compensationItems": "Compensation menu entries",
 				"compensationItemsHint": "Choose which entries appear in the compensation menu",
 				"moveFeedrate": "Jog feedrate",
