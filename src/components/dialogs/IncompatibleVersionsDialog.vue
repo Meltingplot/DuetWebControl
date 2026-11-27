@@ -173,10 +173,13 @@ onBeforeUnmount(() => {
 
 const transientStates: MachineStatus[] = [MachineStatus.disconnected, MachineStatus.updating, MachineStatus.starting];
 
-watch(() => machineStore.model.state.status, (to, from) => {
-	if (transientStates.includes(to)) {
+// The status drops back to idle between the boards of a multi-board update, so the pending board list has to hold the check off too
+const checkSuspended = computed(() => transientStates.includes(machineStore.model.state.status) || machineStore.boardsBeingUpdated.length > 0);
+
+watch(checkSuspended, (suspended) => {
+	if (suspended) {
 		cancelCheck();
-	} else if (transientStates.includes(from)) {
+	} else {
 		scheduleCheck();
 	}
 });
