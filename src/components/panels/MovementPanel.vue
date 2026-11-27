@@ -20,7 +20,7 @@
 		<template #title-append>
 			<v-spacer />
 
-			<!-- Feed hold controls, only while something moves or while held -->
+			<!-- Feed hold controls -->
 			<template v-if="settings.showFeedHoldControls && isHeld">
 				<CodeButton color="warning" size="small" code="M24" urgent :title="$t('button.feedHold.releaseTitle')" class="me-2">
 					<v-icon start>mdi-play</v-icon>
@@ -31,7 +31,7 @@
 					{{ $t("panel.jobControl.abortMotion") }}
 				</CodeButton>
 			</template>
-			<CodeButton v-else-if="settings.showFeedHoldControls && motionActive" color="warning" size="small" code="M25.1" urgent :title="$t('button.feedHold.title')">
+			<CodeButton v-else-if="settings.showFeedHoldControls" color="warning" size="small" code="M25.1" urgent :disabled="!canFeedHold" :title="$t('button.feedHold.title')">
 				<v-icon start>mdi-hand-back-left</v-icon>
 				{{ $t("panel.jobControl.feedHold") }}
 			</CodeButton>
@@ -409,7 +409,10 @@ const uiStore = useUiStore();
 const { xs: isXs } = useDisplay();
 
 const isHeld = computed(() => machineStore.model.state.status === MachineStatus.held);
-const motionActive = computed(() => machineStore.model.move.currentMove.requestedSpeed > 0);
+const feedHoldStates: MachineStatus[] = [MachineStatus.busy, MachineStatus.processing, MachineStatus.pausing, MachineStatus.paused, MachineStatus.resuming, MachineStatus.changingTool];
+
+// Macros and jobs sit between moves most of the time, and a board without VIN reports off while it moves
+const canFeedHold = computed(() => feedHoldStates.includes(machineStore.model.state.status) || machineStore.model.move.currentMove.requestedSpeed > 0);
 
 // Compensation drop-down entries the user can show or hide from the panel settings
 type CompensationMenuItem = "runBed" | "disableBedCompensation" | "runMesh" | "editMesh"
